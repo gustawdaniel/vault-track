@@ -1,0 +1,42 @@
+{
+  "name": "open_cash_manager",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "test:e2e": "vue-cli-service test:e2e",
+    "test:unit": "vue-cli-service test:unit"
+  },
+  "dependencies": {
+    "at-ui": "^1.3.3",
+    "at-ui-style": "^1.5.1",
+    "element-ui": "^2.13.1",
+    "fast-json-patch": "^3.0.0-1",
+    "module": "^1.2.5",
+    "promise-worker": "^2.0.1",
+    "qif2json": "github:gustawdaniel/qif2json",
+    "register-service-worker": "^1.7.1",
+    "uid": "^1.0.0",
+    "vue": "^2.6.11",
+    "vue-router": "^3.1.6",
+    "vuedraggable": "^2.23.2",
+    "vuex": "^3.3.0",
+    "vuex-persist": "^2.2.0"
+  },
+  "devDependencies": {
+    "@vue/cli-plugin-babel": "^4.3.1",
+    "@vue/cli-plugin-e2e-cypress": "^4.3.1",
+    "@vue/cli-plugin-pwa": "^4.3.1",
+    "@vue/cli-plugin-unit-jest": "^4.3.1",
+    "@vue/cli-service": "^4.3.1",
+    "@vue/test-utils": "^1.0.0-beta.33",
+    "babel-core": "7.0.0-bridge.0",
+    "babel-jest": "^25.5.1",
+    "node-sass": "^4.14.0",
+    "sass-loader": "^8.0.2",
+    "vue-svg-loader": "^0.16.0",
+    "vue-template-compiler": "^2.6.11",
+    "worker-loader": "^2.0.0"
+  }
+}
