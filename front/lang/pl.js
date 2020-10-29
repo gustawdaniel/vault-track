@@ -6,7 +6,11 @@ export default {
     'transactions-add': 'Dodaj transakcję',
     'account-add': 'Dodaj konto',
     'not-known': 'Nie znana',
-    'transactions-edit': 'Transakcja'
+    'transactions-edit': 'Transakcja',
+    categories: 'Kategorie',
+    projects: 'Projekty',
+    settings: 'Ustawienia',
+    cloud: 'Synchronizacja'
   },
   account: {
     edit: 'Edytuj konto',
@@ -37,6 +41,7 @@ export default {
     create: 'Stwórz harmonogram'
   },
   transaction: {
+    'order': 'Porządek sortowania',
     'really-remove': 'Czy na pewno chcesz usunąć wskazaną transakcję?',
     edit: 'Edytuj transakcję',
     remove: 'Usuń transakcję',
@@ -78,5 +83,28 @@ export default {
     import: "Importuj...",
     export: "Exportuj...",
     truncate: "Wykasuj dane.."
+  },
+  settings: {
+    main: 'Główne',
+    'default-lang': 'Domyślny język',
+    'default-currency': 'Domyślna waluta',
+    'default-currency-sentence': 'Domyślną walutą jest {currency}',
+    'cloud-title': 'Usługi w chmurze (cloud storage)',
+    'cloud-description': 'Użyj chmury (cloud storage) do przechowywania kopii zapasowych',
+    pl: 'Polski',
+    en: 'Angielski'
+  },
+  cloud: {
+    auth: 'Autoryzacja',
+    'auth-description': 'Musisz zezwolić na dostęp do usługi {provider} aby włączyć tę funkcję',
+    cancel: 'Wycofaj autoryzację',
+    'cancel-description':'Wyczyść dane autoryzacji',
+    'sync-now': 'Synchronizuj teraz',
+    'sync-now-not-yet': 'Synchronizacja nie została jeszcze wykonana',
+    'sync-now-ago': 'Synchronizacja została wykonana {ago} temu',
+    'sync-import': 'Imporuj dane',
+    'sync-import-description': 'Wczytaj dane z chmury do aplikacji',
+    'sync-export': 'Eksportuj dane',
+    'sync-export-description': 'Wyślij dane z aplikacji do chmury'
   }
 }

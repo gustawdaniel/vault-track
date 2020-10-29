@@ -6,7 +6,11 @@ export default {
     'transactions-add': 'Add transaction',
     'account-add': 'Add account',
     'not-known': 'Now known',
-    'transactions-edit': 'Transaction'
+    'transactions-edit': 'Transaction',
+    categories: 'Categories',
+    projects: 'Projects',
+    settings: 'Settings',
+    cloud: 'Sync'
   },
   account: {
     edit: 'Edit Account',
@@ -37,6 +41,7 @@ export default {
     create: 'Create schedule'
   },
   transaction: {
+    'order': 'Order',
     'really-remove': 'Are you sure you want to remove selected transaction?',
     edit: 'Edit transaction',
     remove: 'Remove transaction',
@@ -78,5 +83,28 @@ export default {
     import: "Import...",
     export: "Export...",
     truncate: "Truncate Data.."
+  },
+  settings: {
+    main: 'Main',
+    'default-lang': 'Default language',
+    'default-currency': 'Default currency',
+    'default-currency-sentence': 'Default currency is {currency}',
+    'cloud-title': 'Services in cloud (cloud storage)',
+    'cloud-description': 'Use cloud (cloud storage) to store backup copies',
+    pl: 'Polish',
+    en: 'English'
+  },
+  cloud: {
+    auth: 'Authorization',
+    'auth-description': 'You have to allow for access to service {provider} to enable this function',
+    cancel: 'Cancel Authorization',
+    'cancel-description': 'Clear authorization data',
+    'sync-now': 'Sync now',
+    'sync-now-not-yet': 'Sync was not done yet',
+    'sync-now-ago': 'Sync was done {ago} ago',
+    'sync-import': 'Import data',
+    'sync-import-description': 'Download data from cloud to application',
+    'sync-export': 'Export data',
+    'sync-export-description': 'Upload data from application to cloud'
   }
 }

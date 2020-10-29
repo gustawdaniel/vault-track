@@ -2,10 +2,15 @@
   <label>
     <span>{{ $t('transaction.category') }}</span>
 
-    <input readonly
+    <input
            type="text" ref="category" @input="$emit('input', $refs.category.value)"
-           @focus="openDialog"
            class="border p-2 w-full focus:outline-none focus:border-blue-300 focus:outline-none focus:border-blue-300">
+
+
+    <!--    <input readonly-->
+<!--           type="text" ref="category" @input="$emit('input', $refs.category.value)"-->
+<!--           @focus="openDialog"-->
+<!--           class="border p-2 w-full focus:outline-none focus:border-blue-300 focus:outline-none focus:border-blue-300">-->
   </label>
 </template>
 

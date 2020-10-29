@@ -167,8 +167,16 @@
 
       <div class="w-full px-2  my-2">
         <label>
-          <p>{{ $t('transaction.description') }}</p>
+          <span>{{ $t('transaction.description') }}</span>
           <textarea v-model="transaction.description"
+                    class="border p-2 w-full focus:outline-none focus:border-blue-300"/>
+        </label>
+      </div>
+
+      <div class="w-full px-2  my-2">
+        <label>
+          <span>{{ $t('transaction.order') }}</span>
+          <input v-model="transaction.order" type="number"
                     class="border p-2 w-full focus:outline-none focus:border-blue-300"/>
         </label>
       </div>
@@ -204,7 +212,7 @@ export default {
   props: {
     accountName: {
       type: String,
-      required: true
+      required: false
     },
     copyMode: {
       type: Boolean,
@@ -256,7 +264,7 @@ export default {
     } else {
       transaction = {
         payee: '',
-        account: this.accountName,
+        account: this.accountName || '',
         amount: '',
         date: new Date().toISOString().substr(0, 10),
         // type: {code: TRANSACTION_TRANSFER, name: this.$t(`transaction.types.${TRANSACTION_TRANSFER}`)},
@@ -311,10 +319,10 @@ export default {
   },
   methods: {
     async save() {
-      if(this.account.currency === this.targetAccount.currency) {
+      if(this.transaction.type === TRANSACTION_TRANSFER && this.account.currency === this.targetAccount.currency) {
         this.transaction.targetAmount = this.transaction.amount;
       }
-
+      console.log(this.baseTransaction && !this.copyMode);
       if (this.baseTransaction && !this.copyMode) {
         await this.$store.dispatch('transaction/save', {
           where: {...this.baseTransaction},
@@ -327,7 +335,7 @@ export default {
           }
         });
       }
-      return this.$router.push({path: '/transactions', query: {account: this.accountName}})
+      return this.$router.push({path: '/transactions', query: {account: this.accountName || this.transaction.account}})
     },
     updateConversionRate() {
       if (this.transaction.amount && this.transaction.targetAmount) {

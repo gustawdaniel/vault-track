@@ -35,6 +35,10 @@ Steps
 5) start marketing campaing
 6) create desktop app
 
-Stage: plannign. 
+Stage: development. 
 
 Now any code is not written. There is only vision. Any contributors welcome. Create new issue.
+
+Logo
+
+> https://www.epicentrofestival.com/

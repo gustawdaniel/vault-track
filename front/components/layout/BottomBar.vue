@@ -2,7 +2,7 @@
   <div>
     <div class="filler"></div>
 
-    <div class="container mx-a py-2 border-t fixed bottom-0 bg-white">
+    <div class="container mx-a py-2 border-t fixed bottom-0 bg-white" style="transform: translate(-50%); left: 50%;">
       <nav class="flex justify-center">
         <div v-for="(item, index) in menuItems" :key="index" class="w-6 sm:mx-2 md:mx-4">
           <div class="cursor-pointer hover:bg-gray-300 p-1 rounded" @click="item.handler">
@@ -18,11 +18,16 @@
 
 </template>
 
-<script>
-export default {
+<script lang="ts">
+import Vue from 'vue'
+
+import {deserializeQif, QifData, serializeQif} from "qif-ts";
+import {upload} from "~/helpers/upload";
+
+export default Vue.extend({
   name: "BottomBar",
   computed: {
-    menuItems() {
+    menuItems(): { icon: { paths: { d: string }[] } }[] {
       return [
         {
           icon: {
@@ -68,38 +73,42 @@ export default {
     }
   },
   methods: {
-    openThreeDotsMenu(event) {
+    openThreeDotsMenu(event: Event) {
       const ctxMenuData = [
         {
           title: "account.add",
-          handler: (e) => {
+          handler: (e: Event) => {
             this.$router.push({path: '/account/add'})
           }
         },
         {
           title: "common.database",
-          handler: async e => {
+          handler: async (e: Event) => {
 
             await this.$nextTick();
 
             const ctxMenuData = [
               {
                 title: "database.import",
-                handler: (e) => {
+                handler: async (e: Event) => {
                   console.log("import", e);
+                  const text = await upload()
+
+                  return this.$store.dispatch('database/import', text);
                 }
               },
               {
                 title: "database.export",
-                handler: (e) => {
+                handler: (e: Event) => {
                   console.log("export", e)
                   this.$store.dispatch('database/export');
                 }
               },
               {
                 title: "database.truncate",
-                handler: (e) => {
+                handler: (e: Event) => {
                   console.log("truncate", e)
+                  this.$store.dispatch('database/truncate');
                 }
                 // handler: this.toggleShowHidden.bind(this, element)
               }
@@ -111,8 +120,8 @@ export default {
         },
         {
           title: "common.settings",
-          handler: (e) => {
-            console.log(e)
+          handler: (e: Event) => {
+            this.$router.push({path: '/settings'})
           }
         }
       ];
@@ -120,7 +129,7 @@ export default {
       this.$root.$emit("contextmenu", {event, ctxMenuData});
     }
   },
-}
+});
 </script>
 
 <style scoped>
