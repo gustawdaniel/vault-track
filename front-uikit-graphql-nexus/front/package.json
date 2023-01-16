@@ -18,7 +18,7 @@
     "@vue/cli-plugin-vuex": "~4.3.1",
     "@vue/cli-service": "~5.0.8",
     "graphql-tag": "^2.9.0",
-    "node-sass": "^4.14.0",
+    "node-sass": "^7.0.0",
     "sass-loader": "^8.0.2",
     "vue-cli-plugin-apollo": "~0.21.3",
     "vue-cli-plugin-uikit": "~1.0.15",
