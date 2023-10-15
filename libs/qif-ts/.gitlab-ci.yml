@@ -1,0 +1,6 @@
+verify:
+  stage: test
+  image: cluskii/angular_test
+  script:
+    - npm install
+    - npm run prepare

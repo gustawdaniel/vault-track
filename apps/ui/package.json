@@ -1,0 +1,45 @@
+{
+  "name": "nuxt-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "test": "vitest",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "eslint --ext \".ts,.vue\" --ignore-path .gitignore . --fix",
+    "prettier": "prettier --write --list-different ."
+  },
+  "devDependencies": {
+    "@nuxt/devtools": "latest",
+    "@types/object-hash": "^3.0.4",
+    "@vueuse/core": "^10.5.0",
+    "@vueuse/nuxt": "^10.5.0",
+    "eslint-plugin-prettier": "^5.0.1",
+    "jsdom": "^22.1.0",
+    "nuxt": "^3.7.4",
+    "vue": "^3.3.4",
+    "vue-router": "^4.2.5"
+  },
+  "dependencies": {
+    "@nuxt/test-utils": "^3.7.4",
+    "@nuxt/ui": "^2.9.0",
+    "@nuxtjs/eslint-config-typescript": "^12.1.0",
+    "@pinia/nuxt": "^0.5.0",
+    "@typescript-eslint/parser": "^6.7.5",
+    "dayjs": "^1.11.10",
+    "eslint": "^8.51.0",
+    "eslint-config-prettier": "^9.0.0",
+    "object-hash": "^3.0.0",
+    "pinia": "^2.1.7",
+    "prettier": "^3.0.3",
+    "qif-ts": "*",
+    "qif2json": "*",
+    "typescript": "^5.2.2",
+    "uid": "^2.0.2",
+    "vitest": "^0.33.0",
+    "zod": "^3.22.4"
+  }
+}

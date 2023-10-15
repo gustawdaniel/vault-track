@@ -1,7 +1,0 @@
-#import "./TransactionFragment.gql"
-
-query transactions($where: TransactionWhereInput){
-    transactions(where: $where) {
-        ...transaction
-    }
-}

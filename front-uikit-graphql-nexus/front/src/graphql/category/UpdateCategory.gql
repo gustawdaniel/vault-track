@@ -1,7 +1,0 @@
-#import "./CategoryFragment.gql"
-
-mutation updateOneCategory($data: CategoryUpdateInput! $where: CategoryWhereUniqueInput!) {
-    updateOneCategory(data: $data where: $where) {
-        ...category
-    }
-}

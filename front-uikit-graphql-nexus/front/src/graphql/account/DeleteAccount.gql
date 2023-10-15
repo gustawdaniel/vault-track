@@ -1,7 +1,0 @@
-#import "./AccountFragment.gql"
-
-mutation deleteOneAccount($where: AccountWhereUniqueInput!) {
-    deleteOneAccount(where: $where) {
-        ...account
-    }
-}

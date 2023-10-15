@@ -1,7 +1,0 @@
-#import "./TransactionFragment.gql"
-
-mutation createOneTransaction($data: TransactionCreateInput!) {
-    createOneTransaction(data: $data) {
-        ...transaction
-    }
-}

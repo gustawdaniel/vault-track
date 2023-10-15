@@ -1,7 +1,0 @@
-#import "./AccountFragment.gql"
-
-query {
-    accounts {
-        ...account
-    }
-}

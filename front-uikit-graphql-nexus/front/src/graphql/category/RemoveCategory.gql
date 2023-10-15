@@ -1,7 +1,0 @@
-#import "./CategoryFragment.gql"
-
-mutation deleteOneCategory($where: CategoryWhereUniqueInput!) {
-    deleteOneCategory(where: $where) {
-        ...category
-    }
-}

@@ -1,7 +1,0 @@
-#import "./AccountFragment.gql"
-
-mutation createOneAccount($data: AccountCreateInput!) {
-    createOneAccount(data: $data) {
-        ...account
-    }
-}

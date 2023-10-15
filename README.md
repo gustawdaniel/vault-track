@@ -1,44 +1,48 @@
-# open cash manager
-Free application for managing cash and synhronise with external sources of data.
+# Open Cash Manager
 
-Our main features
+Architecture:
 
-+ blockchain based synchronization
-+ your data storage
-+ modern user panel
-+ open source
-+ QIF elasticity
-+ CashDroid as base 100,000+ installs, 4.4 - 1,961 total reviews
-+ Reason why is it developed - cash dorid is not supported
-+ mobile app, desktop apps, created by low cost by electron / native script, everything with vue integrated
-+ installation by snap
-+ support from sponsors
+UI (pinia) -> stream of atomic operations
 
-Summary:
+First operation: account creation for unique id. This operation has assigned uuid by server.
 
-1) QIF as base
-2) Any hosting of main QIF
-3) Clients on any platform
-4) Serverless Synchronization by lambda, ( our lambda paid or selfhosted )
-5) Only synchronization by out lambda will be paid, because of we need to pay for servers and lambda are simples way to create reasonable architecture.
-6) Web access like keeweb.info, without our backend will be free.
+Next, if you want to save, then send prev hash, 
+ if it is different then you will get all operations from lash hash that you remember.
 
-Steps
+then:
+a) revert your operations to this hash
+b) apply operations from server
+c) apply your operations
 
-<--- we are here
+So any operation should be revertable.
 
-0) do courses in todo list
-1) create web client
-2) create serverless communication between to dropboc and handle synchronization
-3) create mobile app
-4) cover features of CahsDroid on mobile
-5) start marketing campaing
-6) create desktop app
+In case of creation, reverse operation is deletion
+In case of deletion, reversing operation should contain all deleted object properties to create is again
+In case of update we need snapshot before update and after update
 
-Stage: development. 
+All resources have:
+a) collection
+b) id
+c) data (general json)
 
-Now any code is not written. There is only vision. Any contributors welcome. Create new issue.
+op: c|u|d (create update delete)
+id: uuid|mongoid
+c: collection
+0: initial state (without id)
+1: final state (without id)
 
-Logo
+---
 
-> https://www.epicentrofestival.com/
+You should be able to download all by websocket and http to be updated
+
+Backup of data should be available also, so you generally need data and last snapshot id for pure restore.
+Last id should be attached to any server response.
+
+Steps:
+- create front
+- create qif import
+- create qif export
+- create backend
+- create account
+
+QFI spec: http://moneymvps.org/articles/qifspecification.aspx

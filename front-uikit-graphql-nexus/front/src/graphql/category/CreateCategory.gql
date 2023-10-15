@@ -1,7 +1,0 @@
-#import "./CategoryFragment.gql"
-
-mutation createOneCategory($data: CategoryCreateInput!) {
-    createOneCategory(data: $data) {
-        ...category
-    }
-}

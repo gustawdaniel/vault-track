@@ -1,5 +1,0 @@
-fragment category on Category {
-    id
-    name
-    color
-}

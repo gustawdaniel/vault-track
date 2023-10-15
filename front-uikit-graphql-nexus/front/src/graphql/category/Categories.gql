@@ -1,7 +1,0 @@
-#import "./CategoryFragment.gql"
-
-query {
-    categories {
-        ...category
-    }
-}

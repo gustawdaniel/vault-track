@@ -1,7 +1,0 @@
-#import "./AccountFragment.gql"
-
-mutation updateOneAccount($data: AccountUpdateInput! $where: AccountWhereUniqueInput!) {
-    updateOneAccount(data: $data, where: $where) {
-        ...account
-    }
-}

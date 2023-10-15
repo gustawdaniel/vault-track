@@ -1,7 +1,0 @@
-#import "./TransactionFragment.gql"
-
-mutation updateOneTransaction($data: TransactionUpdateInput! $where: TransactionWhereUniqueInput!) {
-    updateOneTransaction(data: $data where: $where) {
-        ...transaction
-    }
-}
