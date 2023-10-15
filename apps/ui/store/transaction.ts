@@ -3,6 +3,8 @@ import hash from 'object-hash';
 
 import { defineStore } from 'pinia';
 import z from 'zod';
+import { uid } from 'uid';
+import { ComputedAccount } from '~/store/account';
 
 export const TransactionModel = z.object({
   id: z.string(),
@@ -23,9 +25,14 @@ export interface Transaction {
   date: string;
   payee?: string;
   memo?: string;
+  clearedStatus?: string;
 }
 
-interface FullTransaction extends Transaction {
+interface PersistedTransaction extends Transaction {
+  id: string;
+}
+
+export interface FullTransaction extends PersistedTransaction {
   hash: string;
 }
 
@@ -34,10 +41,13 @@ interface State {
 }
 
 class Trx {
-  data: Transaction;
+  data: PersistedTransaction;
 
-  constructor(transaction: Transaction) {
-    this.data = transaction;
+  constructor(transaction: Transaction | PersistedTransaction) {
+    this.data = {
+      ...transaction,
+      id: 'id' in transaction ? transaction.id : uid(),
+    };
   }
 
   _hash: string | undefined;
@@ -80,6 +90,35 @@ export const useTransactionStore = defineStore('transaction', {
       } else {
         this.$state.transactions.splice(index, 1, trx.json);
       }
+    },
+    changeAccountName({
+      fromName,
+      fromId,
+      to,
+    }: {
+      fromName: string;
+      fromId: string;
+      to: string;
+    }) {
+      if (fromName === to) return;
+
+      this.$state.transactions = this.$state.transactions.map((tx) => {
+        if (tx.account === fromName || tx.accountId === fromId) {
+          return Object.assign(tx, { account: to });
+        } else if (tx.category === `[${fromName}]`) {
+          return Object.assign(tx, { category: `[${to}]` });
+        } else {
+          return tx;
+        }
+      });
+    },
+    getAllByAccountId(accountId: string): FullTransaction[] {
+      return this.$state.transactions.filter(
+        (tx) => tx.accountId === accountId,
+      );
+    },
+    getById(id: string): FullTransaction | undefined {
+      return this.$state.transactions.find((t) => t.id === id);
     },
   },
 });

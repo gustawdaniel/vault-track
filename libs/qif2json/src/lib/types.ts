@@ -4,7 +4,12 @@ export type ParseOptions = {
 
 export type Type = {
 	type?: string;
-	list_name?: 'accounts' | 'transactions' | 'categories' | 'classes' | 'memorized_lists';
+	list_name?:
+	| 'accounts'
+	| 'transactions'
+	| 'categories'
+	| 'classes'
+	| 'memorized_lists';
 	name?: string;
 	description?: string;
 };
@@ -28,6 +33,7 @@ export type Entity = Transaction & {
 	clearedStatus?: string;
 	division?: Division[];
 	number?: string;
+	currency?: string;
 };
 
 export type Data = {

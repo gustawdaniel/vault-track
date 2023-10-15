@@ -1,6 +1,13 @@
 import {detect} from 'jschardet';
 import Iconv from 'iconv-lite';
-import {type Data, type Division, type Entity, type ParseOptions, type Type, TYPES} from './types';
+import {
+	type Data,
+	type Division,
+	type Entity,
+	type ParseOptions,
+	type Type,
+	TYPES,
+} from './types';
 import type stream from 'stream';
 import {parseDate} from './parseDate';
 
@@ -8,7 +15,13 @@ type Account = {
 	name?: string;
 };
 
-function appendEntity(data: Data, type: Type, entity: Entity, currentBankName: string, isMultiAccount: boolean) {
+function appendEntity(
+	data: Data,
+	type: Type,
+	entity: Entity,
+	currentBankName: string,
+	isMultiAccount: boolean,
+) {
 	if (isMultiAccount && currentBankName && type.list_name === 'transactions') {
 		entity.account = currentBankName;
 	}
@@ -18,9 +31,10 @@ function appendEntity(data: Data, type: Type, entity: Entity, currentBankName: s
 		return data;
 	}
 
-	if (type.list_name === 'accounts'
-        && Object.hasOwnProperty.call(data, 'accounts')
-        && data.accounts?.find((a: Account) => a.name === entity.name)
+	if (
+		type.list_name === 'accounts'
+    && Object.hasOwnProperty.call(data, 'accounts')
+    && data.accounts?.find((a: Account) => a.name === entity.name)
 	) {
 		return data; // Skip duplicates
 	}
@@ -39,7 +53,11 @@ function appendEntity(data: Data, type: Type, entity: Entity, currentBankName: s
 
 function clean(line: string): string {
 	line = line.trim();
-	if (line.charCodeAt(0) === 239 && line.charCodeAt(1) === 187 && line.charCodeAt(2) === 191) {
+	if (
+		line.charCodeAt(0) === 239
+    && line.charCodeAt(1) === 187
+    && line.charCodeAt(2) === 191
+	) {
 		line = line.substring(3);
 	}
 
@@ -57,7 +75,9 @@ function getTypeByName(line: string, typeName: string): Type {
 	}
 
 	if (!type) {
-		throw new Error(`File does not appear to be a valid qif file: ${line}. Type ${typeName} is not supported.`);
+		throw new Error(
+			`File does not appear to be a valid qif file: ${line}. Type ${typeName} is not supported.`,
+		);
 	}
 
 	return type;
@@ -89,7 +109,10 @@ function addCategory(data: Data, category: string): void {
 	data.categories.push(entity);
 }
 
-export function parse(qif: string, options?: {dateFormat?: string | string[] | undefined}): Data {
+export function parse(
+	qif: string,
+	options?: {dateFormat?: string | string[] | undefined},
+): Data {
 	/* eslint no-multi-assign: "off", no-param-reassign: "off",
       no-continue: "off", prefer-destructuring: "off", no-case-declarations: "off" */
 	const lines = qif.split('\n');
@@ -108,8 +131,7 @@ export function parse(qif: string, options?: {dateFormat?: string | string[] | u
 	let i = 0;
 	let line: string;
 
-	// eslint-disable-next-line no-cond-assign
-	while (line = lines.shift() ?? '') {
+	while ((line = lines.shift() ?? '')) {
 		line = clean(line);
 		i += 1;
 
@@ -151,7 +173,9 @@ export function parse(qif: string, options?: {dateFormat?: string | string[] | u
 				entity.memo = line.substring(1);
 				break;
 			case 'A':
-				entity.address = (entity.address ? entity.address : [] as string[]).concat(line.substring(1));
+				entity.address = (
+					entity.address ? entity.address : ([] as string[])
+				).concat(line.substring(1));
 				break;
 			case 'P':
 				entity.payee = line.substring(1).replace(/&amp;/g, '&');
@@ -161,7 +185,12 @@ export function parse(qif: string, options?: {dateFormat?: string | string[] | u
 				addCategory(data, line.substring(1));
 				break;
 			case 'C':
-				entity.clearedStatus = line.substring(1);
+				if (type.list_name === 'accounts') {
+					entity.currency = line.substring(1);
+				} else {
+					entity.clearedStatus = line.substring(1);
+				}
+
 				break;
 			case 'S':
 				division.category = line.substring(1);
@@ -186,14 +215,22 @@ export function parse(qif: string, options?: {dateFormat?: string | string[] | u
 				}
 
 				if (!isMultiAccount) {
-					data = appendEntity(data, {list_name: 'accounts'}, {type: typeName}, currentBankName, isMultiAccount);
+					data = appendEntity(
+						data,
+						{list_name: 'accounts'},
+						{type: typeName},
+						currentBankName,
+						isMultiAccount,
+					);
 				}
 
 				type = getTypeByName(line, typeName);
 
 				break;
 			default:
-				throw new Error(`Unknown Detail Code: ${line[0]} in line ${i} with content: "${line}"`);
+				throw new Error(
+					`Unknown Detail Code: ${line[0]} in line ${i} with content: "${line}"`,
+				);
 		}
 	}
 
@@ -204,7 +241,10 @@ export function parse(qif: string, options?: {dateFormat?: string | string[] | u
 	return data;
 }
 
-export function parseInput(qifData: Buffer | string, options?: ParseOptions): Data {
+export function parseInput(
+	qifData: Buffer | string,
+	options?: ParseOptions,
+): Data {
 	options = options ?? {};
 
 	qifData = qifData.toString();
@@ -212,7 +252,10 @@ export function parseInput(qifData: Buffer | string, options?: ParseOptions): Da
 	return parse(qifData, options);
 }
 
-export async function parseStream(stream: stream, options?: ParseOptions): Promise<Data> {
+export async function parseStream(
+	stream: stream,
+	options?: ParseOptions,
+): Promise<Data> {
 	let qifData = '';
 	options = options ?? {};
 
@@ -228,4 +271,3 @@ export async function parseStream(stream: stream, options?: ParseOptions): Promi
 		});
 	});
 }
-

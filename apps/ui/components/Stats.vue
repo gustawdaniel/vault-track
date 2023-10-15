@@ -6,6 +6,10 @@ import { useTransactionStore } from '~/store/transaction';
 const accountStore = useAccountStore();
 const categoryStore = useCategoryStore();
 const transactionStore = useTransactionStore();
+
+function computeBalance() {
+  accountStore.computeAllBalances();
+}
 </script>
 
 <template>
@@ -15,6 +19,7 @@ const transactionStore = useTransactionStore();
       {{ accountStore.accounts.length }} | Trx:
       {{ transactionStore.transactions.length }}
     </p>
+    <button class="border" @click="computeBalance">Compute balance</button>
   </div>
 </template>
 

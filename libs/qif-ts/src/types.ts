@@ -28,7 +28,7 @@ export enum QifType {
   Memorized = '!Type:Memorized',
 }
 
-export type QifAccountType = 'Cash' | 'Bank' | 'Card';
+export type QifAccountType = 'Cash' | 'Bank' | 'CCard';
 
 export type QifAccount = {
   name: string; // N

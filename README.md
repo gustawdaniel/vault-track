@@ -6,8 +6,8 @@ UI (pinia) -> stream of atomic operations
 
 First operation: account creation for unique id. This operation has assigned uuid by server.
 
-Next, if you want to save, then send prev hash, 
- if it is different then you will get all operations from lash hash that you remember.
+Next, if you want to save, then send prev hash,
+if it is different then you will get all operations from lash hash that you remember.
 
 then:
 a) revert your operations to this hash
@@ -39,6 +39,7 @@ Backup of data should be available also, so you generally need data and last sna
 Last id should be attached to any server response.
 
 Steps:
+
 - create front
 - create qif import
 - create qif export
@@ -46,3 +47,34 @@ Steps:
 - create account
 
 QFI spec: http://moneymvps.org/articles/qifspecification.aspx
+
+### Cleared Status
+
+Cleared status. Values are blank (unreconciled/not cleared),
+"*" or "c" (cleared) and "X" or "R" (reconciled).
+
+| Sign | Meaning      | Docs                     |
+|------|--------------|--------------------------|
+|      | Unreconciled | unreconciled/not cleared | 
+| *    | Cleared      | "*" or "c" (cleared)     |     
+| X    | Reconciled   | "X" or "R" (reconciled)  |
+| ?    | Void         | not mentioned            |
+
+---
+
+Next tasks:
+
+- project
+- status
+- split
+    - amount
+    - type Expense, Income, Transfer to, Transfer from
+    - category
+    - project
+    - memo
+- memo
+
+- amountFrom
+- amountTo
+- exchange rate
+- toAccount
