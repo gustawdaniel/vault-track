@@ -21,7 +21,7 @@ const emit = defineEmits(['submit']);
 
 function submit(event: FormSubmitEvent<any>) {
   // Do something with data
-  console.log(event.data);
+  // console.log(event.data);
 
   const accountStore = useAccountStore();
   accountStore.update(props.account.id, event.data);

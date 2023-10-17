@@ -2,15 +2,15 @@ import type { QifAccount, QifAccountType } from 'qif-ts';
 import { defineStore } from 'pinia';
 import { RemovableRef, useLocalStorage } from '@vueuse/core';
 import { uid } from 'uid';
-import z from 'zod';
+import { z } from 'zod';
 import { useTransactionStore } from '~/store/transaction';
-import { currencies, Currency, sumArray, getCurrency } from '~/store/currency';
+import { Currency, sumArray, getCurrency, sum } from '~/store/currency';
 
 export const AccountModel = z.object({
   id: z.string(),
   name: z.string(),
   type: z.enum(['Cash', 'Bank', 'Invst', 'CCard']),
-  currency: z.enum(currencies).optional(),
+  currency: z.string().optional(), // z.enum(currencies).optional(),
   description: z.string().optional(),
   order: z.number().optional(),
   hidden: z.boolean().optional(),
@@ -63,7 +63,7 @@ export const useAccountStore = defineStore('account', {
       }
     },
     update(accountId: string, accountData: Omit<Account, 'id'>) {
-      const index = this.$state.accounts.findIndex((a) => a.id === accountId);
+      const index = this.getIndexById(accountId);
       if (index === -1) throw new Error(`Account ${accountId} not found`);
 
       const foundAccount = this.$state.accounts[index];
@@ -83,6 +83,15 @@ export const useAccountStore = defineStore('account', {
         1,
         Object.assign(foundAccount, accountData),
       );
+    },
+    pathBalance(accountId: string, diff: number) {
+      const account = this.getById(accountId);
+      if (account) {
+        account.balance = sum(account.balance, diff, account.currency);
+      }
+    },
+    getIndexById(accountId: string): number {
+      return this.$state.accounts.findIndex((a) => a.id === accountId);
     },
     computeBalanceById(accountId: string) {
       const transactionStore = useTransactionStore();

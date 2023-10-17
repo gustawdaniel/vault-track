@@ -16,6 +16,8 @@ import AccountsList from '~/components/account/AccountsList.vue';
     <AccountsList />
     <hr />
     <Categories />
+    <hr />
+    <ProjectList />
   </div>
 </template>
 

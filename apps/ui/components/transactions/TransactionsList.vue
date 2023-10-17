@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { FullTransaction, useTransactionStore } from '~/store/transaction';
-import { useCategoryStore } from '~/store/category';
+import { getFullCategoryName, useCategoryStore } from '~/store/category';
 import { useAccountStore } from '~/store/account';
 import { Currency, sum } from '~/store/currency';
 
@@ -30,13 +30,11 @@ const transactions = computed<ExtendedFullTransaction[]>(
     const transactions = transactionStore.transactions
       .filter((t) => (filter ? t.accountId === filter.accountId : true))
       .map((t) => {
-        const category = categoryStore.categories.find(
-          (c) => c.category === t.category,
-        );
+        const color = categoryStore.getColorByCategory(t.category);
         const account = accountStore.getById(t.accountId);
         return {
           ...t,
-          color: category ? category.color : 'transparent',
+          color,
           currency: account ? account.currency : 'USD',
           accountSubBalance: 0,
         };
@@ -47,6 +45,8 @@ const transactions = computed<ExtendedFullTransaction[]>(
       subBalance = sum(subBalance, transaction.amount, transaction.currency);
       transaction.accountSubBalance = subBalance;
     }
+
+    transactions.sort((a, b) => a.date.localeCompare(b.date));
 
     return transactions;
   },
@@ -76,7 +76,9 @@ const transactions = computed<ExtendedFullTransaction[]>(
                 {{ transaction.account }}
               </p>
               <p class="font-bold">{{ transaction.payee }}</p>
-              <p class="text-xs">{{ transaction.category }}</p>
+              <p class="text-xs">
+                {{ getFullCategoryName(transaction) }}
+              </p>
             </div>
             <div class="text-right">
               <p

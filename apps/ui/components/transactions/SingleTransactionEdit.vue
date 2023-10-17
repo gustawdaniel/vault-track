@@ -1,11 +1,22 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
 import { FormError, FormSubmitEvent } from '#ui/types';
-import dayjs from 'dayjs';
-import { FullTransaction } from '~/store/transaction';
+import {
+  FullTransaction,
+  Transaction,
+  useTransactionStore,
+} from '~/store/transaction';
 import { Account, useAccountStore } from '~/store/account';
-import { useCategoryStore } from '~/store/category';
-import { getRandomColor } from '~/utils/getRandomColor';
+import CategoryPicker from '~/components/category/CategoryPicker.vue';
+import AmountInput from '~/components/transactions/input/AmountInput.vue';
+import AccountPicker from '~/components/transactions/input/AccountPicker.vue';
+import DatePicker from '~/components/transactions/input/DatePicker.vue';
+import TypePicker from '~/components/transactions/input/TypePicker.vue';
+import ClearedStatusPicker from '~/components/transactions/input/ClearedStatusPicker.vue';
+import {
+  ClearedStatus,
+  getClearedStatusFromString,
+} from '~/store/clearedStatus';
 
 const props = defineProps<{
   transaction: FullTransaction;
@@ -20,8 +31,12 @@ type NormalTransactionContext = Pick<
 > & {
   absoluteAmount: number;
   type: 'expense' | 'income';
+  clearedStatus: ClearedStatus;
 };
-type CommonTransactionContext = Pick<FullTransaction, 'payee' | 'date'>;
+type CommonTransactionContext = Pick<
+  FullTransaction,
+  'payee' | 'date' | 'memo'
+>;
 
 type TransactionContext = CommonTransactionContext &
   (NormalTransactionContext | TransferContext);
@@ -40,6 +55,7 @@ function transactionToContext(
   const common: CommonTransactionContext = {
     payee: transaction.payee,
     date: transaction.date,
+    memo: transaction.memo,
   };
 
   if (isTransfer(transaction)) {
@@ -54,106 +70,82 @@ function transactionToContext(
       category: transaction.category,
       absoluteAmount: Math.abs(transaction.amount),
       accountId: transaction.accountId,
+      clearedStatus: getClearedStatusFromString(transaction.clearedStatus),
     };
   }
 }
 
 const state = ref<TransactionContext>(transactionToContext(props.transaction));
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const validate = (state: any): FormError[] => {
+  // TODO: add validation
   return [];
 };
 
-function submit(event: FormSubmitEvent<any>) {
-  console.log(event);
-}
-
-const accounts = computed<Array<Pick<Account, 'id' | 'name' | 'currency'>>>(
-  () => {
-    const accountStore = useAccountStore();
-    return accountStore.accounts.map((a) => ({
-      id: a.id,
-      name: a.name,
-      currency: a.currency,
-    }));
-  },
-);
-// TODO: sync account id
-
-const currentAccount = computed<Pick<Account, 'id' | 'name'> | undefined>(
-  () => {
-    return accounts.value.find(
-      (account) =>
-        'accountId' in state.value && account.id === state.value.accountId,
-    );
-  },
-);
-
-function setAccount(value: string): void {
-  if ('accountId' in state.value) {
-    state.value.accountId = value;
+function getAmountFromNormalContext(data: NormalTransactionContext): number {
+  switch (data.type) {
+    case 'income':
+      return data.absoluteAmount;
+    case 'expense':
+      return -data.absoluteAmount;
+    default:
+      return 0;
   }
-  // const account = accounts.value.find(
-  //   (account) => account.id === state.value.accountId,
-  // );
-  // if (account) {
-  //   state.value.account = account.name;
-  // }
 }
 
-const date = computed<Date>({
-  get() {
-    return dayjs(state.value.date).toDate();
-  },
-  set(date) {
-    state.value.date = dayjs(date).format('YYYY-MM-DDT00:00:00');
-  },
-});
-const dateLabel = computed(() =>
-  date.value.toLocaleDateString('pl', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }),
-);
-
-export type TransferContextType = 'expense' | 'income' | 'transfer';
-
-const types: Array<{
-  id: TransferContextType;
-  name: string;
-}> = [
-  { id: 'expense', name: 'Expense' },
-  { id: 'income', name: 'Income' },
-  { id: 'transfer', name: 'Transfer' },
-];
-
-function setType(value: TransferContextType): void {
-  state.value.type = value;
-}
-
-function ucFirst(word: string): string {
-  if (!word) return '';
-  return word.substring(0, 1).toUpperCase() + word.substring(1);
-}
-
-const categoryStore = useCategoryStore();
-
-function setCategory(
-  value:
-    | string
-    | {
-        category: string;
-      },
-): void {
-  if (state.value.type === 'income' || state.value.type === 'expense') {
-    if (typeof value === 'string') {
-      state.value.category = value;
-    } else {
-      categoryStore.create({ category: value.category });
-      state.value.category = value.category;
+function submit(event: FormSubmitEvent<TransactionContext>) {
+  const updates = new Map<string, Transaction>();
+  // eslint-disable-next-line no-console
+  console.log(event.data);
+  if (event.data.type === 'income' || event.data.type === 'expense') {
+    // const transaction
+    // updates.set(event.data.)
+    const account = currentAccount.value;
+    if (!account) {
+      throw new Error(
+        `Current account not found for id ${event.data.accountId}`,
+      );
     }
+
+    updates.set(props.transaction.id, {
+      amount: getAmountFromNormalContext(event.data),
+      accountId: event.data.accountId,
+      account: account.name,
+      date: event.data.date,
+      memo: event.data.memo,
+      category: event.data.category,
+      payee: event.data.payee,
+      clearedStatus: event.data.clearedStatus,
+    });
+
+    // emit('exit');
   }
+
+  const transactionStore = useTransactionStore();
+
+  for (const [id, update] of updates.entries()) {
+    transactionStore.update(id, update);
+  }
+
+  emit('exit');
+}
+
+const currentAccount = computed<
+  Pick<Account, 'id' | 'name' | 'currency'> | undefined
+>(() => {
+  const accountStore = useAccountStore();
+
+  return accountStore.accounts.find(
+    (account) =>
+      'accountId' in state.value && account.id === state.value.accountId,
+  );
+});
+
+const emit = defineEmits(['exit']);
+
+function cancel() {
+  emit('exit');
 }
 </script>
 
@@ -164,127 +156,55 @@ function setCategory(
   </div>
 
   <UContainer>
-    <UCard class="h-screen">
+    <UCard :ui="{ base: '' }">
       <UForm :state="state" :validate="validate" @submit="submit">
         <UFormGroup label="Payee/Item" name="payee">
           <UInput v-model="state.payee" />
         </UFormGroup>
 
         <div class="grid gap-6 grid-cols-2">
-          <UFormGroup label="Account" name="account">
-            <USelectMenu
-              :model-value="state.accountId"
-              :options="accounts"
-              option-attribute="name"
-              searchable
-              value-attribute="id"
-              @update:model-value="setAccount"
-            >
-              <template #label>
-                {{ currentAccount ? currentAccount.name : 'Unknown' }}
-              </template>
-            </USelectMenu>
-          </UFormGroup>
+          <AccountPicker
+            v-if="state.type === 'income' || state.type === 'expense'"
+            v-model="state.accountId"
+            :name="currentAccount?.name"
+          />
 
-          <UFormGroup label="Date" name="date">
-            <UPopover :popper="{ placement: 'bottom-start' }">
-              <UInput
-                :model-value="dateLabel"
-                class="w-full"
-                icon="i-heroicons-calendar-days-20-solid"
-              />
-              <template #panel="{ close }">
-                <DatePicker v-model="date" @close="close" />
-              </template>
-            </UPopover>
-          </UFormGroup>
+          <DatePicker v-model="state.date" />
         </div>
 
         <div class="grid gap-6 grid-cols-2">
-          <UFormGroup
-            :label="`Amount  ${
-              currentAccount ? '(' + currentAccount.currency + ')' : ''
-            }`"
-            name="amount"
-          >
-            <UInput
-              v-model.number="state.absoluteAmount"
-              class="text-right font-bold"
-              icon="i-heroicons-calculator-20-solid"
-            >
-              <template v-if="currentAccount" #trailing>
-                <span class="text-gray-500 dark:text-gray-400 text-xs">
-                  {{ currentAccount.currency }}
-                </span>
-              </template>
-            </UInput>
-          </UFormGroup>
-          <UFormGroup label="Type" name="type">
-            <USelectMenu
-              :model-value="state.type"
-              :options="types"
-              option-attribute="name"
-              value-attribute="id"
-              @update:model-value="setType"
-            >
-              <template #label>
-                {{ ucFirst(state.type) }}
-              </template>
-            </USelectMenu>
-          </UFormGroup>
+          <AmountInput
+            v-if="state.type === 'income' || state.type === 'expense'"
+            v-model="state.absoluteAmount"
+            :currency="currentAccount?.currency"
+          />
+
+          <TypePicker v-model="state.type" />
         </div>
 
-        <div class="grid gap-6 grid-cols-2">
-          <UFormGroup label="Category" name="category">
-            <USelectMenu
-              :model-value="state.category"
-              :options="categoryStore.categories"
-              by="category"
-              creatable
-              option-attribute="category"
-              searchable
-              value-attribute="category"
-              @update:model-value="setCategory"
-            >
-              <template #label>
-                <template v-if="state.category">
-                  <span class="flex items-center -space-x-1">
-                    <span
-                      :style="{
-                        background: `${categoryStore.getColorByCategory(
-                          state.category,
-                        )}`,
-                      }"
-                      class="flex-shrink-0 w-2 h-2 mt-px rounded-full"
-                    />
-                  </span>
-                  <span>{{ state.category }}</span>
-                </template>
-                <template v-else>
-                  <span class="text-gray-500 dark:text-gray-400 truncate">
-                    Select category
-                  </span>
-                </template>
-              </template>
-              <template #option="{ option }">
-                <span
-                  :style="{ background: `${option.color}` }"
-                  class="flex-shrink-0 w-2 h-2 mt-px rounded-full"
-                />
-                <span class="truncate">{{ option.category }}</span>
-              </template>
-              <template #option-create="{ option }">
-                <span class="flex-shrink-0">New category:</span>
-                <span
-                  :style="{
-                    background: `${getRandomColor()}`,
-                  }"
-                  class="flex-shrink-0 w-2 h-2 mt-px rounded-full -mx-1"
-                />
-                <span class="block truncate">{{ option.category }}</span>
-              </template>
-            </USelectMenu>
-          </UFormGroup>
+        <div
+          v-if="state.type === 'income' || state.type === 'expense'"
+          class="grid gap-6 grid-cols-2"
+        >
+          <CategoryPicker v-model="state.category" />
+
+          <ProjectPicker v-model="state.category" />
+        </div>
+
+        <div
+          v-if="state.type === 'income' || state.type === 'expense'"
+          class="grid gap-6 grid-cols-2"
+        >
+          <ClearedStatusPicker v-model="state.clearedStatus" />
+        </div>
+
+        <UFormGroup label="Memo" name="memo">
+          <UInput v-model="state.memo" />
+        </UFormGroup>
+
+        <div class="mt-2">
+          <UButton class="mr-2" color="gray" @click="cancel">Cancel</UButton>
+          <UButton type="submit">Save</UButton>
         </div>
       </UForm>
     </UCard>

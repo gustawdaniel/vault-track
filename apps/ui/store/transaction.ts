@@ -2,9 +2,9 @@ import { RemovableRef, useLocalStorage } from '@vueuse/core';
 import hash from 'object-hash';
 
 import { defineStore } from 'pinia';
-import z from 'zod';
+import { z } from 'zod';
 import { uid } from 'uid';
-import { ComputedAccount } from '~/store/account';
+import { useAccountStore } from '~/store/account';
 
 export const TransactionModel = z.object({
   id: z.string(),
@@ -15,6 +15,7 @@ export const TransactionModel = z.object({
   date: z.string(),
   payee: z.string().optional(),
   memo: z.string().optional(),
+  clearedStatus: z.enum(['*', 'X', '?']).optional(),
 });
 
 export interface Transaction {
@@ -62,6 +63,10 @@ class Trx {
     return computedHash;
   }
 
+  get id(): string {
+    return this.data.id;
+  }
+
   get json(): FullTransaction {
     return {
       ...this.data,
@@ -89,6 +94,33 @@ export const useTransactionStore = defineStore('transaction', {
         this.$state.transactions.push(trx.json);
       } else {
         this.$state.transactions.splice(index, 1, trx.json);
+      }
+    },
+    update(id: string, transaction: Transaction) {
+      const newTrx = new Trx({ ...transaction, id });
+
+      const index = this.$state.transactions.findIndex(
+        (a) => a.id === newTrx.id,
+      );
+      if (index !== -1) {
+        const oldTrx = new Trx(this.$state.transactions[index]);
+        const accountStore = useAccountStore();
+        if (
+          oldTrx.data.accountId !== newTrx.data.accountId ||
+          newTrx.data.amount !== oldTrx.data.amount
+        ) {
+          accountStore.pathBalance(oldTrx.data.accountId, -oldTrx.data.amount);
+          accountStore.pathBalance(newTrx.data.accountId, newTrx.data.amount);
+        }
+
+        if (oldTrx.id !== newTrx.id)
+          throw new Error(`Id can't be changed on update`);
+
+        this.$state.transactions.splice(
+          index,
+          1,
+          Object.assign(oldTrx.json, newTrx.json),
+        );
       }
     },
     changeAccountName({
