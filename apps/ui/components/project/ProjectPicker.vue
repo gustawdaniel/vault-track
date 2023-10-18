@@ -1,9 +1,5 @@
 <script lang="ts" setup>
 import { getFullProjectName, Project, useProjectStore } from '~/store/project';
-import {
-  composeRawCategoryFromCategoryAndProject,
-  decomposeRawCategoryToCategoryAndProject,
-} from '~/store/category';
 
 const projectStore = useProjectStore();
 

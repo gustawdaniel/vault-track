@@ -24,6 +24,7 @@
     "vue-router": "^4.2.5"
   },
   "dependencies": {
+    "@heroicons/vue": "^2.0.18",
     "@nuxt/test-utils": "^3.7.4",
     "@nuxt/ui": "^2.9.0",
     "@nuxtjs/eslint-config-typescript": "^12.1.0",

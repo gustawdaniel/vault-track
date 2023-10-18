@@ -1,12 +1,19 @@
 <script lang="ts" setup>
-import { Account } from '~/store/account';
+import { ComputedAccount } from '~/store/account';
 import { formatAmount } from 'nuxt-app/utils/formatAmount';
+import { useDialog } from '~/store/dialog';
+import ConfirmDelete from '~/components/dialog/ConfirmDelete.vue';
 
 const props = defineProps<{
-  account: Account;
+  account: ComputedAccount;
 }>();
 
 const emit = defineEmits(['edit']);
+
+function openTestModal() {
+  const dialog = useDialog();
+  dialog.openDialog(ConfirmDelete);
+}
 </script>
 
 <template>
@@ -30,6 +37,10 @@ const emit = defineEmits(['edit']);
 
       <UButton class="mt-4 mr-3" size="xs" to="/">Home</UButton>
       <UButton class="mt-4" size="xs" @click="emit('edit')">Edit</UButton>
+
+      <UButton class="ml-3" color="gray" size="xs" @click="openTestModal"
+        >Test modal
+      </UButton>
     </UCard>
   </UContainer>
 </template>

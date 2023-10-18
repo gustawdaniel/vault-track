@@ -4,7 +4,8 @@
 dist
 tmp
 /out-tsc
-backup*
+backup*json
+backup*qif
 # dependencies
 node_modules
 coverage

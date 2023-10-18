@@ -4,6 +4,7 @@ import hash from 'object-hash';
 import { defineStore } from 'pinia';
 import { z } from 'zod';
 import { uid } from 'uid';
+import dayjs from 'dayjs';
 import { useAccountStore } from '~/store/account';
 import { getFullCategoryName } from '~/store/category';
 import { getFullProjectName } from '~/store/project';
@@ -204,9 +205,7 @@ export const useTransactionStore = defineStore('transaction', {
     update(id: string, transaction: Transaction) {
       const newTrx = new Trx({ ...transaction, id });
 
-      const index = this.$state.transactions.findIndex(
-        (a) => a.id === newTrx.id,
-      );
+      const index = this.getIndexById(newTrx.id);
       if (index !== -1) {
         const oldTrx = new Trx(this.$state.transactions[index]);
         const accountStore = useAccountStore();
@@ -226,7 +225,52 @@ export const useTransactionStore = defineStore('transaction', {
           1,
           Object.assign(oldTrx.json, newTrx.json),
         );
+      } else {
+        this.create(transaction);
       }
+    },
+    delete(id: string): void {
+      const transaction = this.getById(id);
+      const index = this.getIndexById(id);
+      if (!transaction || index === -1) return;
+
+      const accountStore = useAccountStore();
+
+      accountStore.pathBalance(transaction.accountId, -transaction.amount);
+      this.$state.transactions.splice(index, 1);
+
+      if (transaction.transferHash) {
+        const reverse = this.getReverseByIdAndHash(
+          id,
+          transaction.transferHash,
+        );
+        const reverseIndex = this.getReverseIndexByIdAndHash(
+          id,
+          transaction.transferHash,
+        );
+        if (!reverse || reverseIndex === -1) return;
+
+        accountStore.pathBalance(reverse.accountId, -reverse.amount);
+        this.$state.transactions.splice(reverseIndex, 1);
+      }
+    },
+    getNew(): FullTransaction {
+      const accountStore = useAccountStore();
+      const accountId = accountStore.getFirstAccountIdToTransferFromName('');
+      const fullAccount = accountStore.getById(accountId);
+      if (!fullAccount)
+        throw new Error(`Cannot create transaction without account`);
+
+      return new Trx({
+        account: fullAccount.name,
+        accountId,
+        date: dayjs()
+          .set('h', 0)
+          .set('m', 0)
+          .set('s', 0)
+          .format('YYYY-MM-DDTHH:mm:ss'),
+        amount: 0,
+      }).json;
     },
     changeAccountName({
       fromName,
@@ -263,6 +307,18 @@ export const useTransactionStore = defineStore('transaction', {
     ): FullTransaction | undefined {
       if (!transferHash) return undefined;
       return this.$state.transactions.find(
+        (t) => t.transferHash === transferHash && t.id !== id,
+      );
+    },
+    getIndexById(id: string): number {
+      return this.$state.transactions.findIndex((t) => t.id === id);
+    },
+    getReverseIndexByIdAndHash(
+      id: string,
+      transferHash: string | undefined,
+    ): number {
+      if (!transferHash) return -1;
+      return this.$state.transactions.findIndex(
         (t) => t.transferHash === transferHash && t.id !== id,
       );
     },

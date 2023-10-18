@@ -6,10 +6,15 @@ import { useTransactionStore } from '~/store/transaction';
 const route = useRoute();
 const router = useRouter();
 
+const NEW_TRANSACTION_ID = 'new';
+
 const transactionId: string = String(route.params.id);
 
 const transactionStore = useTransactionStore();
-const transaction = transactionStore.getById(transactionId);
+const transaction =
+  transactionId === NEW_TRANSACTION_ID
+    ? transactionStore.getNew()
+    : transactionStore.getById(transactionId);
 const reverseTransaction = transactionStore.getReverseByIdAndHash(
   transactionId,
   transaction?.transferHash,
