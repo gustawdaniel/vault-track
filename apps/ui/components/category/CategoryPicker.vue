@@ -1,8 +1,6 @@
 <script lang="ts" setup>
 import {
   ColoredCategory,
-  composeRawCategoryFromCategoryAndProject,
-  decomposeRawCategoryToCategoryAndProject,
   getFullCategoryName,
   useCategoryStore,
 } from '~/store/category';
@@ -23,25 +21,15 @@ function setCategory(
         category: string;
       },
 ): void {
-  const [, projectName] = decomposeRawCategoryToCategoryAndProject(
-    props.modelValue,
-  );
-
   if (typeof value === 'string') {
     if (value === NO_CATEGORY) value = '';
     // update
-    emit(
-      'update:model-value',
-      composeRawCategoryFromCategoryAndProject(value, projectName),
-    );
+    emit('update:model-value', value);
   } else {
     // create new
     const newCategoryName = value.category;
     categoryStore.create({ category: newCategoryName });
-    emit(
-      'update:model-value',
-      composeRawCategoryFromCategoryAndProject(newCategoryName, projectName),
-    );
+    emit('update:model-value', newCategoryName);
   }
 }
 

@@ -115,8 +115,21 @@ export const useAccountStore = defineStore('account', {
     getByName(name: string): Account | undefined {
       return this.$state.accounts.find((a) => a.name === name);
     },
+    getAccountIdByName(name: string): string {
+      const account = this.$state.accounts.find((a) => a.name === name);
+      if (!account) throw new Error(`Account with name ${name} not found`);
+      return account.id;
+    },
     getById(id: string): ComputedAccount | undefined {
       return this.$state.accounts.find((a) => a.id === id);
+    },
+    getFirstAccountIdToTransferFromName(accountName: string): string {
+      if (!this.$state.accounts.length)
+        throw new Error(`Cant find any account`);
+      if (this.$state.accounts.length === 1) return this.$state.accounts[0].id;
+      const acc = this.$state.accounts.find((a) => a.name !== accountName);
+      if (!acc) throw new Error(`Cant find reverse account to ${accountName}`);
+      return acc.id;
     },
   },
 });

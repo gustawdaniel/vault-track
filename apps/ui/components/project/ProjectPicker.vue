@@ -21,25 +21,15 @@ function setProject(
         project: string;
       },
 ): void {
-  const [categoryName] = decomposeRawCategoryToCategoryAndProject(
-    props.modelValue,
-  );
-
   if (typeof value === 'string') {
     if (value === NO_PROJECT) value = '';
     // update
-    emit(
-      'update:model-value',
-      composeRawCategoryFromCategoryAndProject(categoryName, value),
-    );
+    emit('update:model-value', value);
   } else {
     // create new
     const newProjectName = value.project;
     projectStore.create({ project: newProjectName });
-    emit(
-      'update:model-value',
-      composeRawCategoryFromCategoryAndProject(categoryName, newProjectName),
-    );
+    emit('update:model-value', newProjectName);
   }
 }
 
@@ -62,9 +52,7 @@ const options = computed<Array<Project>>(() => {
     >
       <template #label>
         <template v-if="props.modelValue">
-          <span class="h-5">{{
-            getFullProjectName({ category: props.modelValue })
-          }}</span>
+          <span class="h-5">{{ props.modelValue }}</span>
         </template>
         <template v-else>
           <span class="text-gray-500 dark:text-gray-400 truncate">

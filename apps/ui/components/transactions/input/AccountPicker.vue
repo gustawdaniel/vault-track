@@ -16,6 +16,7 @@ const accounts = computed<Array<Pick<Account, 'id' | 'name' | 'currency'>>>(
 const props = defineProps<{
   modelValue: string;
   name: string | undefined;
+  label?: string;
 }>();
 
 const emit = defineEmits(['update:model-value']);
@@ -26,7 +27,7 @@ function setAccount(value: string): void {
 </script>
 
 <template>
-  <UFormGroup label="Account" name="account">
+  <UFormGroup :label="props.label ?? 'Account'" name="account">
     <USelectMenu
       :model-value="props.modelValue"
       :options="accounts"

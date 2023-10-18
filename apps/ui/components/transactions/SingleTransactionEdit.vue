@@ -1,8 +1,13 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
 import { FormError, FormSubmitEvent } from '#ui/types';
+import { uid } from 'uid';
 import {
   FullTransaction,
+  getTransactionNormalType,
+  getTransferTransactionOrder,
+  isTransferByCategory,
+  NormalTransactionContextType,
   Transaction,
   useTransactionStore,
 } from '~/store/transaction';
@@ -17,57 +22,132 @@ import {
   ClearedStatus,
   getClearedStatusFromString,
 } from '~/store/clearedStatus';
+import { getFullProjectName } from '~/store/project';
+import {
+  composeRawCategoryFromCategoryAndProject,
+  getFullCategoryName,
+} from '~/store/category';
+import ExchangeRate from '~/components/transactions/input/ExchangeRate.vue';
 
 const props = defineProps<{
   transaction: FullTransaction;
+  reverseTransaction?: FullTransaction;
 }>();
 
 type TransferContext = {
   type: 'transfer';
+  fromAccountId: string;
+  toAccountId: string;
+  toId: string;
+  fromId: string;
+  fromAbsoluteAmount: number;
+  toAbsoluteAmount: number;
+  fromClearedStatus: ClearedStatus;
+  toClearedStatus: ClearedStatus;
 };
-type NormalTransactionContext = Pick<
-  FullTransaction,
-  'category' | 'accountId'
-> & {
+
+type NormalTransactionContext = Pick<FullTransaction, 'accountId'> & {
   absoluteAmount: number;
-  type: 'expense' | 'income';
+  type: NormalTransactionContextType;
   clearedStatus: ClearedStatus;
+  categoryName?: string;
 };
 type CommonTransactionContext = Pick<
   FullTransaction,
   'payee' | 'date' | 'memo'
->;
+> & { projectName?: string };
 
 type TransactionContext = CommonTransactionContext &
   (NormalTransactionContext | TransferContext);
-
-function isTransfer(transaction: Pick<FullTransaction, 'category'>): boolean {
-  return Boolean(
-    transaction.category &&
-      transaction.category.startsWith('[') &&
-      transaction.category.endsWith(']'),
-  );
-}
+const accountStore = useAccountStore();
 
 function transactionToContext(
   transaction: FullTransaction,
+  reverseTransaction?: FullTransaction,
 ): TransactionContext {
   const common: CommonTransactionContext = {
     payee: transaction.payee,
     date: transaction.date,
     memo: transaction.memo,
+    projectName: getFullProjectName(transaction),
   };
 
-  if (isTransfer(transaction)) {
+  if (isTransferByCategory(transaction)) {
+    const transferContext: TransferContext = {
+      type: 'transfer',
+      fromAccountId: '',
+      fromId: '',
+      toAccountId: '',
+      toId: '',
+      fromAbsoluteAmount: 0,
+      toAbsoluteAmount: 0,
+      fromClearedStatus: '',
+      toClearedStatus: '',
+    };
+
+    if (reverseTransaction) {
+      const { from, to } = getTransferTransactionOrder(
+        transaction,
+        reverseTransaction,
+      );
+
+      transferContext.fromId = from.id;
+      transferContext.fromAccountId = accountStore.getAccountIdByName(
+        from.account,
+      );
+      transferContext.toId = to.id;
+      transferContext.toAccountId = accountStore.getAccountIdByName(to.account);
+
+      const fromFullTransaction: FullTransaction | undefined = [
+        transaction,
+        reverseTransaction,
+      ].find((t) => t.id === from.id);
+
+      if (!fromFullTransaction)
+        throw new Error(`from full transaction with id ${from.id} not found`);
+
+      const toFullTransaction: FullTransaction | undefined = [
+        transaction,
+        reverseTransaction,
+      ].find((t) => t.id === to.id);
+
+      if (!toFullTransaction)
+        throw new Error(`to full transaction with id ${from.id} not found`);
+
+      transferContext.fromAbsoluteAmount = Math.abs(fromFullTransaction.amount);
+      transferContext.toAbsoluteAmount = Math.abs(toFullTransaction.amount);
+      transferContext.fromClearedStatus = getClearedStatusFromString(
+        fromFullTransaction.clearedStatus,
+      );
+      transferContext.toClearedStatus = getClearedStatusFromString(
+        toFullTransaction.clearedStatus,
+      );
+    } else {
+      const from = transaction;
+      transferContext.fromId = from.id;
+      transferContext.fromAccountId = accountStore.getAccountIdByName(
+        from.account,
+      );
+      transferContext.fromAbsoluteAmount = Math.abs(from.amount);
+      transferContext.fromClearedStatus = getClearedStatusFromString(
+        from.clearedStatus,
+      );
+
+      transferContext.toId = uid();
+      transferContext.toAccountId =
+        accountStore.getFirstAccountIdToTransferFromName(transaction.account);
+      transferContext.toAbsoluteAmount = 0;
+    }
+
     return {
       ...common,
-      type: 'transfer',
+      ...transferContext,
     };
   } else {
     return {
       ...common,
-      type: transaction.amount > 0 ? 'income' : 'expense',
-      category: transaction.category,
+      type: getTransactionNormalType(transaction),
+      categoryName: getFullCategoryName(transaction),
       absoluteAmount: Math.abs(transaction.amount),
       accountId: transaction.accountId,
       clearedStatus: getClearedStatusFromString(transaction.clearedStatus),
@@ -75,7 +155,9 @@ function transactionToContext(
   }
 }
 
-const state = ref<TransactionContext>(transactionToContext(props.transaction));
+const state = ref<TransactionContext>(
+  transactionToContext(props.transaction, props.reverseTransaction),
+);
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const validate = (state: any): FormError[] => {
@@ -94,33 +176,75 @@ function getAmountFromNormalContext(data: NormalTransactionContext): number {
   }
 }
 
-function submit(event: FormSubmitEvent<TransactionContext>) {
+function computeUpdateMapFromContext(
+  context: TransactionContext,
+): Map<string, Transaction> {
   const updates = new Map<string, Transaction>();
-  // eslint-disable-next-line no-console
-  console.log(event.data);
-  if (event.data.type === 'income' || event.data.type === 'expense') {
-    // const transaction
-    // updates.set(event.data.)
-    const account = currentAccount.value;
+
+  if (context.type === 'income' || context.type === 'expense') {
+    const account = currentNormalAccount.value;
     if (!account) {
-      throw new Error(
-        `Current account not found for id ${event.data.accountId}`,
-      );
+      throw new Error(`Current account not found for id ${context.accountId}`);
     }
 
     updates.set(props.transaction.id, {
-      amount: getAmountFromNormalContext(event.data),
-      accountId: event.data.accountId,
+      amount: getAmountFromNormalContext(context),
+      accountId: context.accountId,
       account: account.name,
-      date: event.data.date,
-      memo: event.data.memo,
-      category: event.data.category,
-      payee: event.data.payee,
-      clearedStatus: event.data.clearedStatus,
+      date: context.date,
+      memo: context.memo,
+      category: composeRawCategoryFromCategoryAndProject(
+        context.categoryName,
+        context.projectName,
+      ),
+      payee: context.payee,
+      clearedStatus: context.clearedStatus,
+    });
+  } else if (context.type === 'transfer') {
+    const accounts = transferAccount.value;
+    if (!accounts.from)
+      throw new Error(`Account from ${context.fromAccountId} not found`);
+    if (!accounts.to)
+      throw new Error(`Account to ${context.toAccountId} not found`);
+
+    const commonUpdatePayload: CommonTransactionContext = {
+      date: context.date,
+      payee: context.payee,
+      memo: context.memo,
+    };
+
+    updates.set(context.fromId, {
+      amount: -context.fromAbsoluteAmount,
+      ...commonUpdatePayload,
+      account: accounts.from.name,
+      accountId: accounts.from.id,
+      clearedStatus: context.fromClearedStatus,
+      category: composeRawCategoryFromCategoryAndProject(
+        `[${accounts.to.name}]`,
+        context.projectName,
+      ),
     });
 
-    // emit('exit');
+    updates.set(context.toId, {
+      amount: context.toAbsoluteAmount,
+      ...commonUpdatePayload,
+      account: accounts.to.name,
+      accountId: accounts.to.id,
+      clearedStatus: context.toClearedStatus,
+      category: composeRawCategoryFromCategoryAndProject(
+        `[${accounts.from.name}]`,
+        context.projectName,
+      ),
+    });
   }
+
+  return updates;
+}
+
+function submit(event: FormSubmitEvent<TransactionContext>) {
+  // eslint-disable-next-line no-console
+  console.log(event.data);
+  const updates = computeUpdateMapFromContext(event.data);
 
   const transactionStore = useTransactionStore();
 
@@ -131,7 +255,7 @@ function submit(event: FormSubmitEvent<TransactionContext>) {
   emit('exit');
 }
 
-const currentAccount = computed<
+const currentNormalAccount = computed<
   Pick<Account, 'id' | 'name' | 'currency'> | undefined
 >(() => {
   const accountStore = useAccountStore();
@@ -142,6 +266,22 @@ const currentAccount = computed<
   );
 });
 
+const transferAccount = computed<{
+  from: Pick<Account, 'id' | 'name' | 'currency'> | undefined;
+  to: Pick<Account, 'id' | 'name' | 'currency'> | undefined;
+}>(() => {
+  const accountStore = useAccountStore();
+
+  if (state.value.type === 'transfer') {
+    return {
+      from: accountStore.getById(state.value.fromAccountId),
+      to: accountStore.getById(state.value.toAccountId),
+    };
+  } else {
+    return { from: undefined, to: undefined };
+  }
+});
+
 const emit = defineEmits(['exit']);
 
 function cancel() {
@@ -150,8 +290,9 @@ function cancel() {
 </script>
 
 <template>
-  <div class="grid gap-6 grid-cols-2">
+  <div class="grid gap-6 grid-cols-3">
     <pre>{{ props.transaction }}</pre>
+    <pre>{{ props.reverseTransaction }}</pre>
     <pre>{{ state }}</pre>
   </div>
 
@@ -166,7 +307,14 @@ function cancel() {
           <AccountPicker
             v-if="state.type === 'income' || state.type === 'expense'"
             v-model="state.accountId"
-            :name="currentAccount?.name"
+            :name="currentNormalAccount?.name"
+          />
+
+          <AccountPicker
+            v-else-if="state.type === 'transfer'"
+            v-model="state.fromAccountId"
+            :name="transferAccount.from?.name"
+            label="From Account"
           />
 
           <DatePicker v-model="state.date" />
@@ -176,19 +324,31 @@ function cancel() {
           <AmountInput
             v-if="state.type === 'income' || state.type === 'expense'"
             v-model="state.absoluteAmount"
-            :currency="currentAccount?.currency"
+            :currency="currentNormalAccount?.currency"
+          />
+
+          <AmountInput
+            v-else-if="state.type === 'transfer'"
+            v-model="state.fromAbsoluteAmount"
+            :currency="transferAccount.from?.currency"
           />
 
           <TypePicker v-model="state.type" />
         </div>
 
-        <div
-          v-if="state.type === 'income' || state.type === 'expense'"
-          class="grid gap-6 grid-cols-2"
-        >
-          <CategoryPicker v-model="state.category" />
+        <div class="grid gap-6 grid-cols-2">
+          <CategoryPicker
+            v-if="state.type === 'income' || state.type === 'expense'"
+            v-model="state.categoryName"
+          />
+          <AccountPicker
+            v-else-if="state.type === 'transfer'"
+            v-model="state.toAccountId"
+            :name="transferAccount.to?.name"
+            label="To Account"
+          />
 
-          <ProjectPicker v-model="state.category" />
+          <ProjectPicker v-model="state.projectName" />
         </div>
 
         <div
@@ -196,6 +356,42 @@ function cancel() {
           class="grid gap-6 grid-cols-2"
         >
           <ClearedStatusPicker v-model="state.clearedStatus" />
+
+          <!-- TODO: add here split transaction-->
+        </div>
+
+        <div
+          v-else-if="
+            state.type === 'transfer' &&
+            transferAccount.from?.currency &&
+            transferAccount.to?.currency &&
+            transferAccount.from?.currency !== transferAccount.to?.currency
+          "
+          class="grid gap-6 grid-cols-2"
+        >
+          <AmountInput
+            v-model="state.toAbsoluteAmount"
+            :currency="transferAccount.to?.currency"
+          />
+
+          <ExchangeRate
+            :from-amount="state.fromAbsoluteAmount"
+            :from-currency="transferAccount.from?.currency"
+            :to-amount="state.toAbsoluteAmount"
+            :to-currency="transferAccount.to?.currency"
+          />
+        </div>
+
+        <div v-if="state.type === 'transfer'" class="grid gap-6 grid-cols-2">
+          <ClearedStatusPicker
+            v-model="state.fromClearedStatus"
+            label="Status (From)"
+          />
+
+          <ClearedStatusPicker
+            v-model="state.toClearedStatus"
+            label="Status (To)"
+          />
         </div>
 
         <UFormGroup label="Memo" name="memo">
@@ -204,6 +400,7 @@ function cancel() {
 
         <div class="mt-2">
           <UButton class="mr-2" color="gray" @click="cancel">Cancel</UButton>
+          <!-- TODO: save & new button -->
           <UButton type="submit">Save</UButton>
         </div>
       </UForm>

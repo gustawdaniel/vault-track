@@ -5,7 +5,7 @@ import {
   getClearedStatusName,
 } from '~/store/clearedStatus';
 
-const props = defineProps<{ modelValue: ClearedStatus }>();
+const props = defineProps<{ modelValue: ClearedStatus; label?: string }>();
 const emit = defineEmits(['update:model-value']);
 
 const options = [...clearedStatusMap.entries()].map(([id, name]) => ({
@@ -24,7 +24,7 @@ const selected = computed<ClearedStatus>({
 </script>
 
 <template>
-  <UFormGroup label="Status" name="clearedStatus">
+  <UFormGroup :label="props.label ?? 'Status'" name="clearedStatus">
     <USelectMenu
       v-model="selected"
       :options="options"

@@ -10,6 +10,10 @@ const transactionId: string = String(route.params.id);
 
 const transactionStore = useTransactionStore();
 const transaction = transactionStore.getById(transactionId);
+const reverseTransaction = transactionStore.getReverseByIdAndHash(
+  transactionId,
+  transaction?.transferHash,
+);
 
 function goToAccountPage() {
   if (transaction) {
@@ -22,7 +26,11 @@ function goToAccountPage() {
 
 <template>
   <div v-if="transaction">
-    <SingleTransactionEdit :transaction="transaction" @exit="goToAccountPage" />
+    <SingleTransactionEdit
+      :reverse-transaction="reverseTransaction"
+      :transaction="transaction"
+      @exit="goToAccountPage"
+    />
   </div>
   <div v-else>
     <p>Transaction {{ transactionId }} not found</p>
