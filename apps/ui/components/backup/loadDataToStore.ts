@@ -48,6 +48,7 @@ export function loadDataToStore(payload: Data): void {
 
     transactionStore.create(transaction, {
       allowDuplicates,
+      updateAccountBalance: false,
     });
   }
 }

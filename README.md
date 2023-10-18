@@ -78,10 +78,8 @@ Next tasks:
 
 Next tasks:
 
-- adding transaction
-- deleting transaction
 - changing between transfer and income / expense
-
+- account create / delete
 - categories view
 - projects view
 - currencies support

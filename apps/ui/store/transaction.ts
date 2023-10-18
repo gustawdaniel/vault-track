@@ -183,6 +183,7 @@ export class Trx {
 
 export interface CreateTransactionOptions {
   allowDuplicates: boolean;
+  updateAccountBalance: boolean;
 }
 
 export const useTransactionStore = defineStore('transaction', {
@@ -197,6 +198,11 @@ export const useTransactionStore = defineStore('transaction', {
         (a) => a.hash === trx.hash,
       );
       if (index === -1 || Boolean(options?.allowDuplicates)) {
+        if (options?.updateAccountBalance) {
+          const accountStore = useAccountStore();
+          accountStore.pathBalance(trx.data.accountId, trx.data.amount);
+        }
+
         this.$state.transactions.push(trx.json);
       } else {
         this.$state.transactions.splice(index, 1, trx.json);
@@ -226,7 +232,10 @@ export const useTransactionStore = defineStore('transaction', {
           Object.assign(oldTrx.json, newTrx.json),
         );
       } else {
-        this.create(transaction);
+        this.create(transaction, {
+          allowDuplicates: true,
+          updateAccountBalance: true,
+        });
       }
     },
     delete(id: string): void {
