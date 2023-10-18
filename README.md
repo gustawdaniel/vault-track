@@ -64,17 +64,25 @@ Cleared status. Values are blank (unreconciled/not cleared),
 
 Next tasks:
 
-- project
-- status
 - split
     - amount
     - type Expense, Income, Transfer to, Transfer from
     - category
     - project
     - memo
-- memo
 
 - amountFrom
 - amountTo
 - exchange rate
 - toAccount
+
+Next tasks:
+
+- adding transaction
+- deleting transaction
+- changing between transfer and income / expense
+
+- categories view
+- projects view
+- currencies support
+- exchange rates
