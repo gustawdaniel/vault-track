@@ -14,7 +14,7 @@ a) revert your operations to this hash
 b) apply operations from server
 c) apply your operations
 
-So any operation should be revertable.
+So any operation should be reversible.
 
 In case of creation, reverse operation is deletion
 In case of deletion, reversing operation should contain all deleted object properties to create is again
@@ -78,9 +78,21 @@ Next tasks:
 
 Next tasks:
 
-- changing between transfer and income / expense
-- account create / delete
 - categories view
+    - list
+    - add
+    - edit
+    - remove
 - projects view
+    - list
+    - add
+    - edit
+    - remove
 - currencies support
 - exchange rates
+- budgets
+- schedules
+- search
+- reports
+- database
+- preferences

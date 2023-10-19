@@ -37,7 +37,7 @@ export const useAccountStore = defineStore('account', {
     accounts: useLocalStorage<ComputedAccount[]>('account', []),
   }),
   actions: {
-    create(account: QifAccount) {
+    create(account: Omit<Account, 'id'>) {
       const index = this.$state.accounts.findIndex(
         (a) => a.name === account.name,
       );
@@ -63,32 +63,49 @@ export const useAccountStore = defineStore('account', {
       }
     },
     update(accountId: string, accountData: Omit<Account, 'id'>) {
+      console.log(accountId, accountData);
       const index = this.getIndexById(accountId);
-      if (index === -1) throw new Error(`Account ${accountId} not found`);
+      if (index !== -1) {
+        const foundAccount = this.$state.accounts[index];
 
-      const foundAccount = this.$state.accounts[index];
+        if (accountData.name !== foundAccount.name) {
+          const transactionStore = useTransactionStore();
 
-      if (accountData.name !== foundAccount.name) {
-        const transactionStore = useTransactionStore();
+          transactionStore.changeAccountName({
+            fromId: foundAccount.id,
+            fromName: foundAccount.name,
+            to: accountData.name,
+          });
+        }
 
-        transactionStore.changeAccountName({
-          fromId: foundAccount.id,
-          fromName: foundAccount.name,
-          to: accountData.name,
-        });
+        this.$state.accounts.splice(
+          index,
+          1,
+          Object.assign(foundAccount, accountData),
+        );
+      } else {
+        this.create(accountData);
       }
-
-      this.$state.accounts.splice(
-        index,
-        1,
-        Object.assign(foundAccount, accountData),
-      );
     },
     pathBalance(accountId: string, diff: number) {
       const account = this.getById(accountId);
       if (account) {
         account.balance = sum(account.balance, diff, account.currency);
       }
+    },
+    delete(id: string): void {
+      const index = this.getIndexById(id);
+      if (index === -1) return;
+      this.$state.accounts.splice(index, 1);
+    },
+    getNew(): ComputedAccount {
+      return {
+        id: uid(),
+        name: '',
+        type: 'Cash',
+        currency: 'USD',
+        balance: 0,
+      };
     },
     getIndexById(accountId: string): number {
       return this.$state.accounts.findIndex((a) => a.id === accountId);
@@ -129,6 +146,11 @@ export const useAccountStore = defineStore('account', {
       if (this.$state.accounts.length === 1) return this.$state.accounts[0].id;
       const acc = this.$state.accounts.find((a) => a.name !== accountName);
       if (!acc) throw new Error(`Cant find reverse account to ${accountName}`);
+      return acc.id;
+    },
+    getFirstAccountIdToTransferFromId(id: string): string {
+      const acc = this.$state.accounts.find((a) => a.id !== id);
+      if (!acc) throw new Error(`Account not found`);
       return acc.id;
     },
   },

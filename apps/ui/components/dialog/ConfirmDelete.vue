@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { useDialog } from '~/store/dialog';
 import { useTransactionStore } from '~/store/transaction';
+import { useAccountStore } from '~/store/account';
 
 const dialog = useDialog();
 
@@ -19,6 +20,9 @@ function confirm() {
   if (props.resource === 'transaction') {
     const transactionStore = useTransactionStore();
     transactionStore.delete(props.id);
+  } else if (props.resource === 'account') {
+    const accountStore = useAccountStore();
+    accountStore.delete(props.id);
   }
 
   dialog.closeDialog();

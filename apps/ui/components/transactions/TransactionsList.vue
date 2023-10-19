@@ -7,6 +7,7 @@ import { Currency, sum } from '~/store/currency';
 import CategoryColorBox from '~/components/transactions/CategoryColorBox.vue';
 import { textColorByAmount } from '~/utils/textColorByAmount';
 import { formatAmount } from '~/utils/formatAmount';
+import ContextMenu from '~/components/menu/ContextMenu.vue';
 
 const transactionStore = useTransactionStore();
 const categoryStore = useCategoryStore();

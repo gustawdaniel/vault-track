@@ -41,6 +41,10 @@ function openTestModal() {
       <UButton class="ml-3" color="gray" size="xs" @click="openTestModal"
         >Test modal
       </UButton>
+
+      <NuxtLink to="/transaction/new">
+        <UButton class="mt-4 ml-3" size="xs">Add transaction</UButton>
+      </NuxtLink>
     </UCard>
   </UContainer>
 </template>

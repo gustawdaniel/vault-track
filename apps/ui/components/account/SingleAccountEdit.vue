@@ -26,7 +26,7 @@ function submit(event: FormSubmitEvent<any>) {
   const accountStore = useAccountStore();
   accountStore.update(props.account.id, event.data);
 
-  emit('submit');
+  emit('submit', props.account.id);
 }
 
 const accountTypes: AccountType[] = ['Bank', 'Cash', 'CCard', 'Invst'];

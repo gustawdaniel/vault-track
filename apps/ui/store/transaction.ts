@@ -231,6 +231,22 @@ export const useTransactionStore = defineStore('transaction', {
           1,
           Object.assign(oldTrx.json, newTrx.json),
         );
+
+        console.log('update', oldTrx.data, newTrx.data);
+        if (oldTrx.data.transferHash && !newTrx.data.transferHash) {
+          const reverse = this.getReverseByIdAndHash(
+            id,
+            oldTrx.data.transferHash,
+          );
+          const reverseIndex = this.getReverseIndexByIdAndHash(
+            id,
+            oldTrx.data.transferHash,
+          );
+          if (!reverse || reverseIndex === -1) return;
+
+          accountStore.pathBalance(reverse.accountId, -reverse.amount);
+          this.$state.transactions.splice(reverseIndex, 1);
+        }
       } else {
         this.create(transaction, {
           allowDuplicates: true,

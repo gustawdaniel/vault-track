@@ -1,13 +1,34 @@
 <script lang="ts" setup>
-function openSettings() {
-  // TODO: add settings
-  alert('settings not implemented');
-}
+import HoveredSelectableOptionsList, {
+  MenuOption,
+} from '~/components/menu/HoveredSelectableOptionsList.vue';
+import { useRouter } from '#imports';
 
 function toggleSearch() {
   // TODO: add search
   alert('search not implemented');
 }
+
+const options: MenuOption[] = [
+  {
+    id: 'open-account',
+    name: 'New Account',
+    click: () => {
+      const router = useRouter();
+      router.push(`/account/new?edit=1`);
+    },
+  },
+  {
+    id: 'database',
+    name: 'Database',
+    click: () => {},
+  },
+  {
+    id: 'preferences',
+    name: 'Preferences',
+    click: () => {},
+  },
+];
 </script>
 
 <template>
@@ -30,11 +51,12 @@ function toggleSearch() {
       <NuxtLink to="/reports">
         <UButton color="gray" icon="i-heroicons-chart-pie" />
       </NuxtLink>
-      <UButton
-        color="gray"
-        icon="i-heroicons-ellipsis-vertical"
-        @click="openSettings"
-      />
+      <UPopover>
+        <UButton color="gray" icon="i-heroicons-ellipsis-vertical" />
+        <template #panel>
+          <HoveredSelectableOptionsList :options="options" />
+        </template>
+      </UPopover>
     </div>
   </div>
 </template>

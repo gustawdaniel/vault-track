@@ -95,7 +95,7 @@ export const useCategoryStore = defineStore('category', {
         });
       }
     },
-    getColorByCategory(rawName: string): string {
+    getColorByCategory(rawName?: string): string {
       if (!rawName) return 'transparent';
       const name = rawName.split('/')[0];
       const category = this.$state.categories.find((c) => c.category === name);
