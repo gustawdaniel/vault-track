@@ -56,6 +56,12 @@ export function composeRawCategoryFromCategoryAndProject(
   return [categoryName, projectName].filter(Boolean).join('/');
 }
 
+export type CategoryTree = Array<
+  ColoredCategory & {
+    children: Array<ColoredCategory>;
+  }
+>;
+
 export const useCategoryStore = defineStore('category', {
   state: (): State => ({
     categories: useLocalStorage<ColoredCategory[]>('category', []),
@@ -101,6 +107,58 @@ export const useCategoryStore = defineStore('category', {
       const category = this.$state.categories.find((c) => c.category === name);
       if (!category) return 'transparent';
       return category.color;
+    },
+    getSubCategories(rootCategoryName: string): ColoredCategory[] {
+      return this.categories
+        .filter((c) => c.category.startsWith(rootCategoryName))
+        .map((c) => ({
+          ...c,
+          category: c.category.substring(rootCategoryName.length + 1),
+        }));
+    },
+  },
+  getters: {
+    rootCategories(): ColoredCategory[] {
+      return this.categories.reduce(
+        (rootCategories: ColoredCategory[], c: ColoredCategory) => {
+          const colonIndex = c.category.indexOf(':');
+
+          const name = c.category.substring(
+            0,
+            colonIndex === -1 ? undefined : colonIndex,
+          );
+
+          const exists = rootCategories.map((c) => c.category).includes(name);
+
+          return exists
+            ? rootCategories
+            : rootCategories.concat({ ...c, category: name });
+        },
+        [],
+      );
+    },
+    tree(): CategoryTree {
+      const root = this.rootCategories;
+
+      return root
+        .map((r) => {
+          const children = this.categories
+            .filter(
+              (c) =>
+                c.category.startsWith(r.category) && c.category.includes(':'),
+            )
+            .map((c) => ({
+              ...c,
+              category: c.category.substring(r.category.length + 1),
+            }))
+            .sort((c1, c2) => c1.category.localeCompare(c2.category));
+
+          return {
+            ...r,
+            children,
+          };
+        })
+        .sort((c1, c2) => c1.category.localeCompare(c2.category));
     },
   },
 });

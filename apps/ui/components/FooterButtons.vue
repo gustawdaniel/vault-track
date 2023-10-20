@@ -26,7 +26,10 @@ const options: MenuOption[] = [
   {
     id: 'preferences',
     name: 'Preferences',
-    click: () => {},
+    click: () => {
+      const router = useRouter();
+      router.push('/preferences');
+    },
   },
 ];
 </script>
