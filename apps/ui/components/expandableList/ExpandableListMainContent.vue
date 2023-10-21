@@ -4,7 +4,7 @@ import { ProjectTree, useProjectStore } from '~/store/project';
 import { ExpandableListResourceName } from '~/components/expandableList/types';
 import CategoryColorBox from '~/components/transactions/CategoryColorBox.vue';
 import ContextMenu from '~/components/menu/ContextMenu.vue';
-import { getNameFromExtendableListItem } from 'nuxt-app/utils/getNameFromExtendableListItem';
+import { getNameFromExtendableListItem } from '~/utils/getNameFromExtendableListItem';
 
 const categoryStore = useCategoryStore();
 const projectStore = useProjectStore();
