@@ -58,6 +58,10 @@ jobs:
             ${{ runner.os }}-nuxt-build-
       - name: Install dependencies
         run: npm i
+      - name: Build qif-ts
+        run: npx nx run qif-ts:build
+      - name: Build qif2json
+        run: npx nx run qif2json:build
       - name: Static HTML export with Nuxt
         run: npx nx run ui:generate
       - name: Upload artifact
