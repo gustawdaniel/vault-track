@@ -140,6 +140,20 @@ export const useCategoryStore = defineStore('category', {
       const cat = new Cat({ ...category, id });
       const index = this.getIndexById(id);
       if (index !== -1) {
+        if (!cat.pureCategoryWithoutProject.category.includes(':')) {
+          this.getSubCategories(
+            pro.pureCategoryWithoutProject.category,
+          ).forEach((sub) => {
+            const index = this.getIndexById(sub.id);
+            if (index === -1) return;
+            const [, subName] = sub.category.split(':');
+            this.update(sub.id, {
+              ...cat.pureCategoryWithoutProject,
+              category: `${pro.pureCategoryWithoutProject.category}:${subName}`,
+            });
+          });
+        }
+
         this.$state.categories.splice(index, 1, cat.pureCategoryWithoutProject);
       } else {
         this.create(cat.json);
@@ -184,10 +198,7 @@ export const useCategoryStore = defineStore('category', {
     },
     getSubCategories(rootCategoryName: string): PersistedCategory[] {
       return this.categories
-        .filter(
-          (c) =>
-            c.category.startsWith(rootCategoryName) && c.category.includes(':'),
-        )
+        .filter((c) => c.category.startsWith(rootCategoryName + ':'))
         .map((c) => ({
           ...c,
           category: c.category.substring(rootCategoryName.length + 1),
@@ -220,11 +231,7 @@ export const useCategoryStore = defineStore('category', {
       return root
         .map((r) => {
           const children = this.categories
-            .filter(
-              (c) =>
-                c.category.startsWith(r.category + ':') &&
-                c.category.includes(':'),
-            )
+            .filter((c) => c.category.startsWith(r.category + ':'))
             .map((c) => ({
               ...c,
               category: c.category.substring(r.category.length + 1),

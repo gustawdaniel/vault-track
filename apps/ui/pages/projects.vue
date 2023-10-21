@@ -2,7 +2,9 @@
 
 <template>
   <div>
-    Page: foo
+    <ExpandableListNavigationHeader resource="project" />
+
+    <ExpandableListMainContent resource="project" />
   </div>
 </template>
 

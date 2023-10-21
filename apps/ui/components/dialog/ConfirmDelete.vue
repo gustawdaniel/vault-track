@@ -3,6 +3,7 @@ import { useDialog } from '~/store/dialog';
 import { useTransactionStore } from '~/store/transaction';
 import { useAccountStore } from '~/store/account';
 import { useCategoryStore } from '~/store/category';
+import { useProjectStore } from '~/store/project';
 
 const dialog = useDialog();
 
@@ -10,7 +11,11 @@ function cancel() {
   dialog.closeDialog();
 }
 
-export type RemovableResource = 'account' | 'transaction' | 'category';
+export type RemovableResource =
+  | 'account'
+  | 'transaction'
+  | 'category'
+  | 'project';
 
 const props = defineProps<{
   resource: RemovableResource;
@@ -27,6 +32,9 @@ function confirm() {
   } else if (props.resource === 'category') {
     const categoryStore = useCategoryStore();
     categoryStore.delete(props.id);
+  } else if (props.resource === 'project') {
+    const projectStore = useProjectStore();
+    projectStore.delete(props.id);
   }
   dialog.closeDialog();
   // TODO: add notification about removed resource

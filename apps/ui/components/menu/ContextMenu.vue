@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import { uid } from 'uid';
-import { string } from 'zod';
 import { useDialog } from '~/store/dialog';
 import ConfirmDelete from '~/components/dialog/ConfirmDelete.vue';
 import HoveredSelectableOptionsList, {
@@ -41,7 +40,11 @@ function setId(isOpen: boolean) {
   }
 }
 
-export type ContextualResource = 'account' | 'transaction' | 'category';
+export type ContextualResource =
+  | 'account'
+  | 'transaction'
+  | 'category'
+  | 'project';
 
 const props = defineProps<{
   resource: ContextualResource;
@@ -50,6 +53,31 @@ const props = defineProps<{
 
 const options = computed<MenuOption[]>(() => {
   switch (props.resource) {
+    case 'project':
+      return [
+        {
+          id: 'edit',
+          name: 'Edit project',
+          click: () => {
+            contextMenuStore.close();
+            const router = useRouter();
+            router.push(`/project/${props.id}`);
+          },
+        },
+        {
+          id: 'delete',
+          name: 'Delete project',
+          click: () => {
+            const dialog = useDialog();
+            dialog.openDialog(ConfirmDelete, {
+              resource: props.resource,
+              id: props.id,
+            });
+
+            contextMenuStore.close();
+          },
+        },
+      ];
     case 'category':
       return [
         {
