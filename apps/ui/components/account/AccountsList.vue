@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { useAccountStore } from '~/store/account';
 import AccountTypeIcon from '~/components/icons/AccountTypeIcon.vue';
-import { formatAmount } from 'nuxt-app/utils/formatAmount';
+import { formatAmount } from '~/utils/formatAmount';
 import ContextMenu from '~/components/menu/ContextMenu.vue';
 
 const accountStore = useAccountStore();

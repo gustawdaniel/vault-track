@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ComputedAccount } from '~/store/account';
-import { formatAmount } from 'nuxt-app/utils/formatAmount';
+import { formatAmount } from '~/utils/formatAmount';
 import { useDialog } from '~/store/dialog';
 import ConfirmDelete from '~/components/dialog/ConfirmDelete.vue';
 

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ucFirst } from 'nuxt-app/utils/ucFirst';
+import { ucFirst } from '~/utils/ucFirst';
 
 export type TransferContextType = 'expense' | 'income' | 'transfer';
 
