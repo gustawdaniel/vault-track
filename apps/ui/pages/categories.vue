@@ -73,5 +73,3 @@ const categoriesTree = categoryStore.tree;
     </nav>
   </div>
 </template>
-
-<style scoped></style>

@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { ucFirst } from 'nuxt-app/utils/ucFirst';
+
 export type TransferContextType = 'expense' | 'income' | 'transfer';
 
 const types: Array<{
@@ -9,11 +11,6 @@ const types: Array<{
   { id: 'income', name: 'Income' },
   { id: 'transfer', name: 'Transfer' },
 ];
-
-function ucFirst(word: string): string {
-  if (!word) return '';
-  return word.substring(0, 1).toUpperCase() + word.substring(1);
-}
 
 const props = defineProps<{
   modelValue: TransferContextType;

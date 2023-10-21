@@ -1,5 +1,6 @@
 import { RemovableRef, useLocalStorage } from '@vueuse/core';
 import { defineStore } from 'pinia';
+import { uid } from 'uid';
 import { getRandomColor } from '~/utils/getRandomColor';
 import { useProjectStore } from '~/store/project';
 import { Transaction } from '~/store/transaction';
@@ -12,8 +13,46 @@ export interface ColoredCategory extends Category {
   color: string;
 }
 
+export interface PersistedCategory extends ColoredCategory {
+  id: string;
+}
+
 interface State {
-  categories: RemovableRef<ColoredCategory[]>;
+  categories: RemovableRef<PersistedCategory[]>;
+}
+
+class Cat {
+  data: PersistedCategory;
+
+  constructor(payload: Category | ColoredCategory | PersistedCategory) {
+    console.log('payload', payload);
+    this.data = {
+      ...payload,
+      color: 'color' in payload ? payload.color : getRandomColor(),
+      id: 'id' in payload ? payload.id : uid(),
+    };
+  }
+
+  get id(): string {
+    return this.data.id;
+  }
+
+  get json(): PersistedCategory {
+    return this.data;
+  }
+
+  get pureCategoryWithoutProject(): PersistedCategory {
+    const [categoryName] = this.decomposeToCategoryAndProject();
+
+    return {
+      ...this.data,
+      category: categoryName ?? '',
+    };
+  }
+
+  decomposeToCategoryAndProject(): [string | undefined, string | undefined] {
+    return decomposeRawCategoryToCategoryAndProject(this.data.category);
+  }
 }
 
 export function getFullCategoryName(
@@ -57,39 +96,35 @@ export function composeRawCategoryFromCategoryAndProject(
 }
 
 export type CategoryTree = Array<
-  ColoredCategory & {
-    children: Array<ColoredCategory>;
+  PersistedCategory & {
+    children: Array<PersistedCategory>;
   }
 >;
 
 export const useCategoryStore = defineStore('category', {
   state: (): State => ({
-    categories: useLocalStorage<ColoredCategory[]>('category', []),
+    categories: useLocalStorage<PersistedCategory[]>('category', []),
   }),
   actions: {
     create(rawCategory: Category | ColoredCategory) {
       if (!rawCategory.category) return;
-      const [categoryName, projectName] =
-        decomposeRawCategoryToCategoryAndProject(rawCategory.category);
+
+      const cat = new Cat(rawCategory);
+
+      const [categoryName, projectName] = cat.decomposeToCategoryAndProject();
 
       if (categoryName) {
-        const categoryIndex = this.$state.categories.findIndex(
-          (a) => a.category === categoryName,
-        );
+        const categoryIndex = this.getIndexByName(categoryName);
 
-        const category: Category = { category: categoryName };
         if (categoryIndex >= 0) {
           const existing = this.$state.categories[categoryIndex];
           this.$state.categories.splice(
             categoryIndex,
             1,
-            Object.assign(existing, category),
+            Object.assign(existing, cat.pureCategoryWithoutProject),
           );
         } else {
-          this.$state.categories.push({
-            ...category,
-            color: getRandomColor(),
-          });
+          this.$state.categories.push(cat.pureCategoryWithoutProject);
         }
       }
 
@@ -101,6 +136,45 @@ export const useCategoryStore = defineStore('category', {
         });
       }
     },
+    update(id: string, category: ColoredCategory) {
+      const cat = new Cat({ ...category, id });
+      const index = this.getIndexById(id);
+      if (index !== -1) {
+        this.$state.categories.splice(index, 1, cat.pureCategoryWithoutProject);
+      } else {
+        this.create(cat.json);
+      }
+    },
+    delete(id: string): void {
+      const index = this.getIndexById(id);
+      if (index !== -1) {
+        const category = this.getById(id);
+        if (!category) return;
+
+        if (!category.category.includes(':')) {
+          const children = this.getSubCategories(category.category);
+          children.forEach((c) => this.delete(c.id));
+        }
+
+        this.$state.categories.splice(index, 1);
+      }
+    },
+    getIndexById(id: string): number {
+      return this.$state.categories.findIndex((a) => a.id === id);
+    },
+    getIndexByName(name: string): number {
+      return this.$state.categories.findIndex((a) => a.category === name);
+    },
+    getNew(): PersistedCategory {
+      return {
+        id: uid(),
+        color: getRandomColor(),
+        category: '',
+      };
+    },
+    getById(id: string): PersistedCategory | undefined {
+      return this.categories.find((c) => c.id === id);
+    },
     getColorByCategory(rawName?: string): string {
       if (!rawName) return 'transparent';
       const name = rawName.split('/')[0];
@@ -108,9 +182,12 @@ export const useCategoryStore = defineStore('category', {
       if (!category) return 'transparent';
       return category.color;
     },
-    getSubCategories(rootCategoryName: string): ColoredCategory[] {
+    getSubCategories(rootCategoryName: string): PersistedCategory[] {
       return this.categories
-        .filter((c) => c.category.startsWith(rootCategoryName))
+        .filter(
+          (c) =>
+            c.category.startsWith(rootCategoryName) && c.category.includes(':'),
+        )
         .map((c) => ({
           ...c,
           category: c.category.substring(rootCategoryName.length + 1),
@@ -118,9 +195,9 @@ export const useCategoryStore = defineStore('category', {
     },
   },
   getters: {
-    rootCategories(): ColoredCategory[] {
+    rootCategories(): PersistedCategory[] {
       return this.categories.reduce(
-        (rootCategories: ColoredCategory[], c: ColoredCategory) => {
+        (rootCategories: PersistedCategory[], c: PersistedCategory) => {
           const colonIndex = c.category.indexOf(':');
 
           const name = c.category.substring(
@@ -145,7 +222,8 @@ export const useCategoryStore = defineStore('category', {
           const children = this.categories
             .filter(
               (c) =>
-                c.category.startsWith(r.category) && c.category.includes(':'),
+                c.category.startsWith(r.category + ':') &&
+                c.category.includes(':'),
             )
             .map((c) => ({
               ...c,

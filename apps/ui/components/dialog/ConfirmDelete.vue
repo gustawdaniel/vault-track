@@ -2,6 +2,7 @@
 import { useDialog } from '~/store/dialog';
 import { useTransactionStore } from '~/store/transaction';
 import { useAccountStore } from '~/store/account';
+import { useCategoryStore } from '~/store/category';
 
 const dialog = useDialog();
 
@@ -9,7 +10,7 @@ function cancel() {
   dialog.closeDialog();
 }
 
-export type RemovableResource = 'account' | 'transaction';
+export type RemovableResource = 'account' | 'transaction' | 'category';
 
 const props = defineProps<{
   resource: RemovableResource;
@@ -23,8 +24,10 @@ function confirm() {
   } else if (props.resource === 'account') {
     const accountStore = useAccountStore();
     accountStore.delete(props.id);
+  } else if (props.resource === 'category') {
+    const categoryStore = useCategoryStore();
+    categoryStore.delete(props.id);
   }
-
   dialog.closeDialog();
   // TODO: add notification about removed resource
 }
@@ -43,10 +46,13 @@ function confirm() {
 
     <template #footer>
       <div class="grid grid-cols-2 gap-4">
-        <UButton class="w-full justify-center" color="gray" @click="cancel"
+        <UButton class="w-full justify-center" color="gray" @click.stop="cancel"
           >Cancel
         </UButton>
-        <UButton class="w-full justify-center" color="gray" @click="confirm"
+        <UButton
+          class="w-full justify-center"
+          color="gray"
+          @click.stop="confirm"
           >Ok
         </UButton>
       </div>
