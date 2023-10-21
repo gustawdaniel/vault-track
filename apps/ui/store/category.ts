@@ -141,17 +141,20 @@ export const useCategoryStore = defineStore('category', {
       const index = this.getIndexById(id);
       if (index !== -1) {
         if (!cat.pureCategoryWithoutProject.category.includes(':')) {
-          this.getSubCategories(
-            pro.pureCategoryWithoutProject.category,
-          ).forEach((sub) => {
-            const index = this.getIndexById(sub.id);
-            if (index === -1) return;
-            const [, subName] = sub.category.split(':');
-            this.update(sub.id, {
-              ...cat.pureCategoryWithoutProject,
-              category: `${pro.pureCategoryWithoutProject.category}:${subName}`,
-            });
-          });
+          const categoryBeforeUpdate = this.getById(id);
+          if (!categoryBeforeUpdate) return;
+
+          this.getSubCategories(categoryBeforeUpdate.category).forEach(
+            (sub) => {
+              const index = this.getIndexById(sub.id);
+              if (index === -1) return;
+              const [, subName] = sub.category.split(':');
+              this.update(sub.id, {
+                ...cat.pureCategoryWithoutProject,
+                category: `${cat.pureCategoryWithoutProject.category}:${subName}`,
+              });
+            },
+          );
         }
 
         this.$state.categories.splice(index, 1, cat.pureCategoryWithoutProject);

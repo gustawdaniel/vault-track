@@ -78,6 +78,7 @@ export const useProjectStore = defineStore('project', {
       if (index !== -1) {
         if (!pro.json.project.includes(':')) {
           const projectBeforeUpdate = this.getById(id);
+          if (!projectBeforeUpdate) return;
 
           this.getSubProjects(projectBeforeUpdate.project).forEach((sub) => {
             this.update(sub.id, {
