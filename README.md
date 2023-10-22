@@ -105,3 +105,6 @@ Next tasks:
 - reports
 - database
 - preferences
+
+// video4 debug mode
+https://github.com/gustawdaniel/open_cash_manager/commit/9a8ce1f026cd03a8a95d6cdc565f45b5a012e1fa

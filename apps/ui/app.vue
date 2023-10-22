@@ -18,6 +18,7 @@ function notOurDomain(origin: string): boolean {
 window.addEventListener(
   'message',
   (event) => {
+    console.log(event);
     if (notOurDomain(event.origin)) return;
 
     if ('debug' in event.data && typeof event.data.debug === 'boolean') {
