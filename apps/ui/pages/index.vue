@@ -6,21 +6,25 @@ import AccountsList from '~/components/account/AccountsList.vue';
 
 <template>
   <div>
-    <ImportQif />
-    <ExportQif />
+    <Debug root="div">
+      <ImportQif />
+      <ExportQif />
 
-    <hr />
-    <Stats />
-    <hr />
+      <hr />
+      <Stats />
+      <hr />
+    </Debug>
 
     <AccountsList />
     <hr />
     <FooterButtons />
 
-    <hr />
-    <Categories />
-    <hr />
-    <ProjectList />
+    <Debug root="div">
+      <hr />
+      <Categories />
+      <hr />
+      <ProjectList />
+    </Debug>
   </div>
 </template>
 

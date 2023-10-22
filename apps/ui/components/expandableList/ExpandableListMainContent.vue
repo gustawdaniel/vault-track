@@ -33,7 +33,7 @@ function getName(item: { category: string } | { project: string }): string {
 </script>
 
 <template>
-  <pre>{{ projectStore.projects }}</pre>
+  <Debug>{{ projectStore.projects }}</Debug>
   <!--  <pre>{{ tree }}</pre>-->
 
   <nav aria-label="Sidebar" class="flex flex-1 flex-col">

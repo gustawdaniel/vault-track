@@ -117,9 +117,9 @@ function setType(newType: NormalTransactionContextType | 'transfer') {
 
 <template>
   <div class="grid gap-6 grid-cols-3">
-    <pre>{{ props.transaction }}</pre>
-    <pre>{{ props.reverseTransaction }}</pre>
-    <pre>{{ state }}</pre>
+    <Debug>{{ props.transaction }}</Debug>
+    <Debug>{{ props.reverseTransaction }}</Debug>
+    <Debug>{{ state }}</Debug>
   </div>
 
   <UContainer>

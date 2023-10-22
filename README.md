@@ -62,6 +62,15 @@ Cleared status. Values are blank (unreconciled/not cleared),
 
 ---
 
+# Debug mode
+
+Paste in console
+
+```
+postMessage({debug: false})
+postMessage({debug: true})
+```
+
 Next tasks:
 
 - split
