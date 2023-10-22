@@ -32,6 +32,13 @@ export function loadDataToStore(payload: Data): void {
     }).safeParse(transactionEntity);
 
     if (!valid.success) {
+      // TODO: add error handling
+      console.error(transactionEntity);
+      alert(
+        `Error, Transaction: ${JSON.stringify(
+          transactionEntity,
+        )} is not valid, details: ${JSON.stringify(valid.error)}`,
+      );
       throw valid.error;
     }
 

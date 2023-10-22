@@ -38,3 +38,7 @@ testem.log
 # System Files
 .DS_Store
 Thumbs.db
+
+libs/csv-to-json
+libs/csv-to-json-rs
+*.csv
