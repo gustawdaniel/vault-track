@@ -161,3 +161,7 @@ For publication, we need:
 - redesign
 - screenshot
 - guide
+
+Docs edition:
+
+https://nuxt.studio/@gustawdaniel/open-cash-manager/studio/content?valueId=0.index.md&refId=main
