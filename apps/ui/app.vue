@@ -1,7 +1,11 @@
 <template>
   <div>
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
+
     <dialog-root />
-    <NuxtPage />
+    <UNotifications />
   </div>
 </template>
 

@@ -14,6 +14,7 @@ export function loadDataToStore(payload: Data): void {
   const transactionStore = useTransactionStore();
 
   for (const account of payload.accounts ?? []) {
+    // @ts-ignore
     if (account.name) storeAccount.create(<QifAccount>account);
   }
 

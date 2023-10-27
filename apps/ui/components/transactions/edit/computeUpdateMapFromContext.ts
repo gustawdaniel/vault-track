@@ -76,6 +76,10 @@ export function computeUpdateMapFromContext(
       ),
     });
 
+    if (accounts.from.currency === accounts.to.currency) {
+      context.toAbsoluteAmount = context.fromAbsoluteAmount;
+    }
+
     updates.set(context.toId ?? uid(), {
       amount: context.toAbsoluteAmount,
       ...commonUpdatePayload,

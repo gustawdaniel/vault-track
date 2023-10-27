@@ -20,12 +20,14 @@ const account =
 const mode = ref<'show' | 'edit'>(route.query.edit === '1' ? 'edit' : 'show');
 
 function onAccountEditOrCreate(id?: string) {
-  console.log(id);
   mode.value = 'show';
 
   if (typeof id === 'string') {
     const router = useRouter();
     router.push(`/account/${id}`);
+  } else if (accountId === NEW_ACCOUNT_ID) {
+    const router = useRouter();
+    router.push(`/`);
   }
 }
 </script>

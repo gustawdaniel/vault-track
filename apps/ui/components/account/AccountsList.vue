@@ -3,6 +3,7 @@ import { useAccountStore } from '~/store/account';
 import AccountTypeIcon from '~/components/icons/AccountTypeIcon.vue';
 import { formatAmount } from '~/utils/formatAmount';
 import ContextMenu from '~/components/menu/ContextMenu.vue';
+import { textColorByAmount } from '~/utils/textColorByAmount';
 
 const accountStore = useAccountStore();
 </script>
@@ -25,7 +26,10 @@ const accountStore = useAccountStore();
                 {{ account.description ?? '' }}
               </p>
             </div>
-            <div class="m-2 font-bold">
+            <div
+              :class="textColorByAmount(account.balance ?? 0)"
+              class="m-2 font-bold"
+            >
               {{ formatAmount(account.balance ?? 0) }}
               {{ account.currency ?? 'USD' }}
             </div>

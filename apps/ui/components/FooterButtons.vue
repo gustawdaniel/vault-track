@@ -3,11 +3,12 @@ import HoveredSelectableOptionsList, {
   MenuOption,
 } from '~/components/menu/HoveredSelectableOptionsList.vue';
 import { useRouter } from '#imports';
+import { useAccountStore } from '~/store/account';
 
-function toggleSearch() {
-  // TODO: add search
-  alert('search not implemented');
-}
+// function toggleSearch() {
+//   // TODO: add search
+//   alert('search not implemented');
+// }
 
 const options: MenuOption[] = [
   {
@@ -21,7 +22,10 @@ const options: MenuOption[] = [
   {
     id: 'database',
     name: 'Database',
-    click: () => {},
+    click: () => {
+      const router = useRouter();
+      router.push(`/backup`);
+    },
   },
   {
     id: 'preferences',
@@ -32,28 +36,30 @@ const options: MenuOption[] = [
     },
   },
 ];
+
+const accountsStore = useAccountStore();
 </script>
 
 <template>
-  <div class="m-2">
+  <UContainer class="my-2">
     <div class="justify-between flex">
-      <NuxtLink to="/transaction/new">
+      <NuxtLink v-if="accountsStore.accounts.length" to="/transaction/new">
         <UButton color="gray" icon="i-heroicons-plus" />
       </NuxtLink>
-      <NuxtLink to="/budgets">
-        <UButton color="gray" icon="i-heroicons-briefcase" />
-      </NuxtLink>
-      <NuxtLink to="/schedules">
-        <UButton color="gray" icon="i-heroicons-calendar-days" />
-      </NuxtLink>
-      <UButton
-        color="gray"
-        icon="i-heroicons-magnifying-glass"
-        @click="toggleSearch"
-      />
-      <NuxtLink to="/reports">
-        <UButton color="gray" icon="i-heroicons-chart-pie" />
-      </NuxtLink>
+      <!--      <NuxtLink to="/budgets">-->
+      <!--        <UButton color="gray" icon="i-heroicons-briefcase" />-->
+      <!--      </NuxtLink>-->
+      <!--      <NuxtLink to="/schedules">-->
+      <!--        <UButton color="gray" icon="i-heroicons-calendar-days" />-->
+      <!--      </NuxtLink>-->
+      <!--      <UButton-->
+      <!--        color="gray"-->
+      <!--        icon="i-heroicons-magnifying-glass"-->
+      <!--        @click="toggleSearch"-->
+      <!--      />-->
+      <!--      <NuxtLink to="/reports">-->
+      <!--        <UButton color="gray" icon="i-heroicons-chart-pie" />-->
+      <!--      </NuxtLink>-->
       <UPopover>
         <UButton color="gray" icon="i-heroicons-ellipsis-vertical" />
         <template #panel>
@@ -61,7 +67,7 @@ const options: MenuOption[] = [
         </template>
       </UPopover>
     </div>
-  </div>
+  </UContainer>
 </template>
 
 <style scoped></style>

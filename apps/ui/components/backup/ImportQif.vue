@@ -1,8 +1,8 @@
 <script lang="ts" setup>
+import { CodeBracketIcon } from '@heroicons/vue/24/solid';
 import { FileType } from '~/components/backup/types';
-import { parseFileContent } from '~/components/backup/parseFileContent';
+import { parseFileContentSafe } from '~/components/backup/parseFileContent';
 import { loadDataToStore } from '~/components/backup/loadDataToStore';
-import { clearLocalStorage } from '~/components/backup/clearLocalStorage';
 import { useAccountStore } from '~/store/account';
 
 function getFileType(mimeType: string): FileType {
@@ -43,15 +43,40 @@ function computeBalance() {
 }
 
 async function upload(event: Event) {
+  const toast = useToast();
+
   const [type, text] = await readFileContentFromInputEvent(event);
-  // console.log(type, text);
-  if (!text) return;
-  const payload = parseFileContent(type, text);
-  // console.log(payload);
-  if (!payload) return;
+  if (!text) {
+    reset();
+    return toast.add({
+      title: 'Empty file',
+      description: 'You have to select file with content.',
+      icon: 'i-heroicons-exclamation-circle',
+      color: 'red',
+    });
+  }
+  const payload = parseFileContentSafe(type, text);
+  if (!payload) {
+    reset();
+    return toast.add({
+      title: 'Invalid file content',
+      description:
+        'There was problem with parsing of your file. Read details in browser console',
+      icon: 'i-heroicons-exclamation-circle',
+      color: 'red',
+    });
+  }
   loadDataToStore(payload);
 
   computeBalance();
+
+  reset();
+
+  toast.add({
+    title: 'Your file was imported',
+    description: 'Data was saved to local storage. See on stats above.',
+    icon: 'i-heroicons-check-badge',
+  });
 }
 
 const refForm = ref<HTMLFormElement>();
@@ -59,22 +84,58 @@ const refForm = ref<HTMLFormElement>();
 function reset() {
   refForm.value?.reset();
 }
-
-function clear() {
-  reset();
-  return clearLocalStorage();
-}
 </script>
 
 <template>
-  <div>
-    <form ref="refForm">
-      <input accept=".qif,.json" type="file" @change="upload" />
-    </form>
+  <UContainer>
+    <div class="mt-5 border-b border-gray-200 bg-white px-4 py-5">
+      <div
+        class="-ml-4 -mt-4 flex flex-wrap items-center justify-between sm:flex-nowrap"
+      >
+        <div class="mt-4">
+          <h3 class="text-base font-semibold leading-6 text-gray-900">
+            Import Database
+          </h3>
+          <p class="mt-1 text-sm text-gray-500">
+            These data will be saved in browser storage, we not sending them to
+            any server.
+          </p>
+        </div>
+      </div>
 
-    <button class="border" @click="reset">reset button</button>
-    <button class="border" @click="clear">clear all</button>
-  </div>
+      <div class="col-span-full mt-5">
+        <div
+          class="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10"
+        >
+          <div class="text-center">
+            <CodeBracketIcon
+              aria-hidden="true"
+              class="mx-auto h-12 w-12 text-gray-300"
+            />
+            <div class="mt-4 flex text-sm leading-6 text-gray-600">
+              <form ref="refForm">
+                <label
+                  class="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-500"
+                  for="file-upload"
+                >
+                  <span>Upload a file</span>
+                  <input
+                    id="file-upload"
+                    accept=".qif,.json"
+                    class="sr-only"
+                    name="file-upload"
+                    type="file"
+                    @change="upload"
+                  />
+                </label>
+              </form>
+
+              <p class="pl-1">or drag and drop</p>
+            </div>
+            <p class="text-xs leading-5 text-gray-600">JSON, QIF</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </UContainer>
 </template>
-
-<style scoped></style>

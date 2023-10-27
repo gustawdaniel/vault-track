@@ -106,5 +106,58 @@ Next tasks:
 - database
 - preferences
 
-// video4 debug mode
-https://github.com/gustawdaniel/open_cash_manager/commit/9a8ce1f026cd03a8a95d6cdc565f45b5a012e1fa
+Interesting design
+https://tailwindui.com/components/application-ui/feedback/empty-states
+
+- [x] stats view over backup
+- [x] notification on success / fail
+- [x] confirm if remove all data
+- [x] disable backup if no data
+
+---
+
+Main page:
+
+- demo
+- add account
+- description
+- wyszukiwanie po transakcjach
+
+https://www.goodfirms.co/expense-management-software/blog/the-top-8-free-and-open-source-expense-management-software
+
+Tax Pal
+https://salient.tailwindui.com/
+
+Docs:
+
+- https://github.com/nuxt-themes/docus
+- https://docus.dev/api/components
+- https://docus.dev/
+- https://content.nuxt.com/
+- https://nuxt.studio/?utm_source=content-site&utm_medium=section&utm_campaign=home
+
+- Screenshots on landing
+- Setup Page
+- Guides
+
+Charts:
+
+https://flowbite.com/docs/plugins/charts/
+
+add videos with instructions:
+
+Vidyard
+https://secure.vidyard.com/organizations/3506184/library
+
+Next tasks:
+
+- Guide
+- Screenshot on landing
+- Redesign for full screen
+- Import transaction from json files
+
+For publication, we need:
+
+- redesign
+- screenshot
+- guide
