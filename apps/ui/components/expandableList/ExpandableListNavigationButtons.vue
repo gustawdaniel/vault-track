@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { PlusIcon } from '@heroicons/vue/20/solid';
-import { ExpandableListResourceName } from '~/components/expandableList/types';
+import type { ExpandableListResourceName } from '~/components/expandableList/types';
 
 defineProps<{ resource: ExpandableListResourceName }>();
 </script>

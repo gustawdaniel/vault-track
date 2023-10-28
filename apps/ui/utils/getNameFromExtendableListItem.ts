@@ -1,4 +1,4 @@
-import { ExpandableListResourceName } from '~/components/expandableList/types';
+import type { ExpandableListResourceName } from '~/components/expandableList/types';
 
 export function getNameFromExtendableListItem(
   resource: ExpandableListResourceName,

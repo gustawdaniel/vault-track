@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { AccountType } from '~/store/account';
+import type { AccountType } from '~/store/account';
 
 const props = defineProps<{ type: AccountType }>();
 </script>
