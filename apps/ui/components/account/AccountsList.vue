@@ -4,12 +4,13 @@ import AccountTypeIcon from '~/components/icons/AccountTypeIcon.vue';
 import { formatAmount } from '~/utils/formatAmount';
 import ContextMenu from '~/components/menu/ContextMenu.vue';
 import { textColorByAmount } from '~/utils/textColorByAmount';
+import AppContainer from '~/components/shared/AppContainer.vue';
 
 const accountStore = useAccountStore();
 </script>
 
 <template>
-  <UContainer>
+  <AppContainer>
     <ul>
       <li v-for="account of accountStore.accounts" :key="account.name">
         <ContextMenu :id="account.id" resource="account">
@@ -37,7 +38,7 @@ const accountStore = useAccountStore();
         </ContextMenu>
       </li>
     </ul>
-  </UContainer>
+  </AppContainer>
 </template>
 
 <style scoped>

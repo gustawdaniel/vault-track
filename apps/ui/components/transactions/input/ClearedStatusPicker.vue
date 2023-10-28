@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {
-  ClearedStatus,
+  type ClearedStatus,
   clearedStatusMap,
   getClearedStatusName,
 } from '~/store/clearedStatus';

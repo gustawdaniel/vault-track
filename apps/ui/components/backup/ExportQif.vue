@@ -2,6 +2,7 @@
 import dayjs from 'dayjs';
 import { CodeBracketIcon, CircleStackIcon } from '@heroicons/vue/24/outline';
 import { getExportContent } from '~/components/backup/getExportContent';
+import AppContainer from '~/components/shared/AppContainer.vue';
 
 function download(content: string, mimeType: string, filename: string) {
   const a = document.createElement('a'); // Create "a" element
@@ -48,7 +49,7 @@ const items = [
 </script>
 
 <template>
-  <UContainer class="mt-10">
+  <AppContainer class="mt-10">
     <h2 class="text-base font-semibold leading-6 text-gray-900">
       Export Backup
     </h2>
@@ -90,7 +91,7 @@ const items = [
         </div>
       </li>
     </ul>
-  </UContainer>
+  </AppContainer>
 </template>
 
 <style scoped></style>

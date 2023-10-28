@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { useDialog } from '~/store/dialog';
 import ConfirmDelete from '~/components/dialog/ConfirmDelete.vue';
+import AppContainer from '~/components/shared/AppContainer.vue';
 
 function openClearConfirmationDialog() {
   const dialog = useDialog();
@@ -12,7 +13,7 @@ function openClearConfirmationDialog() {
 </script>
 
 <template>
-  <UContainer>
+  <AppContainer>
     <div class="mt-5 border-b border-gray-200 bg-white px-4 py-5">
       <div
         class="-ml-4 -mt-4 flex flex-wrap items-center justify-between sm:flex-nowrap"
@@ -36,5 +37,5 @@ function openClearConfirmationDialog() {
         </div>
       </div>
     </div>
-  </UContainer>
+  </AppContainer>
 </template>

@@ -1,5 +1,9 @@
 <script lang="ts" setup>
-import { getFullProjectName, Project, useProjectStore } from '~/store/project';
+import {
+  getFullProjectName,
+  type Project,
+  useProjectStore,
+} from '~/store/project';
 
 const projectStore = useProjectStore();
 

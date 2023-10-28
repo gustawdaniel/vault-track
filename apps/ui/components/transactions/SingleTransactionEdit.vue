@@ -25,6 +25,7 @@ import {
   transformNormalStateToTransfer,
   transformTransferStateToNormal,
 } from '~/components/transactions/edit/stateTypeTransitions';
+import AppContainer from '~/components/shared/AppContainer.vue';
 
 const props = defineProps<{
   transaction: FullTransaction;
@@ -118,7 +119,7 @@ function setType(newType: NormalTransactionContextType | 'transfer') {
     <Debug>{{ state }}</Debug>
   </div>
 
-  <UContainer>
+  <AppContainer>
     <UCard :ui="{ base: '' }">
       <UForm :state="state" :validate="validate" @submit="submit">
         <UFormGroup label="Payee/Item" name="payee">
@@ -227,5 +228,5 @@ function setType(newType: NormalTransactionContextType | 'transfer') {
         </div>
       </UForm>
     </UCard>
-  </UContainer>
+  </AppContainer>
 </template>

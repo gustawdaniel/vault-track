@@ -7,6 +7,7 @@ import {
   useAccountStore,
 } from '~/store/account';
 import { currencies } from '~/store/currency';
+import AppContainer from '~/components/shared/AppContainer.vue';
 
 const props = defineProps<{
   account: Account;
@@ -37,7 +38,7 @@ const accountTypes: AccountType[] = ['Bank', 'Cash', 'CCard', 'Invst'];
 </script>
 
 <template>
-  <UContainer>
+  <AppContainer>
     <UCard class="mt-8">
       <UForm :state="state" :validate="validate" @submit="submit">
         <UFormGroup label="Account Name" name="email">
@@ -72,7 +73,7 @@ const accountTypes: AccountType[] = ['Bank', 'Cash', 'CCard', 'Invst'];
         <UButton class="mt-3" type="submit">Submit</UButton>
       </UForm>
     </UCard>
-  </UContainer>
+  </AppContainer>
 </template>
 
 <style scoped></style>

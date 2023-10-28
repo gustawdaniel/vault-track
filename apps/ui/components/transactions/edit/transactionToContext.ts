@@ -1,11 +1,11 @@
 import { uid } from 'uid';
-import {
+import type {
   CommonTransactionContext,
   TransactionContext,
   TransferContext,
 } from './types';
 import {
-  FullTransaction,
+  type FullTransaction,
   getTransactionNormalType,
   getTransferTransactionOrder,
   isTransferByCategory,

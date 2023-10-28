@@ -5,8 +5,9 @@ import {
   type PersistedCategory,
   useCategoryStore,
 } from '~/store/category';
-import { PersistedProject, useProjectStore } from '~/store/project';
+import { type PersistedProject, useProjectStore } from '~/store/project';
 import { getNameFromExtendableListItem } from '~/utils/getNameFromExtendableListItem';
+import AppContainer from '~/components/shared/AppContainer.vue';
 
 const props = defineProps<
   | {
@@ -124,7 +125,7 @@ function cancel() {
 </script>
 
 <template>
-  <UContainer class="my-10">
+  <AppContainer class="my-10">
     <UCard class="h-screen">
       <UForm :state="state" :validate="validate" @submit="submit">
         <UFormGroup label="Name" name="explicit-name">
@@ -158,7 +159,7 @@ function cancel() {
         </div>
       </UForm>
     </UCard>
-  </UContainer>
+  </AppContainer>
 </template>
 
 <style scoped></style>

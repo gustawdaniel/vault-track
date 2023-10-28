@@ -11,6 +11,7 @@ import {
   prepareTransactionsToDisplay,
   type TransactionFilter,
 } from '~/utils/prepareTransactionsToDisplay';
+import AppContainer from '~/components/shared/AppContainer.vue';
 
 const transactionStore = useTransactionStore();
 
@@ -20,14 +21,14 @@ const transactions = computed<ExtendedFullTransaction[]>(
   (): ExtendedFullTransaction[] => {
     return prepareTransactionsToDisplay(
       transactionStore.transactions,
-      props.filter,
+      props.filter ?? {},
     );
   },
 );
 </script>
 
 <template>
-  <UContainer v-if="transactions.length" class="mt-6">
+  <AppContainer v-if="transactions.length" class="mt-6">
     <UCard>
       <!--      <pre v-if="transactions.length">{{ transactions[0] }}</pre>-->
       <ul>
@@ -45,7 +46,7 @@ const transactions = computed<ExtendedFullTransaction[]>(
                 :color="transaction.color"
                 :extended="!props.filter?.accountId"
               />
-              <div class="flex-grow ml-2">
+              <div class="flex-grow ml-2 w-10 shrink-0">
                 <p v-if="!props.filter?.accountId" class="text-xs">
                   {{ transaction.account }}
                 </p>
@@ -54,7 +55,7 @@ const transactions = computed<ExtendedFullTransaction[]>(
                   {{ getFullCategoryName(transaction) }}
                 </p>
               </div>
-              <div class="text-right">
+              <div class="text-right shrink-0">
                 <p
                   :class="textColorByAmount(transaction.amount)"
                   class="font-bold"
@@ -72,7 +73,7 @@ const transactions = computed<ExtendedFullTransaction[]>(
         </li>
       </ul>
     </UCard>
-  </UContainer>
+  </AppContainer>
 </template>
 
 <style scoped></style>

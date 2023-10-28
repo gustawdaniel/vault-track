@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import type { ComputedAccount } from '~/store/account';
 import { formatAmount } from '~/utils/formatAmount';
+import AppContainer from '~/components/shared/AppContainer.vue';
 
 const props = defineProps<{
   account: ComputedAccount;
@@ -10,7 +11,7 @@ const emit = defineEmits(['edit']);
 </script>
 
 <template>
-  <UContainer>
+  <AppContainer>
     <UCard class="mt-8">
       <p>{{ props.account.name }}</p>
       <div class="grid grid-cols-2 gap-6">
@@ -35,7 +36,7 @@ const emit = defineEmits(['edit']);
         <UButton class="mt-4 ml-3" size="xs">Add transaction</UButton>
       </NuxtLink>
     </UCard>
-  </UContainer>
+  </AppContainer>
 </template>
 
 <style scoped></style>

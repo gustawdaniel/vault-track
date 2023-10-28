@@ -5,13 +5,33 @@ import type { FileType } from '~/components/backup/types';
 import { parseFileContent } from '~/components/backup/parseFileContent';
 import { loadDataToStore } from '~/components/backup/loadDataToStore';
 import { useAccountStore } from '~/store/account';
+import AppContainer from '~/components/shared/AppContainer.vue';
 
-function getFileType(mimeType: string): FileType {
+function getMessage(error: unknown): string {
+  if (
+    error &&
+    typeof error === 'object' &&
+    'message' in error &&
+    typeof error.message === 'string'
+  )
+    return error.message;
+  return 'Unknown error';
+}
+
+function getFileType(mimeType: string, name: string): FileType {
   switch (mimeType) {
     case 'application/x-qw':
       return 'qif';
     case 'application/json':
       return 'json';
+  }
+  if (!mimeType && name) {
+    switch (true) {
+      case name.endsWith('json'):
+        return 'json';
+      case name.endsWith('qif'):
+        return 'qif';
+    }
   }
 }
 
@@ -27,7 +47,11 @@ function readFileContentFromInputEvent(
 
     reader.addEventListener('load', () => {
       const text: string = reader.result ? String(reader.result) : '';
-      const type = getFileType(file.type);
+      console.log('file', file);
+      console.log('file.type', file.type);
+      console.log('file.name', file.name);
+
+      const type = getFileType(file.type, file.name);
       resolve([type, text]);
     });
 
@@ -60,7 +84,7 @@ async function upload(event: Event) {
     reset();
     return toast.add({
       title: 'Type not recognized',
-      description: `Type shout be qif or json but found "${type}".`,
+      description: `Type should be "qif" or "json" but found "${type}".`,
       icon: 'i-heroicons-exclamation-circle',
       color: 'red',
     });
@@ -78,13 +102,15 @@ async function upload(event: Event) {
         color: 'red',
       });
     }
-  } catch (e) {
+  } catch (e: unknown) {
     // eslint-disable-next-line no-console
     console.error(e);
     reset();
     return toast.add({
       title: 'Invalid file content',
-      description: `There was problem with parsing of your file. Error details: ${e.message}`,
+      description: `There was problem with parsing of your file. Error details: ${getMessage(
+        e,
+      )}`,
       icon: 'i-heroicons-exclamation-circle',
       color: 'red',
     });
@@ -110,7 +136,7 @@ function reset() {
 </script>
 
 <template>
-  <UContainer>
+  <AppContainer>
     <div class="mt-5 border-b border-gray-200 bg-white px-4 py-5">
       <div
         class="-ml-4 -mt-4 flex flex-wrap items-center justify-between sm:flex-nowrap"
@@ -160,5 +186,5 @@ function reset() {
         </div>
       </div>
     </div>
-  </UContainer>
+  </AppContainer>
 </template>

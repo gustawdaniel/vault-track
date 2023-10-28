@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { useAccountStore } from '~/store/account';
 import SettingsButtonOptionsList from '~/components/menu/SettingsButtonOptionsList.vue';
+import AppContainer from '~/components/shared/AppContainer.vue';
 
 // function toggleSearch() {
 //   // TODO: add search
@@ -11,7 +12,7 @@ const accountsStore = useAccountStore();
 </script>
 
 <template>
-  <UContainer class="my-2">
+  <AppContainer class="my-2">
     <div class="justify-between flex">
       <NuxtLink v-if="accountsStore.accounts.length" to="/transaction/new">
         <UButton color="gray" icon="i-heroicons-plus" />
@@ -34,7 +35,7 @@ const accountsStore = useAccountStore();
         <UButton color="gray" icon="i-heroicons-ellipsis-vertical" />
       </SettingsButtonOptionsList>
     </div>
-  </UContainer>
+  </AppContainer>
 </template>
 
 <style scoped></style>

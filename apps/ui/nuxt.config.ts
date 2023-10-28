@@ -1,6 +1,6 @@
 export default defineNuxtConfig({
   ssr: false,
-  devtools: { enabled: true },
+  devtools: { enabled: false },
   modules: ['@nuxt/ui', '@pinia/nuxt', '@vueuse/nuxt', '@nuxtjs/robots'],
   buildModules: ['@nuxtjs/pwa'],
   colorMode: {

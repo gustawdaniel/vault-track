@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {
-  ColoredCategory,
+  type ColoredCategory,
   getFullCategoryName,
   useCategoryStore,
 } from '~/store/category';

@@ -2,6 +2,7 @@
 import { useAccountStore } from '~/store/account';
 import { useCategoryStore } from '~/store/category';
 import { useTransactionStore } from '~/store/transaction';
+import AppContainer from '~/components/shared/AppContainer.vue';
 // import { useProjectStore } from '~/store/project';
 
 const accountStore = useAccountStore();
@@ -27,7 +28,7 @@ const stats = computed<SingleStat[]>(() => [
 </script>
 
 <template>
-  <UContainer>
+  <AppContainer>
     <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
       <div
         v-for="item in stats"
@@ -42,7 +43,7 @@ const stats = computed<SingleStat[]>(() => [
         </dd>
       </div>
     </dl>
-  </UContainer>
+  </AppContainer>
 
   <!--  <div v-if="false">-->
   <!--    <p>Cat: {{}} | Acc: {{}} | Trx: {{}}</p>-->
