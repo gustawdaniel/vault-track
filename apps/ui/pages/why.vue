@@ -207,7 +207,7 @@ import {
             You can start creating accounts and adding transactions manually or
             import your data. If you have custom data format create
             <a
-              class="text-indigo-500 hover:text-indigo-700"
+              class="text-indigo-700 hover:text-indigo-800"
               href="https://github.com/gustawdaniel/open_cash_manager/issues"
               >Github Issue</a
             >

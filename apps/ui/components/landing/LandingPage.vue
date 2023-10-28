@@ -575,7 +575,7 @@ const footerNavigation = {
                   <a
                     v-else-if="typeof part === 'object'"
                     :href="part.href"
-                    class="text-indigo-500 hover:text-indigo-700"
+                    class="text-indigo-700 hover:text-indigo-800"
                   >
                     {{ part.text }}
                   </a>

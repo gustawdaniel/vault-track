@@ -12,6 +12,13 @@ const routeName = computed<string>(() => {
   }
   return ucFirst(words.join(' ').trim()) || 'Open Cash Manager';
 });
+
+useHead({
+  htmlAttrs: {
+    lang: 'en',
+  },
+  title: routeName.value,
+});
 </script>
 
 <template>
