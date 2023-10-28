@@ -18,6 +18,13 @@ useHead({
     lang: 'en',
   },
   title: routeName.value,
+  meta: [
+    {
+      name: 'description',
+      content:
+        'Take control over your personal finance. Save income, expenses and transfers in many currencies, understand how to optimize your spending. For free, using open source, without sharing your data with anyone.',
+    },
+  ],
 });
 </script>
 

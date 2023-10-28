@@ -6,4 +6,11 @@ export default defineNuxtConfig({
   colorMode: {
     preference: 'light',
   },
+  pwa: {
+    manifest: {
+      name: 'Open Cash App',
+      lang: 'en',
+      useWebmanifestExtension: false,
+    },
+  },
 });
