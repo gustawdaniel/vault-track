@@ -1,29 +1,29 @@
 <script lang="ts" setup>
 import {
-  ExtendedFullTransaction,
+  type ExtendedFullTransaction,
   prepareTransactionsToDisplay,
-  TransactionFilter,
+  type TransactionFilter,
 } from '~/utils/prepareTransactionsToDisplay';
 import { useTransactionStore } from '~/store/transaction';
 import ContextMenu from '~/components/menu/ContextMenu.vue';
 import { textColorByAmount } from '~/utils/textColorByAmount';
 import { formatAmount } from '~/utils/formatAmount';
 
-const activityItems = [
-  {
-    user: {
-      name: 'Michael Foster',
-      imageUrl:
-        'https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-    },
-    projectName: 'ios-app',
-    commit: '2d89f0c8',
-    branch: 'main',
-    date: '1h',
-    dateTime: '2023-01-23T11:00',
-  },
-  // More items...
-];
+// const activityItems = [
+//   {
+//     user: {
+//       name: 'Michael Foster',
+//       imageUrl:
+//         'https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
+//     },
+//     projectName: 'ios-app',
+//     commit: '2d89f0c8',
+//     branch: 'main',
+//     date: '1h',
+//     dateTime: '2023-01-23T11:00',
+//   },
+//   // More items...
+// ];
 
 const props = defineProps<{ filter?: TransactionFilter }>();
 const transactionStore = useTransactionStore();
@@ -32,7 +32,7 @@ const transactions = computed<ExtendedFullTransaction[]>(
   (): ExtendedFullTransaction[] => {
     return prepareTransactionsToDisplay(
       transactionStore.transactions,
-      props.filter,
+      props.filter ?? {},
     );
   },
 );
@@ -40,7 +40,7 @@ const transactions = computed<ExtendedFullTransaction[]>(
 
 <template>
   <aside
-    v-if="filter.accountId"
+    v-if="filter?.accountId"
     class="bg-gray-100 lg:fixed lg:bottom-0 lg:right-0 lg:top-16 lg:w-96 lg:overflow-y-auto lg:border-l lg:border-white/5"
   >
     <header

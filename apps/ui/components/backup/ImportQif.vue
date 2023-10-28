@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import { CodeBracketIcon } from '@heroicons/vue/24/solid';
-import { FileType } from '~/components/backup/types';
-import { parseFileContentSafe } from '~/components/backup/parseFileContent';
+import type { Data } from 'qif2json/src/lib/types';
+import type { FileType } from '~/components/backup/types';
+import { parseFileContent } from '~/components/backup/parseFileContent';
 import { loadDataToStore } from '~/components/backup/loadDataToStore';
 import { useAccountStore } from '~/store/account';
 
@@ -55,13 +56,26 @@ async function upload(event: Event) {
       color: 'red',
     });
   }
-  const payload = parseFileContentSafe(type, text);
-  if (!payload) {
+  let payload: Data | undefined;
+  try {
+    payload = parseFileContent(type, text);
+    if (!payload) {
+      reset();
+      return toast.add({
+        title: 'Invalid file content',
+        description:
+          'There was problem with parsing of your file. No payload received from parsing.',
+        icon: 'i-heroicons-exclamation-circle',
+        color: 'red',
+      });
+    }
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
     reset();
     return toast.add({
       title: 'Invalid file content',
-      description:
-        'There was problem with parsing of your file. Read details in browser console',
+      description: `There was problem with parsing of your file. Error details: ${e.message}`,
       icon: 'i-heroicons-exclamation-circle',
       color: 'red',
     });

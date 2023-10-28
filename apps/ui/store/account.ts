@@ -1,10 +1,10 @@
 import type { QifAccount, QifAccountType } from 'qif-ts';
 import { defineStore } from 'pinia';
-import { RemovableRef, useLocalStorage } from '@vueuse/core';
+import { type RemovableRef, useLocalStorage } from '@vueuse/core';
 import { uid } from 'uid';
 import { z } from 'zod';
 import { useTransactionStore } from '~/store/transaction';
-import { Currency, sumArray, getCurrency, sum } from '~/store/currency';
+import { type Currency, sumArray, getCurrency, sum } from '~/store/currency';
 
 export const AccountModel = z.object({
   id: z.string(),
@@ -63,7 +63,6 @@ export const useAccountStore = defineStore('account', {
       }
     },
     update(accountId: string, accountData: Omit<Account, 'id'>) {
-      console.log(accountId, accountData);
       const index = this.getIndexById(accountId);
       if (index !== -1) {
         const foundAccount = this.$state.accounts[index];

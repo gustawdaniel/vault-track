@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import { useAccountStore } from '~/store/account';
 import { useTransactionStore } from '~/store/transaction';
-import { Category, useCategoryStore } from '~/store/category';
+import { useCategoryStore } from '~/store/category';
 
 export function seedDemoData() {
   const accountStore = useAccountStore();

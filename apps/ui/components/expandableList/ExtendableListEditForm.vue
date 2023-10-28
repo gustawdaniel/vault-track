@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import { FormError, FormSubmitEvent } from '#ui/types';
+import type { FormError, FormSubmitEvent } from '#ui/types';
 import {
-  Category,
-  PersistedCategory,
+  type Category,
+  type PersistedCategory,
   useCategoryStore,
 } from '~/store/category';
 import { PersistedProject, useProjectStore } from '~/store/project';
@@ -87,9 +87,6 @@ const validate = (state: EditState): FormError[] => {
 const router = useRouter();
 
 function submit(event: FormSubmitEvent<EditState>) {
-  // Do something with data
-  console.log(event.data, 2);
-
   if (props.resource === 'category') {
     const categoryStore = useCategoryStore();
     categoryStore.update(state.value.id, {

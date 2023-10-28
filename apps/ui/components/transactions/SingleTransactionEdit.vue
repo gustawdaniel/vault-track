@@ -1,14 +1,14 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
-import { FormError, FormSubmitEvent } from '#ui/types';
-import {
+import type { FormError, FormSubmitEvent } from '#ui/types';
+import type {
   ComputedNormalAccount,
   ComputedTransferAccounts,
   TransactionContext,
 } from './edit/types';
 import {
-  FullTransaction,
-  NormalTransactionContextType,
+  type FullTransaction,
+  type NormalTransactionContextType,
   useTransactionStore,
 } from '~/store/transaction';
 import { useAccountStore } from '~/store/account';
@@ -64,16 +64,12 @@ const transferAccount = computed<ComputedTransferAccounts>(() => {
 });
 
 function submit(event: FormSubmitEvent<TransactionContext>) {
-  // eslint-disable-next-line no-console
-  console.log(event.data);
   const updates = computeUpdateMapFromContext(
     props.transaction.id,
     event.data,
     currentNormalAccount.value,
     transferAccount.value,
   );
-
-  console.log('updates', updates);
 
   const transactionStore = useTransactionStore();
 

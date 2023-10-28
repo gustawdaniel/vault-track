@@ -1,8 +1,7 @@
 import { defineStore } from 'pinia';
-import { RemovableRef, useLocalStorage } from '@vueuse/core/index';
+import { type RemovableRef, useLocalStorage } from '@vueuse/core/index';
 import { uid } from 'uid';
-import { Transaction } from '~/store/transaction';
-import { PersistedCategory } from '~/store/category';
+import type { Transaction } from '~/store/transaction';
 
 export interface Project {
   project: string;

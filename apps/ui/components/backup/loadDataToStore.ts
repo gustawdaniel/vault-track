@@ -1,9 +1,9 @@
-import { Data } from 'qif2json/src/lib/types';
-import { QifAccount } from 'qif-ts';
+import type { Data } from 'qif2json/src/lib/types';
+import type { QifAccount } from 'qif-ts';
 import { useAccountStore } from '~/store/account';
-import { Category, useCategoryStore } from '~/store/category';
+import { type Category, useCategoryStore } from '~/store/category';
 import {
-  Transaction,
+  type Transaction,
   TransactionModel,
   useTransactionStore,
 } from '~/store/transaction';
@@ -33,8 +33,6 @@ export function loadDataToStore(payload: Data): void {
     }).safeParse(transactionEntity);
 
     if (!valid.success) {
-      // TODO: add error handling
-      console.error(transactionEntity);
       alert(
         `Error, Transaction: ${JSON.stringify(
           transactionEntity,

@@ -232,7 +232,6 @@ export const useTransactionStore = defineStore('transaction', {
           Object.assign(oldTrx.json, newTrx.json),
         );
 
-        console.log('update', oldTrx.data, newTrx.data);
         if (oldTrx.data.transferHash && !newTrx.data.transferHash) {
           const reverse = this.getReverseByIdAndHash(
             id,

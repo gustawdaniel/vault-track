@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import HoveredSelectableOptionsList, {
-  MenuOption,
+  type MenuOption,
 } from '~/components/menu/HoveredSelectableOptionsList.vue';
 import { useRouter } from '#imports';
 import { useAccountStore } from '~/store/account';

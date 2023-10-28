@@ -1,5 +1,5 @@
 import { uid } from 'uid';
-import {
+import type {
   CommonTransactionContext,
   ComputedNormalAccount,
   ComputedTransferAccounts,
@@ -26,8 +26,6 @@ export function computeUpdateMapFromContext(
   normalAccount: ComputedNormalAccount,
   transferAccount: ComputedTransferAccounts,
 ): Map<string, Transaction> {
-  console.log(propsTransactionId, context, normalAccount, transferAccount);
-
   const updates = new Map<string, Transaction>();
 
   if (context.type === 'income' || context.type === 'expense') {

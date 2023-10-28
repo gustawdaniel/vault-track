@@ -7,9 +7,9 @@ import { textColorByAmount } from '~/utils/textColorByAmount';
 import { formatAmount } from '~/utils/formatAmount';
 import ContextMenu from '~/components/menu/ContextMenu.vue';
 import {
-  ExtendedFullTransaction,
+  type ExtendedFullTransaction,
   prepareTransactionsToDisplay,
-  TransactionFilter,
+  type TransactionFilter,
 } from '~/utils/prepareTransactionsToDisplay';
 
 const transactionStore = useTransactionStore();

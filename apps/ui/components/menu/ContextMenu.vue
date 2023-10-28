@@ -3,7 +3,7 @@ import { uid } from 'uid';
 import { useDialog } from '~/store/dialog';
 import ConfirmDelete from '~/components/dialog/ConfirmDelete.vue';
 import HoveredSelectableOptionsList, {
-  MenuOption,
+  type MenuOption,
 } from '~/components/menu/HoveredSelectableOptionsList.vue';
 import { useContextMenuStore } from '~/store/contextMenu';
 

@@ -1,9 +1,9 @@
-import { RemovableRef, useLocalStorage } from '@vueuse/core';
+import { type RemovableRef, useLocalStorage } from '@vueuse/core';
 import { defineStore } from 'pinia';
 import { uid } from 'uid';
 import { getRandomColor } from '~/utils/getRandomColor';
 import { useProjectStore } from '~/store/project';
-import { Transaction } from '~/store/transaction';
+import type { Transaction } from '~/store/transaction';
 
 export interface Category {
   category: string;
@@ -25,7 +25,6 @@ class Cat {
   data: PersistedCategory;
 
   constructor(payload: Category | ColoredCategory | PersistedCategory) {
-    console.log('payload', payload);
     this.data = {
       ...payload,
       color: 'color' in payload ? payload.color : getRandomColor(),
