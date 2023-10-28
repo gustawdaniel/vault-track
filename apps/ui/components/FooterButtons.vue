@@ -1,41 +1,11 @@
 <script lang="ts" setup>
-import HoveredSelectableOptionsList, {
-  type MenuOption,
-} from '~/components/menu/HoveredSelectableOptionsList.vue';
-import { useRouter } from '#imports';
 import { useAccountStore } from '~/store/account';
+import SettingsButtonOptionsList from '~/components/menu/SettingsButtonOptionsList.vue';
 
 // function toggleSearch() {
 //   // TODO: add search
 //   alert('search not implemented');
 // }
-
-const options: MenuOption[] = [
-  {
-    id: 'open-account',
-    name: 'New Account',
-    click: () => {
-      const router = useRouter();
-      router.push(`/account/new?edit=1`);
-    },
-  },
-  {
-    id: 'database',
-    name: 'Database',
-    click: () => {
-      const router = useRouter();
-      router.push(`/backup`);
-    },
-  },
-  {
-    id: 'preferences',
-    name: 'Preferences',
-    click: () => {
-      const router = useRouter();
-      router.push('/preferences');
-    },
-  },
-];
 
 const accountsStore = useAccountStore();
 </script>
@@ -60,12 +30,9 @@ const accountsStore = useAccountStore();
       <!--      <NuxtLink to="/reports">-->
       <!--        <UButton color="gray" icon="i-heroicons-chart-pie" />-->
       <!--      </NuxtLink>-->
-      <UPopover>
+      <SettingsButtonOptionsList>
         <UButton color="gray" icon="i-heroicons-ellipsis-vertical" />
-        <template #panel>
-          <HoveredSelectableOptionsList :options="options" />
-        </template>
-      </UPopover>
+      </SettingsButtonOptionsList>
     </div>
   </UContainer>
 </template>

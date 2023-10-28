@@ -17,10 +17,10 @@ const accountStore = useAccountStore();
             :to="`/account/${account.id}`"
             class="flex justify-between items-center"
           >
-            <div class="m-2 w-10">
+            <div class="m-2 basis-10 w-10 shrink-0">
               <AccountTypeIcon :type="account.type" />
             </div>
-            <div class="m-2 flex-grow text-left">
+            <div class="m-2 flex-grow text-left overflow-auto">
               <p class="font-bold">{{ account.name }}</p>
               <p class="text-sm text-gray-600">
                 {{ account.description ?? '' }}
@@ -40,4 +40,24 @@ const accountStore = useAccountStore();
   </UContainer>
 </template>
 
-<style scoped></style>
+<style scoped>
+/* width */
+::-webkit-scrollbar {
+  height: 1px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: #888;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #000;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+</style>

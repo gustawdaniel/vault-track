@@ -1,7 +1,11 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
 import type { FormError, FormSubmitEvent } from '@nuxt/ui/dist/runtime/types';
-import { Account, AccountType, useAccountStore } from '~/store/account';
+import {
+  type Account,
+  type AccountType,
+  useAccountStore,
+} from '~/store/account';
 import { currencies } from '~/store/currency';
 
 const props = defineProps<{

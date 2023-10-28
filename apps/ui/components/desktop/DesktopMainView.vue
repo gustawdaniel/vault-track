@@ -1,17 +1,6 @@
 <script lang="ts" setup>
 import { PlusSmallIcon } from '@heroicons/vue/20/solid';
-
-const navigation = [
-  { name: 'Documentation', href: '#' },
-  { name: 'Community', href: '#' },
-  { name: 'Support', href: '/guide' },
-  {
-    name: 'New transaction',
-    to: '/transaction/new',
-    featured: true,
-    icon: PlusSmallIcon,
-  },
-];
+import SettingsButtonOptionsList from '~/components/menu/SettingsButtonOptionsList.vue';
 
 const selectedAccountId = ref<string | undefined>();
 
@@ -32,19 +21,21 @@ function setSelectedAccountId(id: string) {
         class="items-center hidden md:flex md:gap-x-11 md:text-sm md:font-semibold md:leading-6 md:text-gray-700"
       >
         <!--        TODO: place for search bar -->
-        <NuxtLink
-          v-for="(item, itemIdx) in navigation"
-          :key="itemIdx"
-          :class="
-            item.featured
-              ? 'rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600'
-              : ''
-          "
-          :to="item.to"
-          class="flex items-center"
+
+        <a class="hover:text-gray-600" href="https://docs.opencash.com"
+          >Documentation</a
         >
-          <component :is="item.icon" v-if="item.icon" class="w-6 h-6 mr-2" />
-          {{ item.name }}
+
+        <SettingsButtonOptionsList>
+          <button class="hover:text-gray-600">Settings</button>
+        </SettingsButtonOptionsList>
+
+        <NuxtLink
+          class="flex items-center rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+          to="/transaction/new"
+        >
+          <PlusSmallIcon class="w-6 h-6 mr-2" />
+          New transaction
         </NuxtLink>
       </nav>
     </div>

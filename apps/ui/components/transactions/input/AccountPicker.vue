@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { Account, useAccountStore } from '~/store/account';
+import { type Account, useAccountStore } from '~/store/account';
 
 const accounts = computed<Array<Pick<Account, 'id' | 'name' | 'currency'>>>(
   () => {

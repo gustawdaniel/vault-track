@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ComputedAccount } from '~/store/account';
+import type { ComputedAccount } from '~/store/account';
 import { formatAmount } from '~/utils/formatAmount';
 
 const props = defineProps<{

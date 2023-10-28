@@ -56,6 +56,15 @@ async function upload(event: Event) {
       color: 'red',
     });
   }
+  if (type !== 'qif' && type !== 'json') {
+    reset();
+    return toast.add({
+      title: 'Type not recognized',
+      description: `Type shout be qif or json but found "${type}".`,
+      icon: 'i-heroicons-exclamation-circle',
+      color: 'red',
+    });
+  }
   let payload: Data | undefined;
   try {
     payload = parseFileContent(type, text);

@@ -12,8 +12,11 @@ const secondaryFeatures = [
     description:
       'Just create my accounts, transactions and categories starting from today.',
     click: () => {
+      console.log(1);
       const router = useRouter();
+      console.log(2);
       router.push('/account/new?edit=1');
+      console.log(3);
     },
     icon: CloudArrowUpIcon,
     button: 'First account',

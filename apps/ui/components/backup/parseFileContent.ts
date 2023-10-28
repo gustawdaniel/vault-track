@@ -6,6 +6,8 @@ export function parseFileContent(
   type: FileType,
   content: string,
 ): Data | undefined {
+  console.log('type', type);
+  console.log('content', content);
   if (type === 'qif') return parseQif(content);
   if (type === 'json') return JSON.parse(content) as Data;
 }
