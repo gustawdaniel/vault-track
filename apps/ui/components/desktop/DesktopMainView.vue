@@ -22,9 +22,9 @@ function setSelectedAccountId(id: string) {
       >
         <!--        TODO: place for search bar -->
 
-        <a class="hover:text-gray-600" href="https://docs.opencash.com"
-          >Documentation</a
-        >
+        <a class="hover:text-gray-600" href="https://docs.opencash.app">
+          Documentation
+        </a>
 
         <SettingsButtonOptionsList>
           <button class="hover:text-gray-600">Settings</button>

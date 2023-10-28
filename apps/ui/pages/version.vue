@@ -5,6 +5,7 @@ import pJson from '../package.json';
 <template>
   <div>
     <pre>{{ pJson.name }}</pre>
+    <pre>{{ pJson.description }}</pre>
     <pre>{{ pJson.version }}</pre>
   </div>
 </template>

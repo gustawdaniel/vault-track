@@ -219,12 +219,12 @@ import {
               href="/setup"
               >Get started
             </NuxtLink>
-            <NuxtLink
+            <a
               class="text-sm font-semibold leading-6 text-gray-900"
-              to="/guide"
+              href="https://docs.opencash.app/"
             >
               Learn more <span aria-hidden="true">→</span>
-            </NuxtLink>
+            </a>
           </div>
           <svg
             aria-hidden="true"

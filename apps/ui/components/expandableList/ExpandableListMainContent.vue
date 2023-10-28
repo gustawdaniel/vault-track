@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-import { CategoryTree, useCategoryStore } from '~/store/category';
-import { ProjectTree, useProjectStore } from '~/store/project';
-import { ExpandableListResourceName } from '~/components/expandableList/types';
+import { type CategoryTree, useCategoryStore } from '~/store/category';
+import { type ProjectTree, useProjectStore } from '~/store/project';
+import type { ExpandableListResourceName } from '~/components/expandableList/types';
 import CategoryColorBox from '~/components/transactions/CategoryColorBox.vue';
 import ContextMenu from '~/components/menu/ContextMenu.vue';
 import { getNameFromExtendableListItem } from '~/utils/getNameFromExtendableListItem';

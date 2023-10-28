@@ -4,8 +4,6 @@
 
 <template>
   <div>
-    <ExpandableListNavigationHeader resource="category" />
-
     <ExpandableListMainContent resource="category" />
   </div>
 </template>
