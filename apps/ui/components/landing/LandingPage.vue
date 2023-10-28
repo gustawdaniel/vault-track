@@ -233,7 +233,7 @@ const footerNavigation = {
               >
                 <img
                   alt="App screenshot"
-                  class="rounded-md shadow-2xl ring-1 ring-gray-900/10"
+                  class="rounded-md shadow-2xl ring-1 ring-gray-900/10 w-full"
                   height="537"
                   src="~/assets/screenshots/open-cash-manager-shot-1.webp"
                   width="1054"
