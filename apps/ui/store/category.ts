@@ -40,6 +40,10 @@ class Cat {
     return this.data;
   }
 
+  get isRoot(): boolean {
+    return !this.pureCategoryWithoutProject.category.includes(':');
+  }
+
   get pureCategoryWithoutProject(): PersistedCategory {
     const [categoryName] = this.decomposeToCategoryAndProject();
 
@@ -139,7 +143,7 @@ export const useCategoryStore = defineStore('category', {
       const cat = new Cat({ ...category, id });
       const index = this.getIndexById(id);
       if (index !== -1) {
-        if (!cat.pureCategoryWithoutProject.category.includes(':')) {
+        if (cat.isRoot) {
           const categoryBeforeUpdate = this.getById(id);
           if (!categoryBeforeUpdate) return;
 
@@ -147,10 +151,9 @@ export const useCategoryStore = defineStore('category', {
             (sub) => {
               const index = this.getIndexById(sub.id);
               if (index === -1) return;
-              const [, subName] = sub.category.split(':');
               this.update(sub.id, {
                 ...cat.pureCategoryWithoutProject,
-                category: `${cat.pureCategoryWithoutProject.category}:${subName}`,
+                category: `${cat.pureCategoryWithoutProject.category}:${sub.category}`,
               });
             },
           );
@@ -177,6 +180,9 @@ export const useCategoryStore = defineStore('category', {
     },
     getIndexById(id: string): number {
       return this.$state.categories.findIndex((a) => a.id === id);
+    },
+    getByName(name: string): PersistedCategory | undefined {
+      return this.$state.categories.find((a) => a.category === name);
     },
     getIndexByName(name: string): number {
       return this.$state.categories.findIndex((a) => a.category === name);
