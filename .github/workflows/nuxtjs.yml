@@ -41,10 +41,6 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v3
         with:
-          # Automatically inject router.base in your Nuxt configuration file and set
-          # target to static (https://nuxtjs.org/docs/configuration-glossary/configuration-target/).
-          #
-          # You may remove this line if you want to manage the configuration yourself.
           static_site_generator: nuxt
       - name: Restore cache
         uses: actions/cache@v3
@@ -57,6 +53,10 @@ jobs:
             ${{ runner.os }}-nuxt-build-
       - name: Install dependencies
         run: npm i
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: .
 
   test:
     runs-on: ubuntu-latest
