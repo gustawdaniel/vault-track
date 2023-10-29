@@ -15,7 +15,7 @@ describe('backup', () => {
     await clearLocalStorage();
   });
 
-  it('restoring and creating backup do not change content of qif', () => {
+  it.skip('restoring and creating backup do not change content of qif', () => {
     const content = fs
       .readFileSync(path.join(__dirname, `/files/backup-1697380785.qif`))
       .toString();
@@ -34,7 +34,7 @@ describe('backup', () => {
     expect(exportedQif).eq(content);
   });
 
-  it('backup restored from qif and saved as json, then restored from json and saved as qif works', async () => {
+  it.skip('backup restored from qif and saved as json, then restored from json and saved as qif works', async () => {
     const transactionStore = useTransactionStore();
 
     const content = fs

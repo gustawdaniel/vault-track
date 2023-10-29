@@ -1,10 +1,6 @@
 <script lang="ts" setup>
 import type { FormError, FormSubmitEvent } from '#ui/types';
-import {
-  type Category,
-  type PersistedCategory,
-  useCategoryStore,
-} from '~/store/category';
+import { type PersistedCategory, useCategoryStore } from '~/store/category';
 import { type PersistedProject, useProjectStore } from '~/store/project';
 import { getNameFromExtendableListItem } from '~/utils/getNameFromExtendableListItem';
 import AppContainer from '~/components/shared/AppContainer.vue';
@@ -106,18 +102,20 @@ function submit(event: FormSubmitEvent<EditState>) {
   }
 }
 
-const possibleParentItems = computed<Category[]>(() => {
-  switch (props.resource) {
-    case 'project': {
-      const projectStore = useProjectStore();
-      return projectStore.rootProjects;
+const possibleParentItems = computed<PersistedProject[] | PersistedCategory[]>(
+  () => {
+    switch (props.resource) {
+      case 'project': {
+        const projectStore = useProjectStore();
+        return projectStore.rootProjects;
+      }
+      case 'category': {
+        const categoryStore = useCategoryStore();
+        return categoryStore.rootCategories;
+      }
     }
-    case 'category': {
-      const categoryStore = useCategoryStore();
-      return categoryStore.rootCategories;
-    }
-  }
-});
+  },
+);
 
 function cancel() {
   router.back();
