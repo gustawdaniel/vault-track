@@ -53,10 +53,10 @@ jobs:
             ${{ runner.os }}-nuxt-build-
       - name: Install dependencies
         run: npm i
-      - name: test
-        run: npm test
       - name: Build
         run: NUXT_APP_BASE_URL="/open_cash_manager" npm run build
+      - name: test
+        run: npm test
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
