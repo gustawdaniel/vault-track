@@ -28,7 +28,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  setup:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -53,22 +53,8 @@ jobs:
             ${{ runner.os }}-nuxt-build-
       - name: Install dependencies
         run: npm i
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
-        with:
-          path: .
-
-  test:
-    runs-on: ubuntu-latest
-    needs: setup
-    steps:
       - name: test
         run: npm test
-
-  build:
-    runs-on: ubuntu-latest
-    needs: setup
-    steps:
       - name: Build
         run: NUXT_APP_BASE_URL="/open_cash_manager" npm run build
       - name: Upload artifact
