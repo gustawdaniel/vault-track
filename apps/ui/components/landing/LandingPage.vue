@@ -146,8 +146,8 @@ const footerNavigation = {
   ],
   // TODO: add docs
   support: [
-    //   { name: 'Documentation', href: '/docs' },
-    { name: 'Guide', href: '/guide' },
+    { name: 'Documentation', href: 'https://docs.opencash.app' },
+    // { name: 'Guide', href: '/guide' },
     //   { name: 'API Reference', href: '/api' },
   ],
   // TODO: add blog

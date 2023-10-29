@@ -1,12 +1,26 @@
 # Open Cash Manager
 
-Architecture:
+Documentation:
+
+https://docs.opencash.app
+
+Production:
+
+https://opencash.app
+
+Beta:
+
+https://gustawdaniel.github.io/open_cash_manager
+
+## Below there are dev notes, real documentation was linked above:
+
+#### About Sync plans
 
 UI (pinia) -> stream of atomic operations
 
 First operation: account creation for unique id. This operation has assigned uuid by server.
 
-Next, if you want to save, then send prev hash,
+Next, if you want to save, then send prev hash
 if it is different then you will get all operations from lash hash that you remember.
 
 then:
@@ -46,19 +60,8 @@ Steps:
 - create backend
 - create account
 
-QFI spec: http://moneymvps.org/articles/qifspecification.aspx
 
-### Cleared Status
 
-Cleared status. Values are blank (unreconciled/not cleared),
-"*" or "c" (cleared) and "X" or "R" (reconciled).
-
-| Sign | Meaning      | Docs                     |
-|------|--------------|--------------------------|
-|      | Unreconciled | unreconciled/not cleared | 
-| *    | Cleared      | "*" or "c" (cleared)     |     
-| X    | Reconciled   | "X" or "R" (reconciled)  |
-| ?    | Void         | not mentioned            |
 
 ---
 
@@ -86,25 +89,13 @@ Next tasks:
 - toAccount
 
 Next tasks:
-
-- categories view
-    - list
-    - add
-    - edit
-    - remove
-- projects view
-    - list
-    - add
-    - edit
-    - remove
-- currencies support
-- exchange rates
 - budgets
 - schedules
 - search
 - reports
 - database
 - preferences
+- exchange rates
 
 Interesting design
 https://tailwindui.com/components/application-ui/feedback/empty-states
