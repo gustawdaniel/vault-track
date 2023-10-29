@@ -18,6 +18,17 @@ function notOurDomain(origin: string): boolean {
   );
 }
 
+// remove dark mode
+definePageMeta({
+  colorMode: 'light',
+});
+
+// https://color-mode.nuxtjs.org/
+const mode = useLocalStorage('nuxt-color-mode', 'light');
+if (mode.value === 'dark') {
+  mode.value = undefined;
+}
+
 // activation of debug by postMessage({'debug': true / false})
 window.addEventListener(
   'message',

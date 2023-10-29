@@ -1,6 +1,4 @@
-<script lang="ts" setup>
-// current 'bg-gray-50 text-indigo-600'
-</script>
+<script lang="ts" setup></script>
 
 <template>
   <div>

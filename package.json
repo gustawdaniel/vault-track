@@ -3,8 +3,9 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
+    "dev": "nx run ui:dev",
     "build": "nx run-many -t build -p qif-ts,qif2json && nx run-many -t generate",
-    "dev": "nx run ui:dev"
+    "test": "nx run-many -t test"
   },
   "private": true,
   "dependencies": {

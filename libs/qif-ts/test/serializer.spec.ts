@@ -1,6 +1,6 @@
-import { expect } from '@jest/globals';
+import { describe, it, expect } from '@jest/globals';
 import { serializeQif } from '../src';
-import { QifAccountType, QifData, QifType } from '../src/types';
+import { type QifAccountType, type QifData, QifType } from '../src';
 
 describe('serializeQif()', () => {
   it('should write bank type correctly', () => {

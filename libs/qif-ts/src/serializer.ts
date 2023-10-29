@@ -9,7 +9,7 @@ import {
 /**
  * Serializes a valid QIFData object.
  *
- * @param data - The QifData object to be serialised
+ * @param data - The QifData object to be serialized
  * @returns The QIF formatted string
  *
  * @public
@@ -134,7 +134,7 @@ function investmentTransactionToString(transaction: QifTransaction): string[] {
     output.push('C' + transaction.clearedStatus);
   }
 
-  if (Number.isFinite(transaction.investmentReminder)) {
+  if (transaction.investmentReminder) {
     output.push('P' + transaction.investmentReminder);
   }
 

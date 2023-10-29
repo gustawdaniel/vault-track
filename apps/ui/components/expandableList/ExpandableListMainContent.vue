@@ -33,8 +33,9 @@ function getName(item: { category: string } | { project: string }): string {
 </script>
 
 <template>
-  <Debug>{{ projectStore.projects }}</Debug>
-  <!--  <pre>{{ tree }}</pre>-->
+  <Debug v-if="resource === 'project'">{{ projectStore.projects }}</Debug>
+  <Debug v-if="resource === 'category'">{{ categoryStore.categories }}</Debug>
+  <Debug>{{ tree }}</Debug>
 
   <nav aria-label="Sidebar" class="flex flex-1 flex-col">
     <ul class="-mx-2 space-y-1" role="list">
