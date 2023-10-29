@@ -1,4 +1,4 @@
-import { RemovableRef, useLocalStorage } from '@vueuse/core';
+import { type RemovableRef, useLocalStorage } from '@vueuse/core';
 import hash from 'object-hash';
 
 import { defineStore } from 'pinia';
@@ -8,6 +8,7 @@ import dayjs from 'dayjs';
 import { useAccountStore } from '~/store/account';
 import { getFullCategoryName } from '~/store/category';
 import { getFullProjectName } from '~/store/project';
+import type { ClearedStatus } from '~/store/clearedStatus';
 
 export const TransactionModel = z.object({
   id: z.string(),
@@ -29,7 +30,7 @@ export interface Transaction {
   date: string;
   payee?: string;
   memo?: string;
-  clearedStatus?: string;
+  clearedStatus?: ClearedStatus;
 }
 
 interface PersistedTransaction extends Transaction {

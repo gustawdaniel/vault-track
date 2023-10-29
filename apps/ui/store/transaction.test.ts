@@ -1,6 +1,6 @@
 // [Gotówka EUR]/A:Sub
 import { it, expect } from 'vitest';
-import { Transaction, Trx } from '~/store/transaction';
+import { type Transaction, Trx } from '~/store/transaction';
 
 it('transaction hash is computed correctly', () => {
   const t1: Transaction = {
