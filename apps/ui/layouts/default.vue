@@ -36,6 +36,8 @@ useHead({
           <NuxtLink class="flex" to="/">
             <div class="flex flex-shrink-0 items-center">
               <img
+                height="10"
+                width="10"
                 alt="Logo"
                 class="h-8 w-auto"
                 src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=600"

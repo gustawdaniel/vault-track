@@ -680,6 +680,8 @@ const footerNavigation = {
         <h2 id="footer-heading" class="sr-only">Footer</h2>
         <div class="xl:grid xl:grid-cols-3 xl:gap-8">
           <img
+            width="10"
+            height="10"
             alt="Company name"
             class="h-7"
             src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=600"

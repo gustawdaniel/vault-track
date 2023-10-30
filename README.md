@@ -156,3 +156,7 @@ For publication, we need:
 Docs edition:
 
 https://nuxt.studio/@gustawdaniel/open-cash-manager/studio/content?valueId=0.index.md&refId=main
+
+
+Next task:
+- replace tailwind icon by our logo

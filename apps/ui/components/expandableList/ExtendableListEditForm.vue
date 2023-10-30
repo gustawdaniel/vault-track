@@ -52,6 +52,36 @@ const state = ref<EditState>({
     : {}),
 });
 
+const isRoot = computed<boolean>(() => {
+  const [explicitName, parentName] = getNameFromExtendableListItem(
+    props.resource,
+    props.initValue,
+  );
+
+  return !parentName && Boolean(explicitName);
+});
+
+const hasChildren = computed<boolean>(() => {
+  switch (props.resource) {
+    case 'project': {
+      const projectStore = useProjectStore();
+      return 'project' in props.initValue
+        ? Boolean(projectStore.getSubProjects(props.initValue.project).length)
+        : false;
+    }
+    case 'category': {
+      const categoryStore = useCategoryStore();
+      return 'category' in props.initValue
+        ? Boolean(
+            categoryStore.getSubCategories(props.initValue.category).length,
+          )
+        : false;
+    }
+    default:
+      return false;
+  }
+});
+
 function composeName(
   state: Pick<EditState, 'parentName' | 'explicitName'>,
 ): string {
@@ -107,11 +137,17 @@ const possibleParentItems = computed<PersistedProject[] | PersistedCategory[]>(
     switch (props.resource) {
       case 'project': {
         const projectStore = useProjectStore();
-        return projectStore.rootProjects;
+        return projectStore.rootProjects.filter(
+          (p) =>
+            p.project !== state.value.explicitName && p.id !== state.value.id,
+        );
       }
       case 'category': {
         const categoryStore = useCategoryStore();
-        return categoryStore.rootCategories;
+        return categoryStore.rootCategories.filter(
+          (p) =>
+            p.category !== state.value.explicitName && p.id !== state.value.id,
+        );
       }
     }
   },
@@ -133,6 +169,7 @@ function cancel() {
         <UFormGroup label="Parent Category" name="parent-name">
           <USelectMenu
             v-model="state.parentName"
+            :disabled="isRoot && hasChildren"
             :option-attribute="resource"
             :options="possibleParentItems"
             :value-attribute="resource"
