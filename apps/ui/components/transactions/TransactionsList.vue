@@ -50,7 +50,9 @@ const transactions = computed<ExtendedFullTransaction[]>(
                 <p v-if="!props.filter?.accountId" class="text-xs">
                   {{ transaction.account }}
                 </p>
-                <p class="font-bold">{{ transaction.payee }}</p>
+                <p class="font-bold">
+                  {{ transaction.payee || transaction.memo }}
+                </p>
                 <p class="text-xs">
                   {{ getFullCategoryName(transaction) }}
                 </p>

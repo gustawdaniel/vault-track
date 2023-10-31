@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import dayjs from 'dayjs';
 import Calendar from '~/components/transactions/input/Calendar.vue';
+import { toFullDate } from '~/utils/date';
 
 const props = defineProps<{
   modelValue: string;
@@ -13,7 +14,7 @@ const date = computed<Date>({
     return dayjs(props.modelValue).toDate();
   },
   set(date) {
-    emit('update:model-value', dayjs(date).format('YYYY-MM-DDT00:00:00'));
+    emit('update:model-value', toFullDate(date));
   },
 });
 const dateLabel = computed(() =>

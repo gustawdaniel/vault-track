@@ -19,10 +19,10 @@ const dialog = useDialog();
   </UModal>
 </template>
 
-<!--<style>-->
-<!--@media (min-width: 640px) {-->
-<!--  .sm\:max-w-lg {-->
-<!--    max-width: 48rem;-->
-<!--  }-->
-<!--}-->
-<!--</style>-->
+<style>
+@media (min-width: 640px) {
+  .sm\:max-w-lg {
+    max-width: 48rem;
+  }
+}
+</style>

@@ -1,1 +1,1 @@
-export type FileType = 'qif' | 'json' | undefined;
+export type FileType = 'qif' | 'json' | 'csv' | undefined;

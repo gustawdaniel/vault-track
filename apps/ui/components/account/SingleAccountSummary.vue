@@ -2,6 +2,7 @@
 import type { ComputedAccount } from '~/store/account';
 import { formatAmount } from '~/utils/formatAmount';
 import AppContainer from '~/components/shared/AppContainer.vue';
+import UploadTransactionsToAccount from '~/components/account/UploadTransactionsToAccount.vue';
 
 const props = defineProps<{
   account: ComputedAccount;
@@ -29,12 +30,16 @@ const emit = defineEmits(['edit']);
         </p>
       </div>
 
-      <UButton class="mt-4 mr-3" size="xs" to="/">Home</UButton>
-      <UButton class="mt-4" size="xs" @click="emit('edit')">Edit</UButton>
+      <div class="flex">
+        <UButton class="mt-4 mr-3" size="xs" to="/">Home</UButton>
+        <UButton class="mt-4" size="xs" @click="emit('edit')">Edit</UButton>
 
-      <NuxtLink to="/transaction/new">
-        <UButton class="mt-4 ml-3" size="xs">Add transaction</UButton>
-      </NuxtLink>
+        <NuxtLink to="/transaction/new">
+          <UButton class="mt-4 ml-3" size="xs">Add transaction</UButton>
+        </NuxtLink>
+
+        <UploadTransactionsToAccount :account="account" />
+      </div>
     </UCard>
   </AppContainer>
 </template>
