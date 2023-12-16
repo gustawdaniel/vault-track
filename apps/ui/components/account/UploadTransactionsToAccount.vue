@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import EventEmitter from 'events';
 import draggable from 'vuedraggable';
-import dayjs from 'dayjs';
+import dayjs, { extend } from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
 import type { ComputedAccount } from '~/store/account';
 import FileUploadAreaInput from '~/components/account/FileUploadAreaInput.vue';
 import {
@@ -13,6 +14,8 @@ import type { Transaction } from '~/store/transaction';
 import { tableHeadersToTransactionKeys } from '~/components/account/tableHeadersToTransactionKeys';
 import UploadTransactionAcceptance from '~/components/account/UploadTransactionAcceptance.vue';
 import type { ClearedStatus } from '~/store/clearedStatus';
+
+extend(customParseFormat);
 
 const signal = new EventEmitter();
 
@@ -69,9 +72,7 @@ function stringToClearedStatus(input?: string): ClearedStatus {
 const readyToReview = ref<boolean>(false);
 
 function parseAmount(value: string): number {
-  return Number(
-    value.replaceAll(',', '.').replaceAll(' ', '').replace(/\w*$/, ''),
-  );
+  return Number(value.replaceAll(',', '.').replace(/[^0-9.]/g, ''));
 }
 
 function csvToJson(): void {
@@ -83,7 +84,7 @@ function csvToJson(): void {
     transactions.value.push({
       account: props.account.name,
       accountId: props.account.id,
-      date: row[headerMap.date],
+      date: dayjs(row[headerMap.date], dateFormat.value).format('YYYY-MM-DD'),
       category: row[headerMap.category],
       amount: parseAmount(
         row[headerMap.amount] ||
@@ -97,12 +98,16 @@ function csvToJson(): void {
   readyToReview.value = true;
 }
 
-function isCorrect(value: string, key: keyof Transaction): boolean {
+function isCorrect(
+  value: string,
+  key: keyof Transaction,
+  dateFormat = 'YYYY-MM-DD',
+): boolean {
   switch (key) {
     case 'amount':
       return Number.isFinite(parseAmount(value));
     case 'date':
-      return dayjs(value).isValid();
+      return dayjs(value, dateFormat).isValid();
     default:
       return false;
   }
@@ -116,15 +121,27 @@ function titleMatchToTransactionKey(
     // #Data księgowania	#Data operacji	#Opis operacji	#Tytuł	#Nadawca/Odbiorca	#Numer konta	#Kwota	#Saldo po operacji
 
     case 'date':
-      return /^#?Data/.test(title);
+      return /^#?Data/.test(title) || /Date/.test(title);
     case 'category':
-      return /^Rodzaj/.test(title) || /^#Opis operacji/.test(title);
+      return (
+        /^Rodzaj/.test(title) ||
+        /^#Opis operacji/.test(title) ||
+        /Type/.test(title)
+      );
     case 'payee':
       return /^Odbiorca/.test(title) || /^#Nadawca/.test(title);
     case 'memo':
-      return /^Opis/.test(title) || /^#Tytuł/.test(title);
+      return (
+        /^Opis/.test(title) ||
+        /^#Tytuł/.test(title) ||
+        /Description/.test(title)
+      );
     case 'amount':
-      return /^Obciążenia/.test(title) || /^#Kwota/.test(title);
+      return (
+        /^Obciążenia/.test(title) ||
+        /^#Kwota/.test(title) ||
+        /Paid Out/.test(title)
+      );
     default:
       return false;
   }
@@ -181,6 +198,7 @@ async function upload(event: Event) {
   }
 
   autoAssignHeaders();
+  guessDateFormat();
 }
 
 function isValidRow(
@@ -189,13 +207,46 @@ function isValidRow(
 ): boolean {
   const headerMap = tableHeadersToTransactionKeys(headers);
 
+  console.log('headerMap', headerMap);
+
   if (!Number.isFinite(headerMap.date) || !Number.isFinite(headerMap.amount))
     return false;
 
   return (
-    isCorrect(row[headerMap.date], 'date') &&
-    isCorrect(row[headerMap.amount], 'amount')
+    isCorrect(row[headerMap.date], 'date', dateFormat.value) &&
+    isCorrect(row[headerMap.amount], 'amount', dateFormat.value)
   );
+}
+
+const dateFormat = ref<string>('YYYY-MM-DD');
+
+function guessDateFormat() {
+  const headerMap = tableHeadersToTransactionKeys(headers.value);
+
+  if (!Number.isFinite(headerMap.date)) return false;
+
+  const knownFormats = ['YYYY-MM-DD', 'DD.MM.YYYY'] as const;
+  const knownRegexes = {
+    'YYYY-MM-DD': /\d{4}-\d{2}-\d{2}/,
+    'DD.MM.YYYY': /\d{2}.\d{2}.\d{4}/,
+  } as const;
+  const points = new Map(knownFormats.map((format) => [format, 0]));
+
+  for (const row of csvTable.value) {
+    const date = row[headerMap.date];
+    console.log(date);
+    for (const format of knownFormats) {
+      if (knownRegexes[format].test(date)) {
+        points.set(format, (points.get(format) ?? 0) + 1);
+      }
+    }
+  }
+
+  console.log(points);
+
+  dateFormat.value = [...points.entries()].reduce((a, b) =>
+    a[1] > b[1] ? a : b,
+  )[0];
 }
 </script>
 

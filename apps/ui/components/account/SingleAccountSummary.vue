@@ -34,7 +34,7 @@ const emit = defineEmits(['edit']);
         <UButton class="mt-4 mr-3" size="xs" to="/">Home</UButton>
         <UButton class="mt-4" size="xs" @click="emit('edit')">Edit</UButton>
 
-        <NuxtLink to="/transaction/new">
+        <NuxtLink :to="`/transaction/new?account=${account.id}`">
           <UButton class="mt-4 ml-3" size="xs">Add transaction</UButton>
         </NuxtLink>
 

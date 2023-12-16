@@ -7,12 +7,20 @@ import { textColorByAmount } from '~/utils/textColorByAmount';
 import AppContainer from '~/components/shared/AppContainer.vue';
 
 const accountStore = useAccountStore();
+
+// TODO: switch
+const showHiddenAccounts = ref<boolean>(false);
 </script>
 
 <template>
   <AppContainer>
     <ul>
-      <li v-for="account of accountStore.accounts" :key="account.name">
+      <li
+        v-for="account of accountStore.accounts.filter((acc) =>
+          showHiddenAccounts ? true : !acc.hidden,
+        )"
+        :key="account.name"
+      >
         <ContextMenu :id="account.id" resource="account">
           <NuxtLink
             :to="`/account/${account.id}`"

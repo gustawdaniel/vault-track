@@ -159,14 +159,15 @@ const options = computed<MenuOption[]>(() => {
             contextMenuStore.close();
           },
         },
-        // TODO: add copy
-        // {
-        //   id: 'copy',
-        //   name: 'Copy transaction',
-        //   click: () => {
-        //                 contextMenuStore.close();
-        //   },
-        // },
+        {
+          id: 'copy',
+          name: 'Copy transaction',
+          click: () => {
+            contextMenuStore.close();
+            const router = useRouter();
+            router.push(`/transaction/new?copy=${props.id}`);
+          },
+        },
         //   TODO: add schedule
         // {
         //   id: 'schedule',

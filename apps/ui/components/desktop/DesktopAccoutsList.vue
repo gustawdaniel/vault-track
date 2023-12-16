@@ -15,6 +15,8 @@ function classForAccountBalance(balance: number): string {
 const emit = defineEmits(['selectAccountId']);
 
 const accountStore = useAccountStore();
+
+const showHiddenAccounts = ref<boolean>(false);
 </script>
 
 <template>
@@ -23,6 +25,10 @@ const accountStore = useAccountStore();
       class="flex items-center justify-between border-b border-white/5 px-4 py-4 sm:px-6 sm:py-6 lg:px-8"
     >
       <h1 class="text-base font-semibold leading-7">Accounts</h1>
+      <div class="flex items-center">
+        <UToggle v-model="showHiddenAccounts" color="primary" />
+        <p class="ml-2 text-gray-500">Show Hidden</p>
+      </div>
       <NuxtLink
         class="text-sm font-semibold leading-6 text-indigo-400"
         to="/account/new?edit=1"
@@ -33,7 +39,9 @@ const accountStore = useAccountStore();
     <!-- Deployment list -->
     <ul class="divide-y divide-white/5" role="list">
       <li
-        v-for="account in accountStore.accounts"
+        v-for="account in accountStore.accounts.filter((acc) =>
+          showHiddenAccounts ? true : !acc.hidden,
+        )"
         :key="account.id"
         @mouseenter="emit('selectAccountId', account.id)"
       >

@@ -20,6 +20,16 @@ export function transformNormalStateToTransfer(
 
   switch (currentState.type) {
     case 'income':
+      return {
+        type: 'transfer',
+        fromAbsoluteAmount: 0,
+        fromAccountId: accountStore.getFirstAccountIdToTransferFromId(
+          currentState.accountId,
+        ),
+        fromClearedStatus: currentState.clearedStatus,
+        toAccountId: currentState.accountId,
+        toAbsoluteAmount: currentState.absoluteAmount,
+      };
     case 'expense':
       return {
         type: 'transfer',

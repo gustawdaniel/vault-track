@@ -19,7 +19,7 @@ export const TransactionModel = z.object({
   date: z.string(),
   payee: z.string().optional(),
   memo: z.string().optional(),
-  clearedStatus: z.enum(['*', 'X', '?']).optional(),
+  clearedStatus: z.enum(['', '*', 'X', '?']).optional(),
 });
 
 export interface Transaction {
