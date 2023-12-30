@@ -73,21 +73,16 @@ function submit(event: FormSubmitEvent<TransactionContext>) {
   );
 
   const transactionStore = useTransactionStore();
+  let returnedId = '';
 
   for (const [id, update] of updates.entries()) {
     transactionStore.update(id, update);
+    if (update.accountId === props.transaction.accountId) {
+      returnedId = id;
+    }
   }
 
-  // orphaned part of transfer remove if changed to normal
-  // if (
-  //   (state.value.type === 'income' || state.value.type === 'expense') &&
-  //   props.transaction.transferHash &&
-  //   props.reverseTransaction
-  // ) {
-  //   transactionStore.delete(props.reverseTransaction.id);
-  // }
-
-  emit('exit');
+  emit('exit', returnedId ? { transactionId: returnedId } : undefined);
 }
 
 const emit = defineEmits(['exit']);

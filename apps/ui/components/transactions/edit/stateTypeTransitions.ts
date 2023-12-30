@@ -22,7 +22,7 @@ export function transformNormalStateToTransfer(
     case 'income':
       return {
         type: 'transfer',
-        fromAbsoluteAmount: 0,
+        fromAbsoluteAmount: currentState.absoluteAmount,
         fromAccountId: accountStore.getFirstAccountIdToTransferFromId(
           currentState.accountId,
         ),

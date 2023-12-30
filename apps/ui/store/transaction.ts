@@ -192,9 +192,11 @@ export const useTransactionStore = defineStore('transaction', {
     transactions: useLocalStorage<FullTransaction[]>('transaction', []),
   }),
   actions: {
-    create(transaction: Transaction, options?: CreateTransactionOptions) {
+    create(
+      transaction: Transaction | PersistedTransaction,
+      options?: CreateTransactionOptions,
+    ) {
       const trx = new Trx(transaction);
-
       const index = this.$state.transactions.findIndex(
         (a) => a.hash === trx.hash,
       );
@@ -211,7 +213,6 @@ export const useTransactionStore = defineStore('transaction', {
     },
     update(id: string, transaction: Transaction) {
       const newTrx = new Trx({ ...transaction, id });
-
       const index = this.getIndexById(newTrx.id);
       if (index !== -1) {
         const oldTrx = new Trx(this.$state.transactions[index]);
@@ -248,10 +249,13 @@ export const useTransactionStore = defineStore('transaction', {
           this.$state.transactions.splice(reverseIndex, 1);
         }
       } else {
-        this.create(transaction, {
-          allowDuplicates: true,
-          updateAccountBalance: true,
-        });
+        this.create(
+          { ...transaction, id },
+          {
+            allowDuplicates: true,
+            updateAccountBalance: true,
+          },
+        );
       }
     },
     delete(id: string): void {

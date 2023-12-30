@@ -14,6 +14,7 @@ import type { Transaction } from '~/store/transaction';
 import { tableHeadersToTransactionKeys } from '~/components/account/tableHeadersToTransactionKeys';
 import UploadTransactionAcceptance from '~/components/account/UploadTransactionAcceptance.vue';
 import type { ClearedStatus } from '~/store/clearedStatus';
+import type { UploadTransactionsHeaderType } from '~/components/account/UploadTransactionsHeaderType';
 
 extend(customParseFormat);
 
@@ -35,18 +36,19 @@ const props = defineProps<{
 
 const csvTable = ref<string[][]>([]);
 
-const headers = ref<{ name: keyof Transaction }[][]>([]);
+const headers = ref<{ name: UploadTransactionsHeaderType }[][]>([]);
 
 function removeRow(index: number): void {
   csvTable.value.splice(index, 1);
 }
 
-const possibleHeaders = ref<Array<{ name: keyof Transaction }>>([
+const possibleHeaders = ref<Array<{ name: UploadTransactionsHeaderType }>>([
   { name: 'amount' },
   { name: 'category' },
   { name: 'date' },
   { name: 'payee' },
   { name: 'memo' },
+  { name: 'fee' },
   { name: 'clearedStatus' },
 ]);
 
@@ -72,7 +74,7 @@ function stringToClearedStatus(input?: string): ClearedStatus {
 const readyToReview = ref<boolean>(false);
 
 function parseAmount(value: string): number {
-  return Number(value.replaceAll(',', '.').replace(/[^0-9.]/g, ''));
+  return Number(value.replaceAll(',', '.').replace(/[^0-9.-]/g, ''));
 }
 
 function csvToJson(): void {
@@ -94,13 +96,30 @@ function csvToJson(): void {
       payee: row[headerMap.payee],
       clearedStatus: stringToClearedStatus(row[headerMap.clearedStatus]),
     });
+
+    if (
+      headerMap.fee &&
+      row[headerMap.fee] &&
+      parseAmount(row[headerMap.fee]) > 0
+    ) {
+      transactions.value.push({
+        account: props.account.name,
+        accountId: props.account.id,
+        date: dayjs(row[headerMap.date], dateFormat.value).format('YYYY-MM-DD'),
+        category: 'fee',
+        amount: -parseAmount(row[headerMap.fee]),
+        memo: row[headerMap.memo],
+        payee: row[headerMap.payee],
+        clearedStatus: stringToClearedStatus(row[headerMap.clearedStatus]),
+      });
+    }
   }
   readyToReview.value = true;
 }
 
 function isCorrect(
   value: string,
-  key: keyof Transaction,
+  key: UploadTransactionsHeaderType,
   dateFormat = 'YYYY-MM-DD',
 ): boolean {
   switch (key) {
@@ -108,6 +127,8 @@ function isCorrect(
       return Number.isFinite(parseAmount(value));
     case 'date':
       return dayjs(value, dateFormat).isValid();
+    case 'state':
+      return value !== 'REVERTED';
     default:
       return false;
   }
@@ -115,7 +136,7 @@ function isCorrect(
 
 function titleMatchToTransactionKey(
   title: string,
-  key: keyof Transaction,
+  key: UploadTransactionsHeaderType,
 ): boolean {
   switch (key) {
     // #Data księgowania	#Data operacji	#Opis operacji	#Tytuł	#Nadawca/Odbiorca	#Numer konta	#Kwota	#Saldo po operacji
@@ -140,14 +161,22 @@ function titleMatchToTransactionKey(
       return (
         /^Obciążenia/.test(title) ||
         /^#Kwota/.test(title) ||
-        /Paid Out/.test(title)
+        /Paid Out/.test(title) ||
+        /Amount/.test(title)
       );
+    case 'fee':
+      return /^Fee$/.test(title);
+    case 'state':
+      return /^State$/.test(title);
     default:
       return false;
   }
 }
 
-function moveKeyToHeaderIndex(key: keyof Transaction, index: number): void {
+function moveKeyToHeaderIndex(
+  key: UploadTransactionsHeaderType,
+  index: number,
+): void {
   possibleHeaders.value = possibleHeaders.value.filter((v) => v.name !== key);
   const assigned = headers.value.find((headersInColumn) =>
     headersInColumn.some((header) => header.name === key),
@@ -161,12 +190,14 @@ function autoAssignHeaders() {
   if (!csvTable.value.length) return;
 
   csvTable.value[0].forEach((title: string, index: number) => {
-    const keys: (keyof Transaction)[] = [
+    const keys: UploadTransactionsHeaderType[] = [
       'date',
       'category',
       'payee',
       'memo',
       'amount',
+      'fee',
+      'state',
     ];
 
     for (const key of keys) {
@@ -203,18 +234,17 @@ async function upload(event: Event) {
 
 function isValidRow(
   row: string[],
-  headers: { name: keyof Transaction }[][],
+  headers: { name: UploadTransactionsHeaderType }[][],
 ): boolean {
   const headerMap = tableHeadersToTransactionKeys(headers);
-
-  console.log('headerMap', headerMap);
 
   if (!Number.isFinite(headerMap.date) || !Number.isFinite(headerMap.amount))
     return false;
 
   return (
     isCorrect(row[headerMap.date], 'date', dateFormat.value) &&
-    isCorrect(row[headerMap.amount], 'amount', dateFormat.value)
+    isCorrect(row[headerMap.amount], 'amount') &&
+    isCorrect(row[headerMap.state], 'state')
   );
 }
 

@@ -1,8 +1,8 @@
-import type { Transaction } from '~/store/transaction';
+import type { UploadTransactionsHeaderType } from '~/components/account/UploadTransactionsHeaderType';
 
 export function tableHeadersToTransactionKeys(
-  headers: Array<Array<{ name: keyof Transaction }>>,
-): Record<keyof Transaction, number> {
+  headers: Array<Array<{ name: UploadTransactionsHeaderType }>>,
+): Record<UploadTransactionsHeaderType, number> {
   return headers.reduce(
     (prev, next, index) => {
       if (next.length) {
@@ -13,6 +13,6 @@ export function tableHeadersToTransactionKeys(
 
       return prev;
     },
-    {} as Record<keyof Transaction, number>,
+    {} as Record<UploadTransactionsHeaderType, number>,
   );
 }

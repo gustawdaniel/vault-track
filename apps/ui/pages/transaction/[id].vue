@@ -54,9 +54,10 @@ const reverseTransaction = transactionStore.getReverseByIdAndHash(
   transaction?.transferHash,
 );
 
-function goToAccountPage() {
+function goToAccountPage(event?: { transactionId: string }) {
   if (transaction) {
-    router.push(`/account/${transaction.accountId}`);
+    const returnTransactionId = event ? event.transactionId : transaction.id;
+    router.push(`/account/${transaction.accountId}#${returnTransactionId}`);
   } else {
     router.push(`/`);
   }
