@@ -27,6 +27,7 @@
     "vue-router": "^4.2.5"
   },
   "dependencies": {
+    "mitt": "^3.0.1",
     "legacy-encoding": "^3.0.0",
     "@heroicons/vue": "^2.0.18",
     "@nuxt/test-utils": "^3.7.4",

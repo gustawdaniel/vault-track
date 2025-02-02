@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type EventEmitter from 'events';
 import { CodeBracketIcon } from '@heroicons/vue/24/solid';
+import type { Emitter } from 'mitt';
 
 const emit = defineEmits(['upload']);
 
@@ -10,7 +11,7 @@ function upload(event: Event) {
 
 const props = defineProps<{
   accept: string;
-  signal: EventEmitter;
+  signal: Emitter<{ reset: void }>;
 }>();
 
 const extensions = computed<string>(() => {

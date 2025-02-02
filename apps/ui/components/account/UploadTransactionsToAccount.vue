@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import EventEmitter from 'events';
 import draggable from 'vuedraggable';
 import dayjs, { extend } from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
+import mitt from 'mitt';
 import type { ComputedAccount } from '~/store/account';
 import FileUploadAreaInput from '~/components/account/FileUploadAreaInput.vue';
 import {
@@ -18,7 +18,11 @@ import type { UploadTransactionsHeaderType } from '~/components/account/UploadTr
 
 extend(customParseFormat);
 
-const signal = new EventEmitter();
+const signal = mitt<{
+  reset: void;
+}>();
+
+// const signal = new EventEmitter();
 
 const isOpen = ref(false);
 

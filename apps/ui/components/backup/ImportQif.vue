@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import EventEmitter from 'events';
 import type { Data } from 'qif2json/src/lib/types';
+import mitt from 'mitt';
 import { parseFileContent } from '~/components/backup/parseFileContent';
 import { loadDataToStore } from '~/components/backup/loadDataToStore';
 import { useAccountStore } from '~/store/account';
@@ -8,7 +8,9 @@ import AppContainer from '~/components/shared/AppContainer.vue';
 import FileUploadAreaInput from '~/components/account/FileUploadAreaInput.vue';
 import { readFileContentFromInputEvent } from '~/utils/readFileContentFromInputEvent';
 
-const signal = new EventEmitter();
+const signal = mitt<{
+  reset: void;
+}>();
 
 function reset() {
   signal.emit('reset');
