@@ -11,13 +11,13 @@
     "lint": "eslint . --fix"
   },
   "dependencies": {
-    "@vercel/analytics": "^1.1.1"
+    "@vercel/analytics": "^1.6.1"
   },
   "devDependencies": {
     "@nuxt-themes/docus": "latest",
-    "@nuxt/devtools": "^0.8.5",
+    "@nuxt/devtools": "^3.1.1",
     "@nuxt/eslint": "^1.12.1",
-    "@nuxtjs/plausible": "^0.2.3",
+    "@nuxtjs/plausible": "^2.0.1",
     "@types/node": "^20.8.2",
     "eslint": "^9.39.2",
     "nuxt": "^4.2.2"

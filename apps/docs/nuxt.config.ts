@@ -3,10 +3,6 @@ export default defineNuxtConfig({
   extends: '@nuxt-themes/docus',
   devtools: { enabled: true },
 
-  build: {
-    transpile: ['pinceau'],
-  },
-  sourcemap: false,
   modules: [
     // Remove it if you don't use Plausible analytics
     // https://github.com/nuxt-modules/plausible
