@@ -1,21 +1,4 @@
 <script lang="ts" setup>
-const { x, y } = useMouse();
-const { y: windowY } = useWindowScroll();
-const isOpen = ref(false);
-const virtualElement = ref({ getBoundingClientRect: () => ({}) });
-
-function onContextMenu() {
-  const top = unref(y) - unref(windowY);
-  const left = unref(x);
-  virtualElement.value.getBoundingClientRect = () => ({
-    width: 0,
-    height: 0,
-    top,
-    left,
-  });
-  isOpen.value = true;
-}
-
 const hover = ref<number>(-1);
 
 interface MenuOption {
@@ -30,14 +13,13 @@ const options: MenuOption[] = [
   //   id: 'edit',
   //   name: 'Edit transaction',
   //   click: () => {
-  //     isOpen.value = false;
   //   },
   // },
   {
     id: 'delete',
     name: 'Delete transaction',
     click: () => {
-      isOpen.value = false;
+      // Logic for delete
     },
   },
   // TODO: add copy
@@ -45,7 +27,6 @@ const options: MenuOption[] = [
   //   id: 'copy',
   //   name: 'Copy transaction',
   //   click: () => {
-  //     isOpen.value = false;
   //   },
   // },
   //   TODO: add schedule
@@ -53,36 +34,29 @@ const options: MenuOption[] = [
   //   id: 'schedule',
   //   name: 'Create schedule',
   //   click: () => {
-  //     isOpen.value = false;
   //   },
   // },
 ];
+
+const menuItems = computed(() => [
+  options.map((o) => ({
+    label: o.name,
+    onSelect: o.click,
+  }))
+]);
 </script>
 
 <template>
-  <div class="bg-teal-200 w-full h-20" @contextmenu.prevent="onContextMenu">
-    <UContextMenu v-model="isOpen" :virtual-element="virtualElement">
-      <div
-        class="w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
-      >
-        <div
-          v-for="(item, index) in options"
-          :key="index"
-          @mouseenter="hover = index"
-          @mouseleave="hover = -1"
-        >
-          <a
-            :class="[
-              hover === index ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-              'block px-4 py-2 text-sm cursor-pointer',
-            ]"
-            @click="item.click"
-            >{{ item.name }}</a
-          >
-        </div>
-      </div>
-    </UContextMenu>
-  </div>
+  <UContextMenu
+    :items="menuItems"
+    :ui="{
+      content: 'min-w-48 bg-white dark:bg-gray-900 shadow-xl ring-1 ring-gray-200 dark:ring-gray-800 rounded-lg overflow-hidden'
+    }"
+  >
+    <div class="bg-teal-200 w-full h-20">
+      <!-- Content here -->
+    </div>
+  </UContextMenu>
 </template>
 
 <style scoped></style>

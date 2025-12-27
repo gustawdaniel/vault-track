@@ -24,11 +24,17 @@ const items = ref<ContextMenuItem[][]>([
   [
     {
       label: 'Show Sidebar',
-      kbds: ['meta', 's']
+      kbds: ['meta', 's'],
+      onSelect: () => {
+       console.log('Show Sidebar') 
+      }
     },
     {
       label: 'Show Toolbar',
-      kbds: ['shift', 'meta', 'd']
+      kbds: ['shift', 'meta', 'd'],
+      onSelect: () => {
+       console.log('Show Toolbar') 
+      }
     },
     {
       label: 'Collapse Pinned Tabs',
