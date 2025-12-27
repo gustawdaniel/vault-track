@@ -40,7 +40,7 @@ useHead({
                 width="10"
                 alt="Logo"
                 class="h-8 w-auto"
-                src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=600"
+                src="/icon.png"
               />
               <p class="ml-5">{{ routeName }}</p>
             </div>

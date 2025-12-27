@@ -22,10 +22,7 @@ const tree = computed<CategoryTree | ProjectTree>(() => {
   }
 });
 
-function redirectToItem(id: string) {
-  const router = useRouter();
-  router.push(`/${props.resource}/${id}`);
-}
+
 
 function getName(item: { category: string } | { project: string }): string {
   return getNameFromExtendableListItem(props.resource, item);
@@ -40,45 +37,43 @@ function getName(item: { category: string } | { project: string }): string {
   <nav aria-label="Sidebar" class="flex flex-1 flex-col">
     <ul class="-mx-2 space-y-1" role="list">
       <template v-for="item in tree" :key="getName(item)">
-        <li @click="redirectToItem(item.id)">
-          <ContextMenu
-            :id="item.id"
-            :class="[
-              'text-gray-700 hover:text-indigo-600 hover:bg-gray-50',
-              'group flex gap-x-3 rounded-md p-2 pl-3 text-sm leading-6 font-semibold',
-              'items-center  cursor-pointer',
-            ]"
-            :resource="resource"
-          >
-            <CategoryColorBox
-              v-if="'color' in item"
-              :color="item.color"
-              :extended="false"
-            />
-            <span>{{ getName(item) }}</span>
+        <li>
+          <ContextMenu :id="item.id" :resource="resource">
+            <NuxtLink
+              :to="`/${resource}/${item.id}`"
+              :class="[
+                'text-gray-700 hover:text-indigo-600 hover:bg-gray-50',
+                'group flex gap-x-3 rounded-md p-2 pl-3 text-sm leading-6 font-semibold',
+                'items-center cursor-pointer',
+              ]"
+            >
+              <CategoryColorBox
+                v-if="'color' in item"
+                :color="item.color"
+                :extended="false"
+              />
+              <span>{{ getName(item) }}</span>
+            </NuxtLink>
           </ContextMenu>
         </li>
 
-        <li
-          v-for="children in item.children"
-          :key="getName(children)"
-          @click="redirectToItem(children.id)"
-        >
-          <ContextMenu
-            :id="children.id"
-            :class="[
-              'text-gray-700 hover:text-indigo-600 hover:bg-gray-50',
-              'group flex gap-x-3 rounded-md p-2 pl-3 text-sm leading-6 font-semibold',
-              'ml-10 items-center cursor-pointer',
-            ]"
-            :resource="resource"
-          >
-            <CategoryColorBox
-              v-if="'color' in children"
-              :color="children.color"
-              :extended="false"
-            />
-            <span>{{ getName(children) }}</span>
+        <li v-for="children in item.children" :key="getName(children)">
+          <ContextMenu :id="children.id" :resource="resource">
+            <NuxtLink
+              :to="`/${resource}/${children.id}`"
+              :class="[
+                'text-gray-700 hover:text-indigo-600 hover:bg-gray-50',
+                'group flex gap-x-3 rounded-md p-2 pl-3 text-sm leading-6 font-semibold',
+                'ml-10 items-center cursor-pointer',
+              ]"
+            >
+              <CategoryColorBox
+                v-if="'color' in children"
+                :color="children.color"
+                :extended="false"
+              />
+              <span>{{ getName(children) }}</span>
+            </NuxtLink>
           </ContextMenu>
         </li>
       </template>

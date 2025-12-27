@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import { useDialog } from '~/store/dialog';
 import ConfirmDelete from '~/components/dialog/ConfirmDelete.vue';
-import { useContextMenuStore } from '~/store/contextMenu';
+// import { useContextMenuStore } from '~/store/contextMenu';
 
-const contextMenuStore = useContextMenuStore();
+// const contextMenuStore = useContextMenuStore();
 
 export type ContextualResource =
   | 'account'
@@ -16,7 +16,7 @@ const props = defineProps<{
   id: string;
 }>();
 
-const router = useRouter(); // Hoist router
+// const router = useRouter(); // Hoist router
 const dialog = useDialog(); // Hoist dialog controller
 
 const options = computed(() => {

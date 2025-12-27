@@ -127,7 +127,12 @@ export const useProjectStore = defineStore('project', {
   },
   getters: {
     rootProjects(): PersistedProject[] {
-      return this.projects.reduce(
+      const sorted = [...this.projects].sort(
+        (a: PersistedProject, b: PersistedProject) =>
+          a.project.length - b.project.length,
+      );
+
+      return sorted.reduce(
         (rootProjects: PersistedProject[], p: PersistedProject) => {
           const colonIndex = p.project.indexOf(':');
 

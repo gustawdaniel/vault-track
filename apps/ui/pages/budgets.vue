@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-const hover = ref<number>(-1);
+// const hover = ref<number>(-1);
 
 interface MenuOption {
   id: string;

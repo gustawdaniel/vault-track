@@ -215,7 +215,12 @@ export const useCategoryStore = defineStore('category', {
   },
   getters: {
     rootCategories(): PersistedCategory[] {
-      return this.categories.reduce(
+      const sorted = [...this.categories].sort(
+        (a: PersistedCategory, b: PersistedCategory) =>
+          a.category.length - b.category.length,
+      );
+
+      return sorted.reduce(
         (rootCategories: PersistedCategory[], c: PersistedCategory) => {
           const colonIndex = c.category.indexOf(':');
 

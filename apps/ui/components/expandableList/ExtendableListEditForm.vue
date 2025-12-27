@@ -34,7 +34,7 @@ function decomposeNameToParentAndExplicit(
   )
     .split(':')
     .reverse();
-  return { parentName, explicitName };
+  return { parentName: parentName ?? '', explicitName: explicitName ?? '' };
 }
 
 interface EditState {
@@ -52,35 +52,34 @@ const state = ref<EditState>({
     : {}),
 });
 
-const isRoot = computed<boolean>(() => {
-  const [explicitName, parentName] = getNameFromExtendableListItem(
-    props.resource,
-    props.initValue,
-  );
+// const isRoot = computed<boolean>(() => {
+//   const { parentName, explicitName } = decomposeNameToParentAndExplicit(
+//     props.initValue,
+//   );
 
-  return !parentName && Boolean(explicitName);
-});
+//   return !parentName && Boolean(explicitName);
+// });
 
-const hasChildren = computed<boolean>(() => {
-  switch (props.resource) {
-    case 'project': {
-      const projectStore = useProjectStore();
-      return 'project' in props.initValue
-        ? Boolean(projectStore.getSubProjects(props.initValue.project).length)
-        : false;
-    }
-    case 'category': {
-      const categoryStore = useCategoryStore();
-      return 'category' in props.initValue
-        ? Boolean(
-            categoryStore.getSubCategories(props.initValue.category).length,
-          )
-        : false;
-    }
-    default:
-      return false;
-  }
-});
+// const hasChildren = computed<boolean>(() => {
+//   switch (props.resource) {
+//     case 'project': {
+//       const projectStore = useProjectStore();
+//       return 'project' in props.initValue
+//         ? Boolean(projectStore.getSubProjects(props.initValue.project).length)
+//         : false;
+//     }
+//     case 'category': {
+//       const categoryStore = useCategoryStore();
+//       return 'category' in props.initValue
+//         ? Boolean(
+//             categoryStore.getSubCategories(props.initValue.category).length,
+//           )
+//         : false;
+//     }
+//     default:
+//       return false;
+//   }
+// });
 
 function composeName(
   state: Pick<EditState, 'parentName' | 'explicitName'>,
@@ -153,6 +152,22 @@ const possibleParentItems = computed<PersistedProject[] | PersistedCategory[]>(
   },
 );
 
+
+const parentOptions = computed<{ label: string; value: string; color?: string }[]>(() => {
+  if (props.resource === 'category') {
+    return (possibleParentItems.value as PersistedCategory[]).map((c) => ({
+      label: c.category,
+      value: c.category,
+      color: c.color,
+    }));
+  } else {
+    return (possibleParentItems.value as PersistedProject[]).map((p) => ({
+      label: p.project,
+      value: p.project,
+    }));
+  }
+});
+
 function cancel() {
   router.back();
 }
@@ -160,7 +175,7 @@ function cancel() {
 
 <template>
   <AppContainer class="my-10">
-    <UCard class="h-screen">
+    <UCard>
       <UForm :state="state" :validate="validate" @submit="submit">
         <UFormField label="Name" name="explicit-name">
           <UInput v-model="state.explicitName" />
@@ -169,11 +184,40 @@ function cancel() {
         <UFormField label="Parent Category" name="parent-name">
           <USelectMenu
             v-model="state.parentName"
-            :disabled="isRoot && hasChildren"
-            :option-attribute="resource"
-            :options="possibleParentItems"
-            :value-attribute="resource"
-          />
+            :items="parentOptions"
+            value-attribute="value"
+            label-attribute="label"
+          >
+            <template #label>
+              <template v-if="state.parentName">
+                <span class="flex items-center -space-x-1 h-5">
+                  <span
+                    v-if="resource === 'category'"
+                    :style="{
+                      background: `${useCategoryStore().getColorByCategory(
+                        state.parentName,
+                      )}`,
+                    }"
+                    class="flex-shrink-0 w-2 h-2 mt-px rounded-full"
+                  />
+                </span>
+                <span>{{ state.parentName }}</span>
+              </template>
+              <template v-else>
+                <span class="text-gray-500 dark:text-gray-400 truncate">
+                  Select parent
+                </span>
+              </template>
+            </template>
+            <template #item="{ item }">
+              <span
+                v-if="item.color"
+                :style="{ background: `${item.color}` }"
+                class="flex-shrink-0 w-2 h-2 mt-px rounded-full"
+              />
+              <span class="truncate">{{ item.label }}</span>
+            </template>
+          </USelectMenu>
         </UFormField>
 
         <UFormField v-if="resource === 'category'" label="Color" name="color">
@@ -185,10 +229,10 @@ function cancel() {
         </UFormField>
 
         <div class="grid grid-cols-2 gap-6">
-          <UButton class="mt-4 justify-center" color="gray" @click="cancel">
+          <UButton class="mt-4 justify-center" color="neutral" @click="cancel">
             Cancel
           </UButton>
-          <UButton class="mt-4 justify-center" color="gray" type="submit">
+          <UButton class="mt-4 justify-center" color="neutral" type="submit">
             Save
           </UButton>
         </div>
