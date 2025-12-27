@@ -8,9 +8,9 @@
   ],
   "exports": {
     ".": {
-      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.js"
     }
   },
   "main": "./dist/index.js",
@@ -43,7 +43,7 @@
     "eslint": "^9.39.2",
     "jest": "^29.7.0",
     "ts-node": "^10.9.1",
-    "tsup": "^7.2.0",
+    "tsup": "^8.0.0",
     "typescript": "^5.2.2",
     "typescript-eslint": "^8.50.1"
   }

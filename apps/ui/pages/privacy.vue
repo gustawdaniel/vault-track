@@ -5,7 +5,7 @@
     <img
       alt=""
       class="absolute left-1/2 top-0 -ml-[39rem] w-[113.125rem] max-w-none"
-      src="~/assets/beams-basic.png"
+      src="../assets/beams-basic.png"
     />
     <div class="px-4 sm:px-6 lg:px-8">
       <div class="relative mx-auto max-w-[37.5rem] pt-20 text-center pb-24">

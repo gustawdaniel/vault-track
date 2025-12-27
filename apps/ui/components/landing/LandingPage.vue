@@ -7,9 +7,9 @@ import {
 } from '@heroicons/vue/24/outline';
 import { CheckIcon } from '@heroicons/vue/20/solid';
 
-import nuxtLogo from '~/assets/logo/nuxt-green-black.svg';
-import tailwindLogo from '~/assets/logo/tailwindcss-logotype.svg';
-import typescriptLogo from '~/assets/logo/typescript.svg';
+import nuxtLogo from '../../assets/logo/nuxt-green-black.svg';
+import tailwindLogo from '../../assets/logo/tailwindcss-logotype.svg';
+import typescriptLogo from '../../assets/logo/typescript.svg';
 
 const logos = [
   { name: 'Nuxt', image: nuxtLogo },
@@ -235,7 +235,7 @@ const footerNavigation = {
                   alt="App screenshot"
                   class="rounded-md shadow-2xl ring-1 ring-gray-900/10 w-full"
                   height="537"
-                  src="~/assets/screenshots/open-cash-manager-shot-1.webp"
+                  src="../../assets/screenshots/open-cash-manager-shot-1.webp"
                   width="1054"
                 />
                 <!--                <img-->

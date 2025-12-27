@@ -17,4 +17,10 @@ export default defineNuxtConfig({
       include: ['legacy-encoding'],
     },
   },
+
+  nitro: {
+    prerender: {
+      routes: ['/robots.txt'],
+    },
+  },
 });

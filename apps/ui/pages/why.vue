@@ -95,7 +95,7 @@ import {
               <img
                 alt=""
                 class="mt-1 h-10 w-10 flex-none rounded-full bg-gray-50"
-                src="~/assets/benjamin-franklin.png"
+                src="../assets/benjamin-franklin.png"
               />
               <div class="text-sm leading-6">
                 <div class="font-semibold text-gray-900">Benjamin Franklin</div>
