@@ -1,5 +1,4 @@
-import {detect} from 'jschardet';
-import Iconv from 'iconv-lite';
+
 import {
 	type Data,
 	type Division,
@@ -9,7 +8,7 @@ import {
 	TYPES,
 } from './types';
 import type stream from 'stream';
-import {parseDate} from './parseDate';
+import { parseDate } from './parseDate';
 
 type Account = {
 	name?: string;
@@ -33,8 +32,8 @@ function appendEntity(
 
 	if (
 		type.list_name === 'accounts'
-    && Object.hasOwnProperty.call(data, 'accounts')
-    && data.accounts?.find((a: Account) => a.name === entity.name)
+		&& Object.hasOwnProperty.call(data, 'accounts')
+		&& data.accounts?.find((a: Account) => a.name === entity.name)
 	) {
 		return data; // Skip duplicates
 	}
@@ -55,8 +54,8 @@ function clean(line: string): string {
 	line = line.trim();
 	if (
 		line.charCodeAt(0) === 239
-    && line.charCodeAt(1) === 187
-    && line.charCodeAt(2) === 191
+		&& line.charCodeAt(1) === 187
+		&& line.charCodeAt(2) === 191
 	) {
 		line = line.substring(3);
 	}
@@ -65,7 +64,7 @@ function clean(line: string): string {
 }
 
 function getTypeByName(line: string, typeName: string): Type {
-	let type: Type | undefined = TYPES.find(({name}) => name === typeName);
+	let type: Type | undefined = TYPES.find(({ name }) => name === typeName);
 
 	if (!type && typeName.startsWith('Type:')) {
 		type = {
@@ -111,10 +110,10 @@ function addCategory(data: Data, category: string): void {
 
 export function parse(
 	qif: string,
-	options?: {dateFormat?: string | string[] | undefined},
+	options?: { dateFormat?: string | string[] | undefined },
 ): Data {
 	/* eslint no-multi-assign: "off", no-param-reassign: "off",
-      no-continue: "off", prefer-destructuring: "off", no-case-declarations: "off" */
+	  no-continue: "off", prefer-destructuring: "off", no-case-declarations: "off" */
 	const lines = qif.split('\n');
 	let type: Type = {}; // /^(!Type:([^$]*)|!Account)$/.exec(line.trim());
 	let currentBankName = '';
@@ -217,8 +216,8 @@ export function parse(
 				if (!isMultiAccount) {
 					data = appendEntity(
 						data,
-						{list_name: 'accounts'},
-						{type: typeName},
+						{ list_name: 'accounts' },
+						{ type: typeName },
 						currentBankName,
 						isMultiAccount,
 					);

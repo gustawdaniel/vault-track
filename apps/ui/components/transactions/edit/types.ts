@@ -1,9 +1,9 @@
-import { type ClearedStatus } from '~/store/clearedStatus';
-import {
-  type FullTransaction,
-  type NormalTransactionContextType,
+import type { ClearedStatus } from '~/store/clearedStatus';
+import type {
+  FullTransaction,
+  NormalTransactionContextType,
 } from '~/store/transaction';
-import { type Account } from '~/store/account';
+import type { Account } from '~/store/account';
 
 export type TransferContext = {
   type: 'transfer';

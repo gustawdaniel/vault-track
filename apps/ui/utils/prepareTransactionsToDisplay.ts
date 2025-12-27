@@ -1,4 +1,4 @@
-import { type FullTransaction } from '~/store/transaction';
+import type { FullTransaction } from '~/store/transaction';
 import { type Currency, sum } from '~/store/currency';
 import { useCategoryStore } from '~/store/category';
 import { useAccountStore } from '~/store/account';

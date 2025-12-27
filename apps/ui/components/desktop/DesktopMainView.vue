@@ -16,7 +16,7 @@ function setSelectedAccountId(id: string) {
     <div
       class="mx-auto flex w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8"
     >
-      <div class="flex flex-1 items-center gap-x-6"></div>
+      <div class="flex flex-1 items-center gap-x-6"/>
       <nav
         class="items-center hidden md:flex md:gap-x-11 md:text-sm md:font-semibold md:leading-6 md:text-gray-700"
       >

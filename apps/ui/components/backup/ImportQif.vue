@@ -67,7 +67,7 @@ async function upload(event: Event) {
       });
     }
   } catch (e: unknown) {
-    // eslint-disable-next-line no-console
+     
     console.error(e);
     reset();
     return toast.add({

@@ -2,7 +2,6 @@
   "name": "qif-ts",
   "version": "1.0.0",
   "description": "Typescript library to map QIF formatted data",
-
   "files": [
     "dist",
     "package.json"
@@ -17,7 +16,6 @@
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
-
   "scripts": {
     "lint": "eslint . --fix",
     "build": "tsup src/index.ts",
@@ -41,10 +39,12 @@
   },
   "homepage": "https://gitlab.com/cluskii/qif-ts#readme",
   "devDependencies": {
-    "ts-node": "^10.9.1",
-    "typescript": "^5.2.2",
+    "@eslint/js": "^9.39.2",
+    "eslint": "^9.39.2",
     "jest": "^29.7.0",
-    "tsup": "^7.2.0"
-  },
-  "dependencies": {}
+    "ts-node": "^10.9.1",
+    "tsup": "^7.2.0",
+    "typescript": "^5.2.2",
+    "typescript-eslint": "^8.50.1"
+  }
 }

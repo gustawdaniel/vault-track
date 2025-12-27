@@ -354,7 +354,7 @@ function guessDateFormat() {
             >
               <thead>
                 <tr>
-                  <th></th>
+                  <th/>
                   <th
                     v-for="(col, colIndex) in csvTable[0]"
                     :key="colIndex"
