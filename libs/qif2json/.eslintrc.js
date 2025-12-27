@@ -34,10 +34,7 @@ module.exports = {
 			],
 		},
 	],
-	parserOptions: {
-		ecmaVersion: 'latest',
-		sourceType: 'module',
-	},
+
 	rules: {
 		camelcase: 'off',
 		'max-params': 'off',

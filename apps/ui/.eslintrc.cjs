@@ -13,6 +13,7 @@ module.exports = {
   rules: {
     'vue/multi-word-component-names': 'off',
     'prettier/prettier': 'error',
-    'vue/no-multiple-template-root': 'off'
+    'vue/no-multiple-template-root': 'off',
+    'import/named': 'off'
   },
 };
