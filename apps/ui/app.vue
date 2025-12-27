@@ -1,12 +1,11 @@
 <template>
-  <div>
+  <UApp>
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
 
     <dialog-root />
-    <UNotifications />
-  </div>
+  </UApp>
 </template>
 
 <script lang="ts" setup>
@@ -19,9 +18,9 @@ function notOurDomain(origin: string): boolean {
 }
 
 // remove dark mode
-definePageMeta({
-  colorMode: 'light',
-});
+// definePageMeta({
+//   colorMode: 'light',
+// });
 
 // https://color-mode.nuxtjs.org/
 const mode = useLocalStorage('nuxt-color-mode', 'light');

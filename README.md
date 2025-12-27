@@ -160,3 +160,19 @@ https://nuxt.studio/@gustawdaniel/open-cash-manager/studio/content?valueId=0.ind
 
 Next task:
 - replace tailwind icon by our logo
+
+
+Major Updates (High Risk / Breaking Changes)
+ESLint: v8 -> v9 (Requires migration to "Flat Config").
+Zod: v3 -> v4.
+Nuxt (apps/docs): v3.20 -> v4.2.2 (To align with apps/ui).
+@nuxtjs/robots: v3 -> v5.
+jsdom: v22 -> v27.
+tsup: v7 -> v8.
+@typescript-eslint: v6 -> v8.
+Recommendations
+Align Nuxt: Update apps/docs to Nuxt 4 to match apps/ui.
+Defer ESLint v9: This is a complex migration. Stick to v8 for now unless you want to tackle it specifically.
+Update Safe Tooling: Update tsup, jsdom, and @nuxt/devtools.
+Which updates would you like me to proceed with?
+

@@ -42,7 +42,7 @@ const options = computed<Array<ColoredCategory>>(() => {
 </script>
 
 <template>
-  <UFormGroup label="Category" name="category">
+  <UFormField label="Category" name="category">
     <USelectMenu
       :model-value="getFullCategoryName({ category: props.modelValue })"
       :options="options"
@@ -91,7 +91,7 @@ const options = computed<Array<ColoredCategory>>(() => {
         <span class="block truncate">{{ option.category }}</span>
       </template>
     </USelectMenu>
-  </UFormGroup>
+  </UFormField>
 </template>
 
 <style scoped></style>

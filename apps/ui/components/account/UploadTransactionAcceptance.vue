@@ -124,9 +124,9 @@ function importTransactions() {
 
 <template>
   <div>
-    <UFormGroup label="Show/Hide excluded">
-      <UToggle v-model="showExcluded" color="primary" />
-    </UFormGroup>
+    <UFormField label="Show/Hide excluded">
+      <USwitch v-model="showExcluded" color="primary" />
+    </UFormField>
 
     <div class="grid grid-cols-2 gap-2">
       <div class="text-center font-bold">Existing transactions</div>

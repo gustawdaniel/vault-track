@@ -23,7 +23,7 @@ function setType(value: TransferContextType): void {
 </script>
 
 <template>
-  <UFormGroup label="Type" name="type">
+  <UFormField label="Type" name="type">
     <USelectMenu
       :model-value="props.modelValue"
       :options="types"
@@ -35,7 +35,7 @@ function setType(value: TransferContextType): void {
         {{ ucFirst(props.modelValue) }}
       </template>
     </USelectMenu>
-  </UFormGroup>
+  </UFormField>
 </template>
 
 <style scoped></style>

@@ -39,7 +39,7 @@ const options = computed<Array<Project>>(() => {
 </script>
 
 <template>
-  <UFormGroup label="Project" name="project">
+  <UFormField label="Project" name="project">
     <USelectMenu
       :model-value="getFullProjectName({ category: props.modelValue })"
       :options="options"
@@ -68,7 +68,7 @@ const options = computed<Array<Project>>(() => {
         <span class="block truncate">{{ option.project }}</span>
       </template>
     </USelectMenu>
-  </UFormGroup>
+  </UFormField>
 </template>
 
 <style scoped></style>

@@ -319,9 +319,9 @@ function guessDateFormat() {
         </template>
         <div>
           <div v-if="!readyToReview">
-            <UFormGroup label="Encoding" name="encoding">
+            <UFormField label="Encoding" name="encoding">
               <USelectMenu v-model="encoding" :options="possibleEncodings" />
-            </UFormGroup>
+            </UFormField>
 
             <FileUploadAreaInput
               accept=".csv,.json"

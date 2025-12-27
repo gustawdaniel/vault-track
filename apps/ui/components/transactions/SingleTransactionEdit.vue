@@ -117,9 +117,9 @@ function setType(newType: NormalTransactionContextType | 'transfer') {
   <AppContainer>
     <UCard :ui="{ base: '' }">
       <UForm :state="state" :validate="validate" @submit="submit">
-        <UFormGroup label="Payee/Item" name="payee">
+        <UFormField label="Payee/Item" name="payee">
           <UInput v-model="state.payee" />
-        </UFormGroup>
+        </UFormField>
 
         <div class="grid gap-6 grid-cols-2">
           <AccountPicker
@@ -212,9 +212,9 @@ function setType(newType: NormalTransactionContextType | 'transfer') {
           />
         </div>
 
-        <UFormGroup label="Memo" name="memo">
+        <UFormField label="Memo" name="memo">
           <UInput v-model="state.memo" />
-        </UFormGroup>
+        </UFormField>
 
         <div class="mt-2">
           <UButton class="mr-2" color="gray" @click="cancel">Cancel</UButton>

@@ -24,7 +24,7 @@ const selected = computed<ClearedStatus>({
 </script>
 
 <template>
-  <UFormGroup :label="props.label ?? 'Status'" name="clearedStatus">
+  <UFormField :label="props.label ?? 'Status'" name="clearedStatus">
     <USelectMenu
       v-model="selected"
       :options="options"
@@ -36,5 +36,5 @@ const selected = computed<ClearedStatus>({
         {{ getClearedStatusName(selected ?? '') }}
       </template>
     </USelectMenu>
-  </UFormGroup>
+  </UFormField>
 </template>

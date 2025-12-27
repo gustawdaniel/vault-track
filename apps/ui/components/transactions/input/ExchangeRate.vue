@@ -19,7 +19,7 @@ function format4Digits(value: number): string {
 </script>
 
 <template>
-  <UFormGroup class="text-xs" label="Exchange Rate">
+  <UFormField class="text-xs" label="Exchange Rate">
     <p class="text-xs ml-6 font-semibold">
       1 {{ props.fromCurrency }} = {{ format4Digits(rate.strict) }}
       {{ props.toCurrency }}
@@ -28,7 +28,7 @@ function format4Digits(value: number): string {
       1 {{ props.toCurrency }} = {{ format4Digits(rate.reverse) }}
       {{ props.fromCurrency }}
     </p>
-  </UFormGroup>
+  </UFormField>
 </template>
 
 <style scoped></style>

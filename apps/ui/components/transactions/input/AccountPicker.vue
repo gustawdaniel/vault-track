@@ -27,7 +27,7 @@ function setAccount(value: string): void {
 </script>
 
 <template>
-  <UFormGroup :label="props.label ?? 'Account'" name="account">
+  <UFormField :label="props.label ?? 'Account'" name="account">
     <USelectMenu
       :model-value="props.modelValue"
       :options="accounts"
@@ -40,7 +40,7 @@ function setAccount(value: string): void {
         {{ props.name ? props.name : 'Unknown' }}
       </template>
     </USelectMenu>
-  </UFormGroup>
+  </UFormField>
 </template>
 
 <style scoped></style>

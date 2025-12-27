@@ -17,7 +17,7 @@ const value = computed<number>({
 </script>
 
 <template>
-  <UFormGroup
+  <UFormField
     :label="`Amount  ${props.currency ? '(' + props.currency + ')' : ''}`"
     name="amount"
   >
@@ -32,7 +32,7 @@ const value = computed<number>({
         </span>
       </template>
     </UInput>
-  </UFormGroup>
+  </UFormField>
 </template>
 
 <style scoped></style>

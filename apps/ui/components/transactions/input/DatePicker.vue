@@ -27,7 +27,7 @@ const dateLabel = computed(() =>
 </script>
 
 <template>
-  <UFormGroup label="Date" name="date">
+  <UFormField label="Date" name="date">
     <UPopover :popper="{ placement: 'bottom-start' }">
       <UInput
         :model-value="dateLabel"
@@ -38,7 +38,7 @@ const dateLabel = computed(() =>
         <Calendar v-model="date" @close="close" />
       </template>
     </UPopover>
-  </UFormGroup>
+  </UFormField>
 </template>
 
 <style scoped></style>

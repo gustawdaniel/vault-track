@@ -162,11 +162,11 @@ function cancel() {
   <AppContainer class="my-10">
     <UCard class="h-screen">
       <UForm :state="state" :validate="validate" @submit="submit">
-        <UFormGroup label="Name" name="explicit-name">
+        <UFormField label="Name" name="explicit-name">
           <UInput v-model="state.explicitName" />
-        </UFormGroup>
+        </UFormField>
 
-        <UFormGroup label="Parent Category" name="parent-name">
+        <UFormField label="Parent Category" name="parent-name">
           <USelectMenu
             v-model="state.parentName"
             :disabled="isRoot && hasChildren"
@@ -174,15 +174,15 @@ function cancel() {
             :options="possibleParentItems"
             :value-attribute="resource"
           />
-        </UFormGroup>
+        </UFormField>
 
-        <UFormGroup v-if="resource === 'category'" label="Color" name="color">
+        <UFormField v-if="resource === 'category'" label="Color" name="color">
           <input
             v-model="state.color"
             class="w-full h-8 border-0"
             type="color"
           />
-        </UFormGroup>
+        </UFormField>
 
         <div class="grid grid-cols-2 gap-6">
           <UButton class="mt-4 justify-center" color="gray" @click="cancel">
