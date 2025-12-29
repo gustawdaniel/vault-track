@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
-import type { FormError, FormSubmitEvent } from '#ui/types';
+import type { FormError, FormSubmitEvent } from '@nuxt/ui';
 import type {
   ComputedNormalAccount,
   ComputedTransferAccounts,
@@ -217,7 +217,7 @@ function setType(newType: NormalTransactionContextType | 'transfer') {
         </UFormField>
 
         <div class="mt-2">
-          <UButton class="mr-2" color="gray" @click="cancel">Cancel</UButton>
+          <UButton class="mr-2" color="neutral" @click="cancel">Cancel</UButton>
           <!-- TODO: save & new button -->
           <UButton type="submit">Save</UButton>
         </div>

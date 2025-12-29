@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
-import type { FormError, FormSubmitEvent } from '@nuxt/ui/dist/runtime/types';
+import type { FormError, FormSubmitEvent } from '@nuxt/ui';
 import {
   type Account,
   type AccountType,

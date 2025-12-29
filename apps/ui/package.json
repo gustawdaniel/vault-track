@@ -50,7 +50,7 @@
     "pinia": "^3.0.4",
     "prettier": "^3.7.4",
     "qif-ts": "*",
-    "qif2json": "*",
+    "qif2json": "workspace:*",
     "typescript": "^5.9.3",
     "uid": "^2.0.2",
     "v-calendar": "^3.1.2",

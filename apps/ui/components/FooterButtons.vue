@@ -18,18 +18,18 @@ const accountsStore = useAccountStore();
         <UButton color="neutral" icon="i-heroicons-plus" />
       </NuxtLink>
       <!--      <NuxtLink to="/budgets">-->
-      <!--        <UButton color="gray" icon="i-heroicons-briefcase" />-->
+      <!--        <UButton color="neutral" icon="i-heroicons-briefcase" />-->
       <!--      </NuxtLink>-->
       <!--      <NuxtLink to="/schedules">-->
-      <!--        <UButton color="gray" icon="i-heroicons-calendar-days" />-->
+      <!--        <UButton color="neutral" icon="i-heroicons-calendar-days" />-->
       <!--      </NuxtLink>-->
       <!--      <UButton-->
-      <!--        color="gray"-->
+      <!--        color="neutral"-->
       <!--        icon="i-heroicons-magnifying-glass"-->
       <!--        @click="toggleSearch"-->
       <!--      />-->
       <!--      <NuxtLink to="/reports">-->
-      <!--        <UButton color="gray" icon="i-heroicons-chart-pie" />-->
+      <!--        <UButton color="neutral" icon="i-heroicons-chart-pie" />-->
       <!--      </NuxtLink>-->
       <SettingsButtonOptionsList>
         <UButton color="neutral" icon="i-heroicons-ellipsis-vertical" />

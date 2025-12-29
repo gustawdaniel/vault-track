@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { FormError, FormSubmitEvent } from '#ui/types';
+import type { FormError, FormSubmitEvent } from '@nuxt/ui';
 import { type PersistedCategory, useCategoryStore } from '~/store/category';
 import { type PersistedProject, useProjectStore } from '~/store/project';
 import { getNameFromExtendableListItem } from '~/utils/getNameFromExtendableListItem';

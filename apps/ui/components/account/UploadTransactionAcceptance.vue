@@ -181,7 +181,7 @@ function importTransactions() {
               <UButton
                 label="x"
                 title="Exclude / Include"
-                color="gray"
+                color="neutral"
                 size="xs"
                 class="m-0 px-1 py-0"
                 @click="
@@ -229,7 +229,7 @@ function importTransactions() {
               <UButton
                 label="x"
                 title="Exclude / Include"
-                color="gray"
+                color="neutral"
                 size="xs"
                 class="m-0 px-1 py-0"
                 @click="

@@ -89,8 +89,9 @@ function csvToJson(): void {
       date: dayjs(row[headerMap.date], dateFormat.value).format('YYYY-MM-DD'),
       category: row[headerMap.category],
       amount: parseAmount(
-        row[headerMap.amount] ||
-          row[Math.min(headerMap.amount + 1, row.length - 1)],
+        (row[headerMap.amount] ||
+          row[Math.min(headerMap.amount + 1, row.length - 1)]) ??
+          '0',
       ),
       memo: row[headerMap.memo],
       payee: row[headerMap.payee],
@@ -100,14 +101,14 @@ function csvToJson(): void {
     if (
       headerMap.fee &&
       row[headerMap.fee] &&
-      parseAmount(row[headerMap.fee]) > 0
+      parseAmount(row[headerMap.fee] ?? '0') > 0
     ) {
       transactions.value.push({
         account: props.account.name,
         accountId: props.account.id,
         date: dayjs(row[headerMap.date], dateFormat.value).format('YYYY-MM-DD'),
         category: 'fee',
-        amount: -parseAmount(row[headerMap.fee]),
+        amount: -parseAmount(row[headerMap.fee] ?? '0'),
         memo: row[headerMap.memo],
         payee: row[headerMap.payee],
         clearedStatus: stringToClearedStatus(row[headerMap.clearedStatus]),
@@ -182,14 +183,14 @@ function moveKeyToHeaderIndex(
     headersInColumn.some((header) => header.name === key),
   );
   if (!assigned) {
-    headers.value.splice(index, 1, headers.value[index].concat({ name: key }));
+    headers.value.splice(index, 1, (headers.value[index] ?? []).concat({ name: key }));
   }
 }
 
 function autoAssignHeaders() {
   if (!csvTable.value.length) return;
 
-  csvTable.value[0].forEach((title: string, index: number) => {
+  (csvTable.value[0] ?? []).forEach((title: string, index: number) => {
     const keys: UploadTransactionsHeaderType[] = [
       'date',
       'category',
@@ -222,7 +223,7 @@ async function upload(event: Event) {
 
   if (parsedValues.length) {
     headers.value = [];
-    for (let i = 0; i < parsedValues[0].length; i++) {
+    for (let i = 0; i < (parsedValues[0] ?? []).length; i++) {
       headers.value.push([]);
     }
     csvTable.value = parsedValues;
@@ -242,9 +243,9 @@ function isValidRow(
     return false;
 
   return (
-    isCorrect(row[headerMap.date], 'date', dateFormat.value) &&
-    isCorrect(row[headerMap.amount], 'amount') &&
-    isCorrect(row[headerMap.state], 'state')
+    isCorrect(row[headerMap.date] ?? '', 'date', dateFormat.value) &&
+    isCorrect(row[headerMap.amount] ?? '', 'amount') &&
+    isCorrect(row[headerMap.state] ?? '', 'state')
   );
 }
 
@@ -266,7 +267,7 @@ function guessDateFormat() {
     const date = row[headerMap.date];
     console.log(date);
     for (const format of knownFormats) {
-      if (knownRegexes[format].test(date)) {
+      if (knownRegexes[format].test(date ?? '')) {
         points.set(format, (points.get(format) ?? 0) + 1);
       }
     }
@@ -309,7 +310,7 @@ function guessDateFormat() {
             </h3>
 
             <UButton
-              color="gray"
+              color="neutral"
               variant="ghost"
               icon="i-heroicons-x-mark-20-solid"
               class="-my-1"
@@ -340,7 +341,7 @@ function guessDateFormat() {
                 @change="log"
               >
                 <template #item="{ element }">
-                  <UBadge color="gray" variant="solid" class="cursor-grab">
+                  <UBadge color="neutral" variant="solid" class="cursor-grab">
                     {{ element.name }}
                   </UBadge>
                 </template>
@@ -369,7 +370,7 @@ function guessDateFormat() {
                     >
                       <template #item="{ element }">
                         <UBadge
-                          color="gray"
+                          color="neutral"
                           variant="solid"
                           class="cursor-grab"
                         >

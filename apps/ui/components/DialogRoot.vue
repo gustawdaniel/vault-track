@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { useDialog } from '~/store/dialog';
+import { DialogTitle, DialogDescription } from '@headlessui/vue';
 
 const dialog = useDialog();
 </script>
