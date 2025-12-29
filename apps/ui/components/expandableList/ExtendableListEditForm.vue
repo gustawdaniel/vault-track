@@ -52,56 +52,72 @@ const state = ref<EditState>({
     : {}),
 });
 
-// const isRoot = computed<boolean>(() => {
-//   const { parentName, explicitName } = decomposeNameToParentAndExplicit(
-//     props.initValue,
-//   );
+const isRoot = computed<boolean>(() => {
+  const { parentName, explicitName } = decomposeNameToParentAndExplicit(
+    props.initValue,
+  );
 
-//   return !parentName && Boolean(explicitName);
-// });
+  return !parentName && Boolean(explicitName);
+});
 
-// const hasChildren = computed<boolean>(() => {
-//   switch (props.resource) {
-//     case 'project': {
-//       const projectStore = useProjectStore();
-//       return 'project' in props.initValue
-//         ? Boolean(projectStore.getSubProjects(props.initValue.project).length)
-//         : false;
-//     }
-//     case 'category': {
-//       const categoryStore = useCategoryStore();
-//       return 'category' in props.initValue
-//         ? Boolean(
-//             categoryStore.getSubCategories(props.initValue.category).length,
-//           )
-//         : false;
-//     }
-//     default:
-//       return false;
-//   }
-// });
+const hasChildren = computed<boolean>(() => {
+  switch (props.resource) {
+    case 'project': {
+      const projectStore = useProjectStore();
+      return 'project' in props.initValue
+        ? Boolean(projectStore.getSubProjects(props.initValue.project).length)
+        : false;
+    }
+    case 'category': {
+      const categoryStore = useCategoryStore();
+      return 'category' in props.initValue
+        ? Boolean(
+            categoryStore.getSubCategories(props.initValue.category).length,
+          )
+        : false;
+    }
+    default:
+      return false;
+  }
+});
 
 function composeName(
   state: Pick<EditState, 'parentName' | 'explicitName'>,
 ): string {
-  if (state.explicitName.includes(':'))
+  const explicitName = typeof state.explicitName === 'object' ? (state.explicitName as any).value : state.explicitName;
+  const parentName = typeof state.parentName === 'object' ? (state.parentName as any).value : state.parentName;
+
+  if (explicitName && explicitName.includes(':'))
     throw new Error(`Category name cant contain ":" character`);
 
-  if (!state.parentName) {
-    return state.explicitName;
+  if (!parentName) {
+    return explicitName;
   } else {
-    if (state.parentName.includes(':'))
-      throw new Error(`Parent category name cant contain ":" character`);
-    return `${state.parentName}:${state.explicitName}`;
+    if (parentName.includes(':')) {
+       // Check if it's a project (resource === 'project'), projects might still want to enforce 2 layers if not updated?
+       // The user only asked for categories.
+       // However, the code path is shared.
+       // But wait, composeName only takes state, it doesn't know resource type directly unless I check props.
+       // But `state` doesn't strictly have resource type.
+       // I can access `props.resource`.
+       
+       if (props.resource === 'project') {
+          throw new Error(`Parent project name cant contain ":" character`);
+       }
+       // For categories, we allow ":" in parent (up to some depth, but validation here might just check for excessive depth if needed, or rely on UI filtering).
+       // Let's just allow it for now.
+    }
+    return `${parentName}:${explicitName}`;
   }
 }
 
 const validate = (state: EditState): FormError[] => {
   const errors = [];
+  const explicitName = typeof state.explicitName === 'object' ? (state.explicitName as any).value : state.explicitName;
 
-  if (!state.explicitName) {
+  if (!explicitName) {
     errors.push({ path: 'explicit-name', message: 'Required' });
-  } else if (state.explicitName.includes(':'))
+  } else if (explicitName.includes(':'))
     errors.push({
       path: 'explicit-name',
       message: `Category name cant contain ":" character`,
@@ -143,15 +159,25 @@ const possibleParentItems = computed<PersistedProject[] | PersistedCategory[]>(
       }
       case 'category': {
         const categoryStore = useCategoryStore();
-        return categoryStore.rootCategories.filter(
-          (p) =>
-            p.category !== state.value.explicitName && p.id !== state.value.id,
-        );
+        // Allow layer 0 (no colons) and layer 1 (1 colon)
+        return categoryStore.categories.filter((c) => {
+             // Exclude self
+             if (c.id === state.value.id) return false;
+             // Exclude current explicit name being same as category name (circular?)
+             if (c.category === state.value.explicitName) return false;
+             
+             // Check depth: count colons.
+             // Layer 0: 0 colons.
+             // Layer 1: 1 colon.
+             // Layer 2: 2 colons.
+             // Users wants layer 0 and 1. So max 1 colon.
+             const depth = (c.category.match(/:/g) || []).length;
+             return depth <= 1;
+        });
       }
     }
   },
 );
-
 
 const parentOptions = computed<{ label: string; value: string; color?: string }[]>(() => {
   if (props.resource === 'category') {
@@ -159,6 +185,7 @@ const parentOptions = computed<{ label: string; value: string; color?: string }[
       label: c.category,
       value: c.category,
       color: c.color,
+      id: c.id,
     }));
   } else {
     return (possibleParentItems.value as PersistedProject[]).map((p) => ({
@@ -166,6 +193,22 @@ const parentOptions = computed<{ label: string; value: string; color?: string }[
       value: p.project,
     }));
   }
+});
+
+const selectedParent = computed({
+  get: () => {
+    if (!state.value.parentName) return undefined;
+    
+    // If parentName is already an object (due to previous bad state), handle it
+    const val = typeof state.value.parentName === 'object' ? (state.value.parentName as any).value : state.value.parentName;
+    
+    return parentOptions.value.find((o) => o.value === val);
+  },
+  set: (val: any) => {
+    // Robustly handle if component returns object or string
+    const stringVal = val?.value ?? (typeof val === 'string' ? val : '');
+    state.value.parentName = stringVal;
+  },
 });
 
 function cancel() {
@@ -181,35 +224,14 @@ function cancel() {
           <UInput v-model="state.explicitName" />
         </UFormField>
 
-        <UFormField label="Parent Category" name="parent-name">
+        <UFormField label="Parent Category" name="parent-name">         
           <USelectMenu
-            v-model="state.parentName"
+            v-model="selectedParent"
             :items="parentOptions"
-            value-attribute="value"
             label-attribute="label"
+            class="w-full"
           >
-            <template #label>
-              <template v-if="state.parentName">
-                <span class="flex items-center -space-x-1 h-5">
-                  <span
-                    v-if="resource === 'category'"
-                    :style="{
-                      background: `${useCategoryStore().getColorByCategory(
-                        state.parentName,
-                      )}`,
-                    }"
-                    class="flex-shrink-0 w-2 h-2 mt-px rounded-full"
-                  />
-                </span>
-                <span>{{ state.parentName }}</span>
-              </template>
-              <template v-else>
-                <span class="text-gray-500 dark:text-gray-400 truncate">
-                  Select parent
-                </span>
-              </template>
-            </template>
-            <template #item="{ item }">
+            <template #item="{ item }" class="flex items-center -space-x-1 h-5">
               <span
                 v-if="item.color"
                 :style="{ background: `${item.color}` }"

@@ -56,6 +56,21 @@ export const useProjectStore = defineStore('project', {
     create(project: Project) {
       const pro = new Pro(project);
 
+      // Ensure parent project exists
+      if (pro.json.project.includes(':')) {
+        const parts = pro.json.project.split(':');
+        parts.pop();
+        const parentName = parts.join(':');
+
+        const parentIndex = this.$state.projects.findIndex(
+          (p) => p.project === parentName,
+        );
+        if (parentIndex === -1) {
+          const { id, ...rest } = pro.json;
+          this.create({ ...rest, project: parentName });
+        }
+      }
+
       const projectIndex = this.$state.projects.findIndex(
         (a) => a.project === project.project,
       );

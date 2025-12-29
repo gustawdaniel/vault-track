@@ -46,7 +46,7 @@ const options = computed(() => {
           to: `/category/${props.id}`,
         },
         {
-          label: 'Delete account',
+          label: 'Delete category',
           onSelect: () => {
             dialog.openDialog(ConfirmDelete, {
               resource: props.resource,

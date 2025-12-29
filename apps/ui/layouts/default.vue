@@ -2,6 +2,7 @@
 import { Disclosure } from '@headlessui/vue';
 import { useRoute } from '#app';
 import ExpandableListNavigationButtons from '~/components/expandableList/ExpandableListNavigationButtons.vue';
+import { useDialog } from '~/store/dialog';
 
 const route = useRoute();
 
@@ -26,6 +27,8 @@ useHead({
     },
   ],
 });
+
+const dialog = useDialog();
 </script>
 
 <template>
@@ -59,6 +62,10 @@ useHead({
     </Disclosure>
 
     <slot />
+
+    <!-- <UModal v-model:open="dialog.isDialogOpen">
+      <component :is="dialog.dialogComponent" v-bind="dialog.dialogProps" />
+    </UModal> -->
   </div>
 </template>
 

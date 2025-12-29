@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import type { Component } from 'vue';
+import { type Component, markRaw } from 'vue';
 
 export const useDialog = defineStore('dialog', {
   state: (): {
@@ -9,9 +9,11 @@ export const useDialog = defineStore('dialog', {
   } => ({ isDialogOpen: false, dialogComponent: null, dialogProps: {} }),
   actions: {
     openDialog(component: Component, props: Record<string, unknown> = {}) {
+      console.log('openDialog', component, props);
       this.dialogProps = props;
-      this.dialogComponent = component;
+      this.dialogComponent = markRaw(component);
       this.isDialogOpen = true;
+      console.log('openDialog end', this.isDialogOpen, this.dialogComponent, this.dialogProps);
     },
     closeDialog() {
       this.isDialogOpen = false;
