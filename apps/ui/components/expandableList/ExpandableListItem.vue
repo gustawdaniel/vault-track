@@ -26,7 +26,7 @@ function getName(item: any): string {
         :to="`/${resource}/${item.id}`"
         :class="[
           'text-gray-700 hover:text-indigo-600 hover:bg-gray-50',
-          'group flex gap-x-3 rounded-md p-2 pl-3 text-sm leading-6 font-semibold',
+          'group flex gap-x-3 rounded-md p-1 pl-3 text-sm leading-6 font-semibold',
           'items-center cursor-pointer',
         ]"
         :style="{ marginLeft: `${currentDepth * 2.5}rem` }"

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { useDialog } from '~/store/dialog';
+import { useCategoryStore } from '~/store/category';
 import ConfirmDelete from '~/components/dialog/ConfirmDelete.vue';
 // import { useContextMenuStore } from '~/store/contextMenu';
 
@@ -39,11 +40,19 @@ const options = computed(() => {
         }
       );
       break;
-    case 'category':
+    case 'category': {
+      const categoryStore = useCategoryStore();
+      const category = categoryStore.getById(props.id);
+      
       opts.push(
         {
           label: 'Edit category',
           to: `/category/${props.id}`,
+        },
+        {
+          label: 'Add subcategory',
+          to: `/category/new?parent=${category?.id}`,
+          disabled: !category,
         },
         {
           label: 'Delete category',
@@ -56,6 +65,7 @@ const options = computed(() => {
         }
       );
       break;
+    }
     case 'account':
       opts.push(
         {

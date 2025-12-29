@@ -42,7 +42,7 @@ const options = computed<Array<Project>>(() => {
   <UFormField label="Project" name="project">
     <USelectMenu
       :model-value="getFullProjectName({ category: props.modelValue })"
-      :options="options"
+      :items="options"
       by="project"
       creatable
       option-attribute="project"
@@ -60,8 +60,8 @@ const options = computed<Array<Project>>(() => {
           </span>
         </template>
       </template>
-      <template #option="{ option }">
-        <span class="truncate">{{ option.project }}</span>
+      <template #item="{ item }">
+        <span class="truncate">{{ item.project }}</span>
       </template>
       <template #option-create="{ option }">
         <span class="flex-shrink-0">New project:</span>

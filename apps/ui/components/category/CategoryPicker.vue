@@ -45,7 +45,7 @@ const options = computed<Array<ColoredCategory>>(() => {
   <UFormField label="Category" name="category">
     <USelectMenu
       :model-value="getFullCategoryName({ category: props.modelValue })"
-      :options="options"
+      :items="options"
       by="category"
       creatable
       option-attribute="category"
@@ -73,12 +73,12 @@ const options = computed<Array<ColoredCategory>>(() => {
           </span>
         </template>
       </template>
-      <template #option="{ option }">
+      <template #item="{ item }">
         <span
-          :style="{ background: `${option.color}` }"
+          :style="{ background: `${item.color}` }"
           class="flex-shrink-0 w-2 h-2 mt-px rounded-full"
         />
-        <span class="truncate">{{ option.category }}</span>
+        <span class="truncate">{{ item.category }}</span>
       </template>
       <template #option-create="{ option }">
         <span class="flex-shrink-0">New category:</span>

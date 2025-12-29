@@ -9,6 +9,8 @@ const dialog = useDialog();
     <!-- <UButton label="Open" color="neutral" variant="subtle" /> -->
 
     <template #content>
+      <DialogTitle class="sr-only">Dialog</DialogTitle>
+      <DialogDescription class="sr-only">Dialog Content</DialogDescription>
       <component
         :is="dialog.dialogComponent"
         v-bind="dialog.dialogProps"

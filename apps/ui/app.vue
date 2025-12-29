@@ -12,7 +12,7 @@
 import { useDebugStore } from '~/store/debug';
 
 function notOurDomain(origin: string): boolean {
-  return !['http://localhost:3000', 'https://gustawdaniel.github.io'].includes(
+  return !['http://localhost:3000', 'http://localhost:3001', 'https://gustawdaniel.github.io'].includes(
     origin,
   );
 }
@@ -37,6 +37,7 @@ window.addEventListener(
     if ('debug' in event.data && typeof event.data.debug === 'boolean') {
       const debugStore = useDebugStore();
       debugStore.active = event.data.debug;
+      Object.assign(window, {debug: debugStore.active});
     }
   },
   false,

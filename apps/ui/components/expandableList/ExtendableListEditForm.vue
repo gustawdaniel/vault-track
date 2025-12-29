@@ -28,12 +28,14 @@ function decomposeNameToParentAndExplicit(
   parentName: string;
   explicitName: string;
 } {
-  const [explicitName, parentName] = getNameFromExtendableListItem(
+  const parts = getNameFromExtendableListItem(
     props.resource,
     item,
-  )
-    .split(':')
-    .reverse();
+  ).split(':');
+  
+  const explicitName = parts.pop();
+  const parentName = parts.join(':');
+
   return { parentName: parentName ?? '', explicitName: explicitName ?? '' };
 }
 
@@ -221,7 +223,7 @@ function cancel() {
     <UCard>
       <UForm :state="state" :validate="validate" @submit="submit">
         <UFormField label="Name" name="explicit-name">
-          <UInput v-model="state.explicitName" />
+          <UInput v-model="state.explicitName" autofocus />
         </UFormField>
 
         <UFormField label="Parent Category" name="parent-name">         

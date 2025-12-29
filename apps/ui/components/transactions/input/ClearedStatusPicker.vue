@@ -27,7 +27,7 @@ const selected = computed<ClearedStatus>({
   <UFormField :label="props.label ?? 'Status'" name="clearedStatus">
     <USelectMenu
       v-model="selected"
-      :options="options"
+      :items="options"
       option-attribute="name"
       placeholder="Select status"
       value-attribute="id"

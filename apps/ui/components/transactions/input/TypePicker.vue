@@ -26,7 +26,7 @@ function setType(value: TransferContextType): void {
   <UFormField label="Type" name="type">
     <USelectMenu
       :model-value="props.modelValue"
-      :options="types"
+      :items="types"
       option-attribute="name"
       value-attribute="id"
       @update:model-value="setType"

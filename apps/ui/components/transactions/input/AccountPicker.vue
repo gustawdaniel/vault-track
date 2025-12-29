@@ -30,7 +30,7 @@ function setAccount(value: string): void {
   <UFormField :label="props.label ?? 'Account'" name="account">
     <USelectMenu
       :model-value="props.modelValue"
-      :options="accounts"
+      :items="accounts"
       option-attribute="name"
       searchable
       value-attribute="id"

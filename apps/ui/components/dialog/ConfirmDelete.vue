@@ -28,6 +28,8 @@ function formatResourceName(resource: RemovableResource): string {
   return resource.replaceAll('-', ' ');
 }
 
+const toast = useToast();
+
 function confirm() {
   if (props.resource === 'transaction') {
     const transactionStore = useTransactionStore();
@@ -45,7 +47,6 @@ function confirm() {
     clearLocalStorage();
   }
   dialog.closeDialog();
-  const toast = useToast();
   toast.add({
     title: `${ucFirst(formatResourceName(props.resource))} was deleted`,
   });
@@ -66,12 +67,12 @@ function confirm() {
 
     <template #footer>
       <div class="grid grid-cols-2 gap-4">
-        <UButton class="w-full justify-center" color="gray" @click.stop="cancel"
+        <UButton class="w-full justify-center" color="neutral" @click.stop="cancel"
           >Cancel
         </UButton>
         <UButton
           class="w-full justify-center"
-          color="gray"
+          color="neutral"
           @click.stop="confirm"
           >Ok
         </UButton>

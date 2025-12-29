@@ -320,7 +320,7 @@ function guessDateFormat() {
         <div>
           <div v-if="!readyToReview">
             <UFormField label="Encoding" name="encoding">
-              <USelectMenu v-model="encoding" :options="possibleEncodings" />
+              <USelectMenu v-model="encoding" :items="possibleEncodings" />
             </UFormField>
 
             <FileUploadAreaInput

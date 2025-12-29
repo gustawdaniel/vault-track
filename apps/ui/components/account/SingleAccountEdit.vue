@@ -47,11 +47,11 @@ const accountTypes: AccountType[] = ['Bank', 'Cash', 'CCard', 'Invst'];
 
         <div class="grid gap-6 grid-cols-2">
           <UFormField label="Type" name="password">
-            <USelectMenu v-model="state.type" :options="accountTypes" />
+            <USelectMenu v-model="state.type" :items="accountTypes" />
           </UFormField>
 
           <UFormField label="Currency" name="currency">
-            <USelectMenu v-model="state.currency" :options="currencies" />
+            <USelectMenu v-model="state.currency" :items="currencies" />
           </UFormField>
         </div>
 
@@ -67,7 +67,7 @@ const accountTypes: AccountType[] = ['Bank', 'Cash', 'CCard', 'Invst'];
           <UInput v-model.number="state.order" />
         </UFormField>
 
-        <UButton class="mt-3 mr-3" color="gray" @click="emit('submit')"
+        <UButton class="mt-3 mr-3" color="neutral" @click="emit('submit')"
           >Cancel
         </UButton>
         <UButton class="mt-3" type="submit">Submit</UButton>
