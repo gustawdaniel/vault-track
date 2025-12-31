@@ -18,8 +18,8 @@ function setCategory(
   value:
     | string
     | {
-        category: string;
-      },
+      category: string;
+    },
 ): void {
   if (typeof value === 'string') {
     if (value === NO_CATEGORY) value = '';
@@ -42,30 +42,20 @@ const options = computed<Array<ColoredCategory>>(() => {
 </script>
 
 <template>
-  <UFormField label="Category" name="category">
-    <USelectMenu
-      :model-value="getFullCategoryName({ category: props.modelValue })"
-      :items="options"
-      by="category"
-      creatable
-      option-attribute="category"
-      searchable
-      value-attribute="category"
-      @update:model-value="setCategory"
-    >
-      <template #label>
+  <UFormField label="Category" name="category" class="w-full">
+    <USelectMenu :model-value="getFullCategoryName({ category: props.modelValue })" :items="options" by="category"
+      creatable option-attribute="category" searchable value-attribute="category" @update:model-value="setCategory"
+      class="w-full">
+      <template #item-label="{ item }">
         <template v-if="props.modelValue">
           <span class="flex items-center -space-x-1 h-5">
-            <span
-              :style="{
-                background: `${categoryStore.getColorByCategory(
-                  props.modelValue,
-                )}`,
-              }"
-              class="flex-shrink-0 w-2 h-2 mt-px rounded-full"
-            />
+            <span :style="{
+              background: `${categoryStore.getColorByCategory(
+                props.modelValue,
+              )}`,
+            }" class="flex-shrink-0 w-2 h-2 mt-px rounded-full" />
           </span>
-          <span>{{ getFullCategoryName({ category: props.modelValue }) }}</span>
+          <span>{{ getFullCategoryName({ category: item.category }) }}</span>
         </template>
         <template v-else>
           <span class="text-gray-500 dark:text-gray-400 truncate">
@@ -74,20 +64,14 @@ const options = computed<Array<ColoredCategory>>(() => {
         </template>
       </template>
       <template #item="{ item }">
-        <span
-          :style="{ background: `${item.color}` }"
-          class="flex-shrink-0 w-2 h-2 mt-px rounded-full"
-        />
+        <span :style="{ background: `${item.color}` }" class="flex-shrink-0 w-2 h-2 mt-px rounded-full" />
         <span class="truncate">{{ item.category }}</span>
       </template>
       <template #option-create="{ option }">
         <span class="flex-shrink-0">New category:</span>
-        <span
-          :style="{
-            background: `${getRandomColor()}`,
-          }"
-          class="flex-shrink-0 w-2 h-2 mt-px rounded-full -mx-1"
-        />
+        <span :style="{
+          background: `${getRandomColor()}`,
+        }" class="flex-shrink-0 w-2 h-2 mt-px rounded-full -mx-1" />
         <span class="block truncate">{{ option.category }}</span>
       </template>
     </USelectMenu>

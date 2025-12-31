@@ -15,6 +15,7 @@ export interface ColoredCategory extends Category {
 
 export interface PersistedCategory extends ColoredCategory {
   id: string;
+  order: number;
 }
 
 interface State {
@@ -29,8 +30,15 @@ class Cat {
       ...payload,
       color: 'color' in payload ? payload.color : getRandomColor(),
       id: 'id' in payload ? payload.id : uid(),
+      order: 'order' in payload ? payload.order : 0,
     };
   }
+  // ... (rest of class)
+
+  // ... (in actions)
+
+
+  // ... (in getters)
 
   get id(): string {
     return this.data.id;
@@ -134,13 +142,35 @@ export const useCategoryStore = defineStore('category', {
         const categoryIndex = this.getIndexByName(categoryName);
 
         if (categoryIndex >= 0) {
-          const existing = this.$state.categories[categoryIndex] ?? {};
-          this.$state.categories.splice(
-            categoryIndex,
-            1,
-            Object.assign(existing, cat.pureCategoryWithoutProject),
-          );
+          const existing = this.$state.categories[categoryIndex];
+          if (existing) {
+            // Preserve existing order
+            cat.data.order = existing.order || 0;
+            this.$state.categories.splice(
+              categoryIndex,
+              1,
+              Object.assign(existing, cat.pureCategoryWithoutProject),
+            );
+          }
         } else {
+          // New Item: Assign order = max(siblings.order) + 1
+          const parentPrefix = categoryName.includes(':')
+            ? categoryName.substring(0, categoryName.lastIndexOf(':'))
+            : null;
+
+          let siblings: PersistedCategory[];
+          if (parentPrefix) {
+            siblings = this.categories.filter(c => {
+              return c.category.startsWith(parentPrefix + ':') &&
+                !c.category.substring(parentPrefix.length + 1).includes(':');
+            });
+          } else {
+            siblings = this.categories.filter(c => !c.category.includes(':'));
+          }
+
+          const maxOrder = siblings.reduce((max, c) => Math.max(max, c.order || 0), 0);
+          cat.data.order = maxOrder + 1;
+
           this.$state.categories.push(cat.pureCategoryWithoutProject);
         }
       }
@@ -153,8 +183,25 @@ export const useCategoryStore = defineStore('category', {
         });
       }
     },
+    reorder(newOrder: CategoryTree) {
+      newOrder.forEach((item, index) => {
+        const catIndex = this.getIndexById(item.id);
+        if (catIndex !== -1) {
+          const existing = this.$state.categories[catIndex];
+          if (existing) existing.order = index;
+        }
+
+        if (item.children && item.children.length > 0) {
+          this.reorder(item.children);
+        }
+      });
+    },
     update(id: string, category: ColoredCategory) {
-      const cat = new Cat({ ...category, id });
+      // Find existing to get its order
+      const existingBefore = this.getById(id);
+      const existingOrder = existingBefore ? existingBefore.order : 0;
+
+      const cat = new Cat({ ...category, id, order: existingOrder }); // Pass existingOrder
       const index = this.getIndexById(id);
       if (index !== -1) {
         const categoryBeforeUpdate = this.getById(id);
@@ -229,6 +276,7 @@ export const useCategoryStore = defineStore('category', {
         id: uid(),
         color: getRandomColor(),
         category: '',
+        order: 0,
       };
     },
     getById(id: string): PersistedCategory | undefined {
@@ -298,7 +346,7 @@ export const useCategoryStore = defineStore('category', {
               const remainder = c.category.substring(fullRootPath.length + 1);
               return !remainder.includes(':');
             })
-            .sort((c1, c2) => c1.category.localeCompare(c2.category));
+            .sort((a, b) => (a.order - b.order) || a.id.localeCompare(b.id)); // Use ID as tiebreaker
 
           const strippedCategory = prefix
             ? root.category.substring(prefix.length + 1)
@@ -309,13 +357,15 @@ export const useCategoryStore = defineStore('category', {
             category: strippedCategory,
             children: buildTree(children, fullRootPath)
           };
-        }).sort((c1, c2) => c1.category.localeCompare(c2.category));
+        }).sort((a, b) => (a.order - b.order) || a.id.localeCompare(b.id)); // Use ID as tiebreaker
       };
 
       // Get actual root items from the store (items with no ':')
-      const roots = this.categories.filter(c => !c.category.includes(':'));
+      const roots = this.categories
+        .filter(c => !c.category.includes(':'))
+        .sort((a, b) => (a.order - b.order) || a.id.localeCompare(b.id)); // Use ID as tiebreaker
+
       return buildTree(roots);
     },
   },
 });
-

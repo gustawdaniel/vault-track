@@ -46,3 +46,4 @@ libs/csv-to-json-rs
 *.csv
 .vercel
 .turbo
+local

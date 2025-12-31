@@ -15,29 +15,34 @@ const accounts = computed<Array<Pick<Account, 'id' | 'name' | 'currency'>>>(
 
 const props = defineProps<{
   modelValue: string;
-  name: string | undefined;
   label?: string;
 }>();
 
-const emit = defineEmits(['update:model-value']);
+const emit = defineEmits(['update:modelValue']);
 
-function setAccount(value: string): void {
-  emit('update:model-value', value);
-}
+const selected = computed({
+  get() {
+    return accounts.value.find((a) => a.id === props.modelValue);
+  },
+  set(value) {
+    if (value) {
+      emit('update:modelValue', value.id);
+    }
+  },
+});
 </script>
 
 <template>
   <UFormField :label="props.label ?? 'Account'" name="account">
-    <USelectMenu
-      :model-value="props.modelValue"
-      :items="accounts"
-      option-attribute="name"
-      searchable
-      value-attribute="id"
-      @update:model-value="setAccount"
-    >
-      <template #label>
-        {{ props.name ? props.name : 'Unknown' }}
+    <USelectMenu v-model="selected" :items="accounts" option-attribute="name" 
+    searchable
+    class="w-full">
+      <template #item-label="{ item }">
+        {{ item.name }}
+
+        <span class="text-muted">
+          {{ item.currency }}
+        </span>
       </template>
     </USelectMenu>
   </UFormField>

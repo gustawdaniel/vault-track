@@ -91,7 +91,7 @@ function csvToJson(): void {
       amount: parseAmount(
         (row[headerMap.amount] ||
           row[Math.min(headerMap.amount + 1, row.length - 1)]) ??
-          '0',
+        '0',
       ),
       memo: row[headerMap.memo],
       payee: row[headerMap.payee],
@@ -283,135 +283,94 @@ function guessDateFormat() {
 
 <template>
   <div>
-    <UButton
-      icon="i-heroicons-document-arrow-down"
-      size="xs"
-      label="Import transactions"
-      class="mt-4 mx-3"
-      @click="isOpen = true"
-    />
-    <UModal v-model="isOpen" fullscreen>
-      <UCard
-        :ui="{
-          base: 'h-full flex flex-col overflow-auto',
-          rounded: '',
-          divide: 'divide-y divide-gray-100 dark:divide-gray-800',
-          body: {
-            base: 'grow',
-          },
-        }"
-      >
-        <template #header>
-          <div class="flex items-center justify-between">
-            <h3
-              class="text-base font-semibold leading-6 text-gray-900 dark:text-white"
-            >
-              Upload transactions to {{ account.name }}
-            </h3>
 
-            <UButton
-              color="neutral"
-              variant="ghost"
-              icon="i-heroicons-x-mark-20-solid"
-              class="-my-1"
-              @click="close"
-            />
-          </div>
-        </template>
-        <div>
-          <div v-if="!readyToReview">
-            <UFormField label="Encoding" name="encoding">
-              <USelectMenu v-model="encoding" :items="possibleEncodings" />
-            </UFormField>
 
-            <FileUploadAreaInput
-              accept=".csv,.json"
-              :signal="signal"
-              @upload="upload"
-            />
-          </div>
 
-          <div v-if="csvTable.length && !readyToReview">
-            <div class="flex">
-              <draggable
-                class="list-group"
-                :list="possibleHeaders"
-                group="people"
-                item-key="name"
-                @change="log"
-              >
-                <template #item="{ element }">
-                  <UBadge color="neutral" variant="solid" class="cursor-grab">
-                    {{ element.name }}
-                  </UBadge>
-                </template>
-              </draggable>
+
+
+    <UModal v-model:open="isOpen" fullscreen>
+      <UButton icon="i-heroicons-document-arrow-down" size="xs" label="Import transactions" class="mt-4 mx-3"
+        @click="isOpen = true" />
+      <template #content>
+
+
+
+        <UCard :ui="{
+          root: 'h-full flex flex-col overflow-auto',
+          body: 'grow',
+        }">
+          <template #header>
+            <div class="flex items-center justify-between">
+              <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
+                Upload transactions to {{ account.name }}
+              </h3>
+
+              <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1"
+                @click="close" />
+            </div>
+          </template>
+          <div>
+            <div v-if="!readyToReview">
+              <UFormField label="Encoding" name="encoding">
+                <USelectMenu v-model="encoding" :items="possibleEncodings" />
+              </UFormField>
+
+              <FileUploadAreaInput accept=".csv,.json" :signal="signal" @upload="upload" />
             </div>
 
-            <Debug>{{ headers }}</Debug>
+            <div v-if="csvTable.length && !readyToReview">
+              <div class="flex">
+                <draggable class="list-group" :list="possibleHeaders" group="people" item-key="name" @change="log">
+                  <template #item="{ element }">
+                    <UBadge color="neutral" variant="solid" class="cursor-grab">
+                      {{ element.name }}
+                    </UBadge>
+                  </template>
+                </draggable>
+              </div>
 
-            <table
-              class="table-fixed text-xs break-all hover:table-fixed border-spacing-2 border-separate"
-            >
-              <thead>
-                <tr>
-                  <th/>
-                  <th
-                    v-for="(col, colIndex) in csvTable[0]"
-                    :key="colIndex"
-                    class="border border-dashed border-gray-900/10"
-                  >
-                    <draggable
-                      class="list-group"
-                      :list="headers[colIndex]"
-                      group="people"
-                      item-key="name"
-                      @change="log"
-                    >
-                      <template #item="{ element }">
-                        <UBadge
-                          color="neutral"
-                          variant="solid"
-                          class="cursor-grab"
-                        >
-                          {{ element.name }}
-                        </UBadge>
-                      </template>
-                    </draggable>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="(row, rowIndex) in csvTable"
-                  :key="rowIndex"
-                  :class="
-                    isValidRow(row, headers) ? '' : 'bg-gray-100 text-gray-400'
-                  "
-                >
-                  <td>
-                    <button @click="removeRow(rowIndex)">x</button>
-                  </td>
-                  <td v-for="(col, colIndex) in row" :key="colIndex">
-                    {{ col }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+              <Debug>{{ headers }}</Debug>
 
-            <UButton block @click="csvToJson">Ready to review</UButton>
+              <table class="table-fixed text-xs break-all hover:table-fixed border-spacing-2 border-separate">
+                <thead>
+                  <tr>
+                    <th />
+                    <th v-for="(col, colIndex) in csvTable[0]" :key="colIndex"
+                      class="border border-dashed border-gray-900/10">
+                      <draggable class="list-group" :list="headers[colIndex]" group="people" item-key="name"
+                        @change="log">
+                        <template #item="{ element }">
+                          <UBadge color="neutral" variant="solid" class="cursor-grab">
+                            {{ element.name }}
+                          </UBadge>
+                        </template>
+                      </draggable>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(row, rowIndex) in csvTable" :key="rowIndex" :class="isValidRow(row, headers) ? '' : 'bg-gray-100 text-gray-400'
+                    ">
+                    <td>
+                      <button @click="removeRow(rowIndex)">x</button>
+                    </td>
+                    <td v-for="(col, colIndex) in row" :key="colIndex">
+                      {{ col }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
 
-            <Debug v-if="transactions.length">{{ transactions }}</Debug>
+              <UButton block @click="csvToJson">Ready to review</UButton>
+
+              <Debug v-if="transactions.length">{{ transactions }}</Debug>
+            </div>
+
+            <UploadTransactionAcceptance v-if="readyToReview" :transactions-to-import="transactions" :account="account"
+              @close="close" />
           </div>
-
-          <UploadTransactionAcceptance
-            v-if="readyToReview"
-            :transactions-to-import="transactions"
-            :account="account"
-            @close="close"
-          />
-        </div>
-      </UCard>
+        </UCard>
+      </template>
     </UModal>
   </div>
 </template>

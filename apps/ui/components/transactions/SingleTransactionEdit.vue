@@ -122,94 +122,51 @@ function setType(newType: NormalTransactionContextType | 'transfer') {
         </UFormField>
 
         <div class="grid gap-6 grid-cols-2">
-          <AccountPicker
-            v-if="state.type === 'income' || state.type === 'expense'"
-            v-model="state.accountId"
-            :name="currentNormalAccount?.name"
-          />
+          <AccountPicker v-if="state.type === 'income' || state.type === 'expense'" v-model="state.accountId" />
 
-          <AccountPicker
-            v-else-if="state.type === 'transfer'"
-            v-model="state.fromAccountId"
-            :name="transferAccount.from?.name"
-            label="From Account"
-          />
+          <AccountPicker v-else-if="state.type === 'transfer'" v-model="state.fromAccountId" label="From Account" />
 
           <DatePicker v-model="state.date" />
         </div>
 
         <div class="grid gap-6 grid-cols-2">
-          <AmountInput
-            v-if="state.type === 'income' || state.type === 'expense'"
-            v-model="state.absoluteAmount"
-            :currency="currentNormalAccount?.currency"
-          />
+          <AmountInput v-if="state.type === 'income' || state.type === 'expense'" v-model="state.absoluteAmount"
+            :currency="currentNormalAccount?.currency" />
 
-          <AmountInput
-            v-else-if="state.type === 'transfer'"
-            v-model="state.fromAbsoluteAmount"
-            :currency="transferAccount.from?.currency"
-          />
+          <AmountInput v-else-if="state.type === 'transfer'" v-model="state.fromAbsoluteAmount"
+            :currency="transferAccount.from?.currency" />
 
           <TypePicker :model-value="state.type" @update:model-value="setType" />
         </div>
 
         <div class="grid gap-6 grid-cols-2">
-          <CategoryPicker
-            v-if="state.type === 'income' || state.type === 'expense'"
-            v-model="state.categoryName"
-          />
-          <AccountPicker
-            v-else-if="state.type === 'transfer'"
-            v-model="state.toAccountId"
-            :name="transferAccount.to?.name"
-            label="To Account"
-          />
-
+          <CategoryPicker v-if="state.type === 'income' || state.type === 'expense'" v-model="state.categoryName" />
+          <AccountPicker v-else-if="state.type === 'transfer'" v-model="state.toAccountId" label="To Account" />
           <ProjectPicker v-model="state.projectName" />
         </div>
 
-        <div
-          v-if="state.type === 'income' || state.type === 'expense'"
-          class="grid gap-6 grid-cols-2"
-        >
+        <div v-if="state.type === 'income' || state.type === 'expense'" class="grid gap-6 grid-cols-2">
           <ClearedStatusPicker v-model="state.clearedStatus" />
 
           <!-- TODO: add here split transaction-->
         </div>
 
-        <div
-          v-else-if="
-            state.type === 'transfer' &&
-            transferAccount.from?.currency &&
-            transferAccount.to?.currency &&
-            transferAccount.from?.currency !== transferAccount.to?.currency
-          "
-          class="grid gap-6 grid-cols-2"
-        >
-          <AmountInput
-            v-model="state.toAbsoluteAmount"
-            :currency="transferAccount.to?.currency"
-          />
+        <div v-else-if="
+          state.type === 'transfer' &&
+          transferAccount.from?.currency &&
+          transferAccount.to?.currency &&
+          transferAccount.from?.currency !== transferAccount.to?.currency
+        " class="grid gap-6 grid-cols-2">
+          <AmountInput v-model="state.toAbsoluteAmount" :currency="transferAccount.to?.currency" />
 
-          <ExchangeRate
-            :from-amount="state.fromAbsoluteAmount"
-            :from-currency="transferAccount.from?.currency"
-            :to-amount="state.toAbsoluteAmount"
-            :to-currency="transferAccount.to?.currency"
-          />
+          <ExchangeRate :from-amount="state.fromAbsoluteAmount" :from-currency="transferAccount.from?.currency"
+            :to-amount="state.toAbsoluteAmount" :to-currency="transferAccount.to?.currency" />
         </div>
 
         <div v-if="state.type === 'transfer'" class="grid gap-6 grid-cols-2">
-          <ClearedStatusPicker
-            v-model="state.fromClearedStatus"
-            label="Status (From)"
-          />
+          <ClearedStatusPicker v-model="state.fromClearedStatus" label="Status (From)" />
 
-          <ClearedStatusPicker
-            v-model="state.toClearedStatus"
-            label="Status (To)"
-          />
+          <ClearedStatusPicker v-model="state.toClearedStatus" label="Status (To)" />
         </div>
 
         <UFormField label="Memo" name="memo">
