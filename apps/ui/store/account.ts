@@ -22,6 +22,7 @@ export interface Account extends Omit<QifAccount, 'type' | 'currency'> {
   type: AccountType;
   currency: Currency;
   id: string;
+  order?: number;
 }
 
 export interface ComputedAccount extends Account {
@@ -30,13 +31,18 @@ export interface ComputedAccount extends Account {
 
 interface State {
   accounts: RemovableRef<ComputedAccount[]>;
+  showHidden: RemovableRef<boolean>;
 }
 
 export const useAccountStore = defineStore('account', {
   state: (): State => ({
     accounts: useLocalStorage<ComputedAccount[]>('account', []),
+    showHidden: useLocalStorage<boolean>('account-show-hidden', false),
   }),
   actions: {
+    toggleShowHidden() {
+      this.showHidden = !this.showHidden;
+    },
     create(account: Omit<Account, 'id'>) {
       const index = this.$state.accounts.findIndex(
         (a) => a.name === account.name,
@@ -47,6 +53,7 @@ export const useAccountStore = defineStore('account', {
           ...account,
           balance: 0,
           currency: getCurrency(account.currency),
+          order: this.$state.accounts.length,
         };
 
         const p = AccountModel.safeParse(accountToSave);
@@ -151,6 +158,34 @@ export const useAccountStore = defineStore('account', {
       const acc = this.$state.accounts.find((a) => a.id !== id);
       if (!acc) throw new Error(`Account not found`);
       return acc.id;
+    },
+    reorder(reorderedAccounts: Account[]) {
+      // Get the current order values of the visible accounts and sort them
+      const currentOrders = reorderedAccounts
+        .map((a) => this.getById(a.id)?.order ?? 0)
+        .sort((a, b) => a - b);
+
+      // If we don't have orders (e.g. all 0), generate sequence relative to min or 0
+      if (currentOrders.every(o => o === 0) && reorderedAccounts.length > 0) {
+        reorderedAccounts.forEach((account, index) => {
+          const acc = this.getById(account.id);
+          if (acc) acc.order = index;
+        });
+        return;
+      }
+
+      // Re-assign these sorted order values to the accounts in their new sequence
+      reorderedAccounts.forEach((account, index) => {
+        const acc = this.getById(account.id);
+        if (acc) {
+          acc.order = currentOrders[index] !== undefined ? currentOrders[index] : index;
+        }
+      });
+    },
+  },
+  getters: {
+    sortedAccounts: (state): ComputedAccount[] => {
+      return [...state.accounts].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     },
   },
 });

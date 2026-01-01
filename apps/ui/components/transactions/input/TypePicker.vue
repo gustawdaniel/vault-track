@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-
+import { ucFirst } from '~/utils/ucFirst';
 
 export type TransferContextType = 'expense' | 'income' | 'transfer';
 
@@ -31,7 +31,7 @@ const selected = computed({
 
 <template>
   <UFormField label="Type" name="type">
-    <USelectMenu v-model="selected" :items="types" option-attribute="name" class="w-full">
+    <USelectMenu v-model="selected" :items="types" label-key="name" class="w-full">
       <template #item-label="{ item }">
         {{ ucFirst(item.name) }}
       </template>

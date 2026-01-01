@@ -160,15 +160,16 @@ https://nuxt.studio/@gustawdaniel/open-cash-manager/studio/content?valueId=0.ind
 
 Next task:
 - replace tailwind icon by our logo
+- Add relations between currencies
+- Add exchange rates
+- Graphs showing spendings
+- Add synchronization between devices by cloud
 
+Scale down image
 
-Major Updates (High Risk / Breaking Changes)
-- [x] ESLint: v8 -> v9 (Requires migration to "Flat Config").
-- [x] Zod: v3 -> v4.
-- [x] Nuxt (apps/docs): v3.20 -> v4.2.2 (To align with apps/ui).
-- [x] @nuxtjs/robots: v3 -> v5.
-- [x] jsdom: v22 -> v27.
-- [x] tsup: v7 -> v8.
-- [x] @typescript-eslint: v6 -> v8.
-
-
+convert input.jpg \
+  -strip \
+  -interlace Plane \
+  -sampling-factor 4:2:0 \
+  -quality 85 \
+  output.jpg

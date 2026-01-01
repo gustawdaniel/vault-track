@@ -3,6 +3,9 @@ export type Currency =
   | 'USD'
   | 'EUR'
   | 'BTC'
+  | 'DOGE'
+  | 'SOL'
+  | 'ETH'
   | 'GBP'
   | 'PHP'
   | 'SGD'
@@ -17,6 +20,9 @@ export const currencies: Currency[] = [
   'USD',
   'EUR',
   'BTC',
+  'DOGE',
+  'SOL',
+  'ETH',
   'GBP',
   'PHP',
   'SGD',
@@ -29,7 +35,15 @@ export const currencies: Currency[] = [
 ];
 
 export function getCurrencyDigits(currency: Currency): 2 | 8 {
-  return currency === 'BTC' ? 8 : 2;
+  switch (currency) {
+    case 'BTC':
+    case 'DOGE':
+    case 'SOL':
+    case 'ETH':
+      return 8;
+    default:
+      return 2;
+  }
 }
 
 export function sum(a: number, b: number, currency: Currency) {

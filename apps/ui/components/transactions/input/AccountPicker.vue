@@ -34,9 +34,7 @@ const selected = computed({
 
 <template>
   <UFormField :label="props.label ?? 'Account'" name="account">
-    <USelectMenu v-model="selected" :items="accounts" option-attribute="name" 
-    searchable
-    class="w-full">
+    <USelectMenu v-model="selected" :items="accounts" label-key="name" by="id" class="w-full">
       <template #item-label="{ item }">
         {{ item.name }}
 

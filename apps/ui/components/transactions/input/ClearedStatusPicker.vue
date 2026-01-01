@@ -13,28 +13,20 @@ const options = [...clearedStatusMap.entries()].map(([id, name]) => ({
   name,
 }));
 
-const selected = computed<ClearedStatus>({
+const selected = computed({
   get() {
-    return props.modelValue ?? '';
+    return options.find((o) => o.id === (props.modelValue ?? ''));
   },
-  set(value: ClearedStatus) {
-    emit('update:model-value', value);
+  set(value) {
+    if (value) {
+      emit('update:model-value', value.id);
+    }
   },
 });
 </script>
 
 <template>
   <UFormField :label="props.label ?? 'Status'" name="clearedStatus">
-    <USelectMenu
-      v-model="selected"
-      :items="options"
-      option-attribute="name"
-      placeholder="Select status"
-      value-attribute="id"
-    >
-      <template #label>
-        {{ getClearedStatusName(selected ?? '') }}
-      </template>
-    </USelectMenu>
+    <USelectMenu v-model="selected" :items="options" label-key="name" placeholder="Select status" by="id" />
   </UFormField>
 </template>
