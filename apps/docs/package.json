@@ -8,11 +8,13 @@
     "node": "24.x"
   },
   "dependencies": {
-    "@vercel/analytics": "^1.6.1",
     "@nuxt/eslint": "1.12.1",
+    "@vercel/analytics": "^1.6.1",
     "better-sqlite3": "^12.2.0",
     "docus": "latest",
     "eslint": "^9.39.2",
-    "nuxt": "^4.1.2"
+    "nuxt": "^4.1.2",
+    "zod": "^4.2.1",
+    "zod-to-json-schema": "^3.25.1"
   }
 }
