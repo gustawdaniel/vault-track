@@ -47,3 +47,5 @@ libs/csv-to-json-rs
 .vercel
 .turbo
 local
+
+SECRET.md

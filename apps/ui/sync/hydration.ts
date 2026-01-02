@@ -8,8 +8,6 @@ import { sumArray } from '~/store/currency';
 
 export async function hydratePinia() {
     console.log('Hydrating Pinia from Sync State...');
-    console.log('Trx class:', Trx);
-    console.log('sumArray func:', sumArray);
 
     const state = await getAppState();
 
