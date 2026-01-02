@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
     // Long Polling Logic
     const shouldWait = query.wait === 'true';
     const startTime = Date.now();
-    const TIMEOUT = 25000; // 25s timeout (vercel usually 10s-60s, keeping it safe)
+    const TIMEOUT = 8000; // 8s timeout to respect Vercel's 10s limit on Hobby plan
 
     while (true) {
         // Prefix scan using storage keys.
