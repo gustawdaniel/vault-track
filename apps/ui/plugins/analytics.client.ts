@@ -1,5 +1,7 @@
 import { inject } from '@vercel/analytics';
 
 export default defineNuxtPlugin(() => {
-  inject();
+  if (import.meta.env.PROD) {
+    inject();
+  }
 });
