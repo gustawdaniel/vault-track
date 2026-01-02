@@ -2,7 +2,7 @@ import type { ClearedStatus } from '~/store/clearedStatus';
 import type {
   FullTransaction,
   NormalTransactionContextType,
-} from '~/store/transaction';
+} from '~/store/transaction.model';
 import type { Account } from '~/store/account';
 
 export type TransferContext = {

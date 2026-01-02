@@ -9,7 +9,7 @@ import {
   getTransactionNormalType,
   getTransferTransactionOrder,
   isTransferByCategory,
-} from '~/store/transaction';
+} from '~/store/transaction.model';
 import { getFullProjectName } from '~/store/project';
 import { getClearedStatusFromString } from '~/store/clearedStatus';
 import { getFullCategoryName } from '~/store/category';

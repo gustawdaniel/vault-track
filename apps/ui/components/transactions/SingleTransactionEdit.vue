@@ -9,8 +9,8 @@ import type {
 import {
   type FullTransaction,
   type NormalTransactionContextType,
-  useTransactionStore,
-} from '~/store/transaction';
+} from '~/store/transaction.model';
+import { useTransactionStore } from '~/store/transaction';
 import { useAccountStore } from '~/store/account';
 import CategoryPicker from '~/components/category/CategoryPicker.vue';
 import AmountInput from '~/components/transactions/input/AmountInput.vue';

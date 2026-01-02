@@ -1,6 +1,6 @@
 import { it, expect } from 'vitest';
 import { tableHeadersToTransactionKeys } from './tableHeadersToTransactionKeys';
-import type { Transaction } from '~/store/transaction';
+import type { Transaction } from '~/store/transaction.model';
 
 const headers: { name: keyof Transaction }[][] = [
   [],

@@ -3,7 +3,7 @@ import { defineStore } from 'pinia';
 import { uid } from 'uid';
 import { getRandomColor } from '~/utils/getRandomColor';
 import { useProjectStore } from '~/store/project';
-import type { Transaction } from '~/store/transaction';
+import type { Transaction } from '~/store/transaction.model';
 import { createCategory as syncCreateCategory, updateCategory as syncUpdateCategory, deleteCategory as syncDeleteCategory } from '~/sync/manager';
 
 export interface Category {

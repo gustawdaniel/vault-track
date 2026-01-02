@@ -6,7 +6,7 @@ import type {
   NormalTransactionContext,
   TransactionContext,
 } from './types';
-import type { Transaction } from '~/store/transaction';
+import type { Transaction } from '~/store/transaction.model';
 import { composeRawCategoryFromCategoryAndProject } from '~/store/category';
 
 function getAmountFromNormalContext(data: NormalTransactionContext): number {
