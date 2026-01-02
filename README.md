@@ -129,3 +129,19 @@ Our development focus is strictly prioritized on the following key pillars:
     *   A unique analytical layer that allows users to view their finances in **Real Terms** vs **Nominal Terms**.
     *   Analyze spending power relative to external economic metrics (e.g., Average Wage, Inflation/CPI baskets, Big Mac Index) rather than just raw currency numbers.
     *   "How much of the average national wage did I spend on groceries in 2015 vs today?"
+
+
+todo:
+
+10:39:40.308 
+../docs postinstall$ nuxi prepare
+10:39:42.239 
+../docs postinstall: [warn] Module `nuxt-icon` is disabled due to incompatibility issues:
+10:39:42.240 
+../docs postinstall:  - [nuxt] Nuxt version `^3.0.0-rc.9` is required but currently using `4.2.2`
+10:39:42.682 
+../docs postinstall: [warn] Module `docus` is disabled due to incompatibility issues:
+10:39:42.683 
+../docs postinstall:  - [nuxt] Nuxt version `^3.0.0-rc.14` is required but currently using `4.2.2`
+10:39:43.094 
+../docs postinstall: [warn] [nuxt-config-schema] Unable to load schema from /vercel/path0/node_modules/.pnpm/@nuxt-themes+docus@1.15.1_axios@1.13.2_change-case@5.4.4_db0@0.3.4_ioredis@5.8.2_magicast@0.5_kqbcirdbg64wnk646kc65malkm/node_modules/@nuxt-themes/docus/nuxt.schema.ts defineNuxtSchema is not defined
