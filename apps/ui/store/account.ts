@@ -66,15 +66,22 @@ export const useAccountStore = defineStore('account', {
           throw p.error;
         }
       } else {
-        const updated = Object.assign(this.$state.accounts[index], account);
-        this.$state.accounts.splice(index, 1, updated);
-        syncUpdateAccount(updated);
+        const existing = this.$state.accounts[index];
+        if (existing) {
+          const updated: ComputedAccount = {
+            ...existing,
+            ...account,
+          };
+          this.$state.accounts.splice(index, 1, updated);
+          syncUpdateAccount(updated);
+        }
       }
     },
     update(accountId: string, accountData: Omit<Account, 'id'>) {
       const index = this.getIndexById(accountId);
       if (index !== -1) {
         const foundAccount = this.$state.accounts[index];
+        if (!foundAccount) return;
 
         if (accountData.name !== foundAccount.name) {
           const transactionStore = useTransactionStore();
@@ -86,12 +93,17 @@ export const useAccountStore = defineStore('account', {
           });
         }
 
+        const updated: ComputedAccount = {
+          ...foundAccount,
+          ...accountData,
+        };
+
         this.$state.accounts.splice(
           index,
           1,
-          Object.assign(foundAccount, accountData),
+          updated,
         );
-        syncUpdateAccount(foundAccount);
+        syncUpdateAccount(updated);
       } else {
         this.create(accountData);
       }
@@ -159,7 +171,8 @@ export const useAccountStore = defineStore('account', {
     getFirstAccountIdToTransferFromName(accountName: string): string {
       if (!this.$state.accounts.length)
         throw new Error(`Cant find any account`);
-      if (this.$state.accounts.length === 1) return this.$state.accounts[0].id;
+      const firstAccount = this.$state.accounts[0];
+      if (this.$state.accounts.length === 1 && firstAccount) return firstAccount.id;
       const acc = this.$state.accounts.find((a) => a.name !== accountName);
       if (!acc) throw new Error(`Cant find reverse account to ${accountName}`);
       return acc.id;
