@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Transaction } from '~/store/transaction';
+import type { Transaction } from '~/store/transaction.model';
 import type { Account } from '~/store/account';
 import { useDialog } from '~/store/dialog';
 import { useTransactionStore } from '~/store/transaction';
@@ -51,10 +51,7 @@ function confirm() {
         <tr v-for="(transaction, index) of transactions" :key="index">
           <td class="whitespace-nowrap font-bold">{{ transaction.date }}</td>
           <td class="text-gray-700 line-clamp-1">{{ transaction.payee }}</td>
-          <td
-            :class="textColorByAmount(transaction.amount)"
-            class="whitespace-nowrap font-bold text-right"
-          >
+          <td :class="textColorByAmount(transaction.amount)" class="whitespace-nowrap font-bold text-right">
             {{ formatAmount(transaction.amount ?? 0) }} {{ account.currency }}
           </td>
         </tr>
@@ -63,14 +60,9 @@ function confirm() {
 
     <template #footer>
       <div class="grid grid-cols-2 gap-4">
-        <UButton class="w-full justify-center" color="neutral" @click.stop="cancel"
-          >Cancel
+        <UButton class="w-full justify-center" color="neutral" @click.stop="cancel">Cancel
         </UButton>
-        <UButton
-          class="w-full justify-center"
-          color="neutral"
-          @click.stop="confirm"
-          >Ok
+        <UButton class="w-full justify-center" color="neutral" @click.stop="confirm">Ok
         </UButton>
       </div>
     </template>
