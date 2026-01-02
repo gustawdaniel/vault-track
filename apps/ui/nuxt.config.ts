@@ -27,10 +27,10 @@ export default defineNuxtConfig({
       routes: ['/robots.txt'],
     },
     storage: {
-      sync: process.env.REDIS_URL || process.env.KV_URL
+      sync: process.env.REDIS_URL
         ? {
           driver: 'redis',
-          url: process.env.REDIS_URL || process.env.KV_URL
+          url: process.env.REDIS_URL
         }
         : {
           driver: 'fs',
