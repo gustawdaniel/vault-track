@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { Disclosure } from '@headlessui/vue';
 import { useRoute } from '#app';
+import { SpeedInsights } from '@vercel/speed-insights/vue';
 import ExpandableListNavigationButtons from '~/components/expandableList/ExpandableListNavigationButtons.vue';
 import { useDialog } from '~/store/dialog';
 import { useAccountStore } from '~/store/account';
@@ -65,6 +66,8 @@ const accountStore = useAccountStore();
     <!-- <UModal v-model:open="dialog.isDialogOpen">
       <component :is="dialog.dialogComponent" v-bind="dialog.dialogProps" />
     </UModal> -->
+
+    <SpeedInsights />
   </div>
 </template>
 
