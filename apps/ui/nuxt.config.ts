@@ -14,6 +14,11 @@ export default defineNuxtConfig({
     preference: 'light',
   },
 
+  runtimeConfig: {
+    tursoDatabaseUrl: process.env.TURSO_DATABASE_URL || 'file:./local.db',
+    tursoAuthToken: process.env.TURSO_AUTH_TOKEN,
+  },
+
   css: ['~/assets/css/main.css'],
 
   vite: {

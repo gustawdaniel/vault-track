@@ -1,5 +1,8 @@
 import { defineEventHandler, readBody, getHeader, createError } from 'h3';
 import type { AppEvent } from '~/sync/types';
+import { useTurso, initTursoSchema } from '~/server/utils/turso';
+
+let schemaInitialized = false;
 
 export default defineEventHandler(async (event) => {
     const groupId = getHeader(event, 'X-Sync-Group-ID');
@@ -7,36 +10,54 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 400, statusMessage: 'Missing X-Sync-Group-ID header' });
     }
 
-    const body = await readBody(event);
-    const events: AppEvent[] = body.events || [];
-    const storage = useStorage('sync');
-
-    // Process in chunks to avoid overwhelming the storage driver/network limits
-    const CHUNK_SIZE = 50;
-    let count = 0;
-
-    for (let i = 0; i < events.length; i += CHUNK_SIZE) {
-        const chunk = events.slice(i, i + CHUNK_SIZE);
-
-        // Prepare keys for the chunk
-        const items = chunk.map(e => {
-            const paddedTimestamp = String(e.timestamp).padStart(20, '0');
-            const key = `events:${groupId}:${paddedTimestamp}:${e.deviceId}:${e.counter}:${e.eventId}`;
-            return { key, event: e };
-        });
-
-        // Check existence in parallel
-        const existenceResults = await Promise.all(items.map(item => storage.hasItem(item.key)));
-
-        // Filter items that need to be stored
-        const toStore = items.filter((_, index) => !existenceResults[index]);
-
-        // Store in parallel
-        if (toStore.length > 0) {
-            await Promise.all(toStore.map(item => storage.setItem(item.key, item.event)));
-            count += toStore.length;
+    if (!schemaInitialized) {
+        try {
+            await initTursoSchema();
+            schemaInitialized = true;
+        } catch (e) {
+            console.error('Failed to init Turso schema:', e);
+            // Continue; maybe it already exists or we want to fail on insert
         }
     }
 
-    return { success: true, count };
+    const body = await readBody(event);
+    const events: AppEvent[] = body.events || [];
+    const client = useTurso();
+
+    if (events.length === 0) {
+        return { success: true, count: 0 };
+    }
+
+    // SQLite max variables is usually 999 or 32766 depending on version. 
+    // We insert 7 params per row. 50 * 7 = 350, safe.
+    // Batch insert using a transaction or multiple insert statements. 
+    // LibSQL supports batch execution.
+
+    // We'll trust the client batching but for SQL we can construct a large INSERT or simpler loop.
+    // A loop of INSERTs is fine for 50 items with an HTTP-based DB like Turso if we parallelize or use their batch API.
+    // However, LibSQL/Turso `batch()` is transaction-based.
+
+    const statements = events.map(e => ({
+        sql: `INSERT INTO events (group_id, event_id, device_id, counter, timestamp, payload) 
+              VALUES (?, ?, ?, ?, ?, ?)
+              ON CONFLICT(group_id, event_id) DO NOTHING`,
+        args: [
+            groupId,
+            e.eventId,
+            e.deviceId,
+            e.counter,
+            e.timestamp,
+            JSON.stringify(e)
+        ]
+    }));
+
+    // Execute in batches of 20 to avoid payload limits if necessary, though 50 is likely fine.
+    try {
+        await client.batch(statements, 'write');
+    } catch (e: any) {
+        console.error('Turso batch insert error:', e);
+        throw createError({ statusCode: 500, statusMessage: 'Database error', message: e.message });
+    }
+
+    return { success: true, count: events.length };
 });
