@@ -10,7 +10,7 @@ import {
   readFileContentFromInputEvent,
 } from '~/utils/readFileContentFromInputEvent';
 import { dropNotFullColumns, parseTextAsCsv } from '~/utils/parseTextAsCsv';
-import type { Transaction } from '~/store/transaction';
+import type { Transaction } from '~/store/transaction.model';
 import { tableHeadersToTransactionKeys } from '~/components/account/tableHeadersToTransactionKeys';
 import UploadTransactionAcceptance from '~/components/account/UploadTransactionAcceptance.vue';
 import type { ClearedStatus } from '~/store/clearedStatus';

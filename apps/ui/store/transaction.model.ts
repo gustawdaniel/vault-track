@@ -160,3 +160,25 @@ export class Trx {
         };
     }
 }
+
+function projectIdAndAccount(
+    tx: FullTransaction,
+): Pick<FullTransaction, 'id' | 'account'> {
+    return {
+        id: tx.id,
+        account: tx.account,
+    };
+}
+
+export function getTransferTransactionOrder(
+    tx1: FullTransaction,
+    tx2: FullTransaction,
+): {
+    from: Pick<FullTransaction, 'id' | 'account'>;
+    to: Pick<FullTransaction, 'id' | 'account'>;
+} {
+    const type = getTransactionNormalType(tx1);
+    return type === 'income'
+        ? { from: projectIdAndAccount(tx2), to: projectIdAndAccount(tx1) }
+        : { from: projectIdAndAccount(tx1), to: projectIdAndAccount(tx2) };
+}

@@ -1,5 +1,5 @@
 import { uid } from 'uid';
-import type { Transaction } from '~/store/transaction';
+import type { Transaction } from '~/store/transaction.model';
 import type { Account } from '~/store/account';
 import type { PersistedCategory } from '~/store/category';
 import type { PersistedProject } from '~/store/project';

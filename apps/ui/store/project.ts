@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { type RemovableRef, useLocalStorage } from '@vueuse/core/index';
 import { uid } from 'uid';
-import type { Transaction } from '~/store/transaction';
+import type { Transaction } from '~/store/transaction.model';
 import { createProject as syncCreateProject, updateProject as syncUpdateProject, deleteProject as syncDeleteProject } from '~/sync/manager';
 
 export interface Project {

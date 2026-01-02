@@ -15,11 +15,6 @@ import {
 // Re-export for compatibility
 export * from '~/store/transaction.model';
 
-export interface CreateTransactionOptions {
-  allowDuplicates: boolean;
-  updateAccountBalance: boolean;
-}
-
 interface State {
   transactions: RemovableRef<FullTransaction[]>;
 }
@@ -54,7 +49,9 @@ export const useTransactionStore = defineStore('transaction', {
       const newTrx = new Trx({ ...transaction, id });
       const index = this.getIndexById(newTrx.id);
       if (index !== -1) {
-        const oldTrx = new Trx(this.$state.transactions[index]);
+        const oldTrxData = this.$state.transactions[index];
+        if (!oldTrxData) throw new Error('Transaction not found');
+        const oldTrx = new Trx(oldTrxData);
         const accountStore = useAccountStore();
         if (
           oldTrx.data.accountId !== newTrx.data.accountId ||
