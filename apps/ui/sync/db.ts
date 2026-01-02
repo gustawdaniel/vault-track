@@ -24,15 +24,17 @@ function getDB() {
     return dbPromise;
 }
 
+import { toRaw } from 'vue';
+
 export async function addEvent(event: AppEvent): Promise<void> {
     const db = await getDB();
-    await db.put(STORE_NAME, event);
+    await db.put(STORE_NAME, toRaw(event));
 }
 
 export async function addEvents(events: AppEvent[]): Promise<void> {
     const db = await getDB();
     const tx = db.transaction(STORE_NAME, 'readwrite');
-    await Promise.all(events.map(event => tx.store.put(event)));
+    await Promise.all(events.map(event => tx.store.put(toRaw(event))));
     await tx.done;
 }
 
