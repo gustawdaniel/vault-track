@@ -12,16 +12,12 @@ const PEER_ID_SERVER = 'server';
 
 // Initialize Group ID (simplified: get from localStorage or default)
 // In a real app, this would be injected or managed by a store.
-function getGroupId(): string {
+function getGroupId(): string | null {
     if (typeof localStorage !== 'undefined') {
-        let gid = localStorage.getItem('ocm-sync-group-id');
-        if (!gid) {
-            gid = 'default'; // Default group if not set
-            // Or don't set default and fail? For ease of use, 'default' is fine for single user.
-        }
-        return gid;
+        const gid = localStorage.getItem('ocm-sync-group-id');
+        if (gid) return gid;
     }
-    return 'default';
+    return null;
 }
 
 export interface SyncResponse {
@@ -35,10 +31,13 @@ export interface SyncOptions {
 
 export async function fetchRemoteEvents(sinceTimestamp: number, options?: SyncOptions): Promise<AppEvent[]> {
     try {
+        const groupId = getGroupId();
+        if (!groupId) return [];
+
         const waitParam = options?.wait ? '&wait=true' : '';
         const response = await fetch(`${SYNC_API_URL}/pull?since=${sinceTimestamp}${waitParam}`, {
             headers: {
-                'X-Sync-Group-ID': getGroupId()
+                'X-Sync-Group-ID': groupId
             }
         });
         if (!response.ok) {
@@ -56,11 +55,14 @@ export async function fetchRemoteEvents(sinceTimestamp: number, options?: SyncOp
 export async function pushLocalEvents(events: AppEvent[]): Promise<boolean> {
     if (events.length === 0) return true;
     try {
+        const groupId = getGroupId();
+        if (!groupId) return false;
+
         const response = await fetch(`${SYNC_API_URL}/push`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Sync-Group-ID': getGroupId()
+                'X-Sync-Group-ID': groupId
             },
             body: JSON.stringify({ events }),
         });

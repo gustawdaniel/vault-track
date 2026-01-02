@@ -105,6 +105,12 @@ export const useAccountStore = defineStore('account', {
     delete(id: string): void {
       const index = this.getIndexById(id);
       if (index === -1) return;
+
+      // Cascade delete transactions
+      const transactionStore = useTransactionStore();
+      const transactions = transactionStore.getAllByAccountId(id);
+      transactions.forEach(tx => transactionStore.delete(tx.id));
+
       this.$state.accounts.splice(index, 1);
       syncDeleteAccount(id);
     },

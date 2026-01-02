@@ -1,4 +1,5 @@
 import tailwindcss from '@tailwindcss/vite';
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 export default defineNuxtConfig({
   ssr: false,
@@ -16,9 +17,17 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
 
   vite: {
-    plugins: [tailwindcss()],
+    plugins: [
+      tailwindcss(),
+      nodePolyfills({
+        include: ['buffer', 'stream', 'util'],
+        globals: {
+          Buffer: true,
+        },
+      }),
+    ],
     optimizeDeps: {
-      include: ['legacy-encoding'],
+      include: ['legacy-encoding', 'bip39'],
     },
   },
 

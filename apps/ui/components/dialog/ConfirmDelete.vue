@@ -55,36 +55,27 @@ function confirm() {
 </script>
 
 <template>
-  <UCard v-if="resource && id">
-    <template #header>
-      <h1 class="flex items-center">
-        <i class="i-heroicons-exclamation-triangle w-5 h-5 mr-2" />
-        <span>Delete {{ formatResourceName(resource) }}</span>
-      </h1>
-    </template>
-
+  <div v-if="resource && id">
+    <!-- Icon/Title logic is now handled by UModal's title prop via DialogRoot -->
+    <!-- Content -->
     <p>Are you sure to delete the {{ formatResourceName(resource) }}?</p>
 
-    <template #footer>
-      <div class="grid grid-cols-2 gap-4">
-        <UButton class="w-full justify-center" color="neutral" @click.stop="cancel"
-          >Cancel
-        </UButton>
-        <UButton
-          class="w-full justify-center"
-          color="neutral"
-          @click.stop="confirm"
-          >Ok
-        </UButton>
-      </div>
-    </template>
-  </UCard>
-  <UCard v-else>
+    <!-- Footer Actions -->
+    <div class="grid grid-cols-2 gap-4 mt-6">
+      <UButton class="w-full justify-center" color="neutral" @click.stop="cancel">
+        Cancel
+      </UButton>
+      <UButton class="w-full justify-center" color="neutral" @click.stop="confirm">
+        Ok
+      </UButton>
+    </div>
+  </div>
+  <div v-else>
     <p v-if="!id" class="text-red-700">Id not passed to confirmation dialog</p>
     <p v-if="!resource" class="text-red-700">
       Resource not passed to confirmation dialog
     </p>
-  </UCard>
+  </div>
 </template>
 
 <style scoped></style>
