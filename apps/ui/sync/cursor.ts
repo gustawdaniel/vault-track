@@ -15,3 +15,21 @@ export async function updateCursor(peerId: string, cursor: Omit<SyncCursor, 'pee
     const db = await getMetaDB();
     await db.put(CURSOR_STORE, { ...cursor, peerId });
 }
+
+// Special peer ID for tracking what we've pushed to server
+export const PEER_ID_PUSH_CURSOR = 'push-cursor';
+
+/**
+ * Get the last successfully pushed event timestamp
+ */
+export async function getLastPushedTimestamp(): Promise<number> {
+    const cursor = await getCursor(PEER_ID_PUSH_CURSOR);
+    return cursor?.timestamp || 0;
+}
+
+/**
+ * Update the push cursor after successful push
+ */
+export async function updatePushCursor(timestamp: number): Promise<void> {
+    await updateCursor(PEER_ID_PUSH_CURSOR, { timestamp });
+}

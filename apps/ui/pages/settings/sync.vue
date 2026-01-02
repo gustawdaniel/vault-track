@@ -210,6 +210,7 @@ import { useClipboard } from '@vueuse/core';
 import AppContainer from '~/components/shared/AppContainer.vue';
 import { getDeviceId } from '~/sync/deviceId';
 import { syncWithServer } from '~/sync/client';
+import { deriveGroupId } from '~/sync/crypto';
 import { useAccountStore } from '~/store/account';
 import { useTransactionStore } from '~/store/transaction';
 import { useCategoryStore } from '~/store/category';
@@ -272,10 +273,10 @@ async function updateSyncStats() {
 
 onMounted(async () => {
     deviceId.value = await getDeviceId();
-    const storedGid = localStorage.getItem('ocm-sync-group-id');
-    if (storedGid) {
-        groupId.value = storedGid;
-        savedGroupId.value = storedGid;
+    const storedMnemonic = localStorage.getItem('ocm-mnemonic');
+    if (storedMnemonic) {
+        groupId.value = storedMnemonic;
+        savedGroupId.value = storedMnemonic;
     }
     // Do NOT set default anymore
     await updateSyncStats();
@@ -321,11 +322,19 @@ async function copyDeviceId() {
     log('Device ID copied to clipboard');
 }
 
-function saveGroupId() {
+async function saveGroupId() {
     if (!groupId.value) return;
-    localStorage.setItem('ocm-sync-group-id', groupId.value);
-    savedGroupId.value = groupId.value;
+
+    // 1. Save valid mnemonic (private key)
+    localStorage.setItem('ocm-mnemonic', groupId.value);
+
+    // 2. Derive and save Group ID (public identifier)
+    const gid = await deriveGroupId(groupId.value);
+    localStorage.setItem('ocm-sync-group-id', gid);
+
+    savedGroupId.value = groupId.value; // Show the mnemonic in UI
     log('Pairing code saved. Sync enabled.');
+
     // Trigger an initial sync immediately
     handleSync();
 }
@@ -333,6 +342,7 @@ function saveGroupId() {
 function resetGroupId() {
     if (!confirm('This will stop synchronization on this device. Local data is preserved. Continue?')) return;
     localStorage.removeItem('ocm-sync-group-id');
+    localStorage.removeItem('ocm-mnemonic');
     savedGroupId.value = '';
     groupId.value = '';
     log('Sync disconnected.');

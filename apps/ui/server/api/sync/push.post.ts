@@ -1,5 +1,5 @@
 import { defineEventHandler, readBody, getHeader, createError } from 'h3';
-import type { AppEvent } from '~/sync/types';
+import type { TransportEvent } from '~/sync/types';
 import { useTurso, initTursoSchema } from '~/server/utils/turso';
 
 let schemaInitialized = false;
@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const body = await readBody(event);
-    const events: AppEvent[] = body.events || [];
+    const events: TransportEvent[] = body.events || [];
     const client = useTurso();
 
     if (events.length === 0) {
@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
             e.deviceId,
             e.counter,
             e.timestamp,
-            JSON.stringify(e)
+            e.payload // Store raw encrypted string
         ]
     }));
 

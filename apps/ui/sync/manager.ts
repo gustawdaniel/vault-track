@@ -9,6 +9,7 @@ import { sortEvents } from './ordering';
 import { replay } from './reducer';
 import type { AppEvent, AppState, TransactionAdded, TransactionUpdated, TransactionDeleted, AccountCreated, AccountUpdated, AccountDeleted, AccountReordered, CategoryCreated, CategoryUpdated, CategoryDeleted, ProjectCreated, ProjectUpdated, ProjectDeleted } from './types';
 import { useDebounceFn } from '@vueuse/core';
+import { hashEntityId } from './crypto';
 
 let debouncedSync: (() => void) | null = null;
 
@@ -213,8 +214,11 @@ export async function importLocalData(data: {
 
     // Accounts
     for (const item of data.accounts) {
+        const hashedId = await hashEntityId(item.id);
+        const eventId = `${deviceId}:migration:${hashedId}`;
+        console.log(`[Migration] Creating account event: ${eventId}`);
         events.push({
-            eventId: `${deviceId}:${counter}:${uid(8)}`,
+            eventId,
             deviceId,
             counter: counter++,
             timestamp,
@@ -225,8 +229,11 @@ export async function importLocalData(data: {
 
     // Transactions
     for (const item of data.transactions) {
+        const hashedId = await hashEntityId(item.id);
+        const eventId = `${deviceId}:migration:${hashedId}`;
+        console.log(`[Migration] Creating transaction event: ${eventId}`);
         events.push({
-            eventId: `${deviceId}:${counter}:${uid(8)}`,
+            eventId,
             deviceId,
             counter: counter++,
             timestamp,
@@ -237,8 +244,11 @@ export async function importLocalData(data: {
 
     // Categories
     for (const item of data.categories) {
+        const hashedId = await hashEntityId(item.id);
+        const eventId = `${deviceId}:migration:${hashedId}`;
+        console.log(`[Migration] Creating category event: ${eventId}`);
         events.push({
-            eventId: `${deviceId}:${counter}:${uid(8)}`,
+            eventId,
             deviceId,
             counter: counter++,
             timestamp,
@@ -249,8 +259,11 @@ export async function importLocalData(data: {
 
     // Projects
     for (const item of data.projects) {
+        const hashedId = await hashEntityId(item.id);
+        const eventId = `${deviceId}:migration:${hashedId}`;
+        console.log(`[Migration] Creating project event: ${eventId}`);
         events.push({
-            eventId: `${deviceId}:${counter}:${uid(8)}`,
+            eventId,
             deviceId,
             counter: counter++,
             timestamp,
@@ -259,7 +272,10 @@ export async function importLocalData(data: {
         });
     }
 
+    console.log(`[Migration] Generated ${events.length} events, attempting to add to local DB...`);
+
     await addEvents(events);
-    triggerSync(); // Trigger sync after import too
+    console.log(`[Migration] Successfully added ${events.length} events to local DB`);
+    // triggerSync(); // Don't auto-trigger - migration caller will handle sync explicitly
     return getAppState();
 }

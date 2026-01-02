@@ -100,9 +100,15 @@ export type AppEvent =
     | ProjectUpdated
     | ProjectDeleted;
 
+export type EventPayload = AppEvent['payload'];
+
 export interface AppState {
     transactions: Record<string, Transaction & { id: string }>;
     accounts: Record<string, Account>;
     categories: Record<string, PersistedCategory>;
     projects: Record<string, PersistedProject>;
+}
+
+export interface TransportEvent extends BaseEvent {
+    payload: string; // Encrypted ciphertext (iv:base64) of the FULL AppEvent JSON
 }

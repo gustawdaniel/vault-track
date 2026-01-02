@@ -27,7 +27,13 @@ export async function hydratePinia() {
     // 1. Prepare Data
     // Static imports are now safe since Trx is in a separate model file
     const restoredTrx = Object.values(state.transactions);
-    const finalTransactions = restoredTrx.map(t => new Trx(t as any).json);
+    // Filter out potential encrypted debris or malformed data to prevent crash
+    const validTrx = restoredTrx.filter(t => t && typeof t === 'object' && !('payload' in t)); // 'payload' check is heuristic if wrapper leaked
+    // More robust: checks if it looks like a transaction (has amount or id)
+    // Actually, just checking typeof t === 'object' should fix the "in operator" error on strings.
+    const finalTransactions = restoredTrx
+        .filter(t => t && typeof t === 'object')
+        .map(t => new Trx(t as any).json);
 
     // 2. Prepare Accounts with pre-calculated balances
     const finalAccounts = Object.values(state.accounts).map(a => {
