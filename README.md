@@ -2,7 +2,8 @@
 
 **Open Source Expense Management Application**
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6/deploy-status)](https://app.netlify.com/sites/open-cash-manager/deploys)
+[![Vercel](https://deploy-badge.vercel.app/?app=vault-track)](https://vaulttrack.org)
+
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 VaultTrack is a modern, privacy-focused, offline-first personal finance application inspired by tools like YNAB and GNUCash. It helps you track accounts, transactions, and budgets with a seamless multi-device experience.
@@ -41,7 +42,7 @@ VaultTrack is a modern, privacy-focused, offline-first personal finance applicat
 
 ### Prerequisites
 
-*   Node.js (v20+)
+*   Node.js (v24+)
 *   pnpm (v9+)
 
 ### Installation

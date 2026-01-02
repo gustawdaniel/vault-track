@@ -115,7 +115,7 @@ function setType(newType: NormalTransactionContextType | 'transfer') {
   </div>
 
   <AppContainer>
-    <UCard :ui="{ base: '' }">
+    <UCard>
       <UForm :state="state" :validate="validate" @submit="submit">
         <UFormField label="Payee/Item" name="payee">
           <UInput v-model="state.payee" />
