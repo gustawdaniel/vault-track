@@ -33,7 +33,7 @@ Your documentation site will be running at `http://localhost:3000`
 ## 📁 Project Structure
 
 ```
-my-docs/
+docs/
 ├── content/              # Your markdown content
 │   ├── index.md         # Homepage
 │   ├── 1.getting-started/  # Getting started section

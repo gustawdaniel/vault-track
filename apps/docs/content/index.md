@@ -39,7 +39,7 @@ Private, offline-first, and open-source. :br Manage your accounts, transactions,
     ::::u-page-card
     ---
     spotlight: true
-    class: col-span-2
+    class: col-span-2 lg:col-span-1
     target: _blank
     ---
       :::::u-color-mode-image
@@ -47,8 +47,8 @@ Private, offline-first, and open-source. :br Manage your accounts, transactions,
       height: 320
       alt: Beautiful visual powered by UI
       class: w-full h-80 object-cover rounded-lg
-      dark: /landing/dark/templates-ui-pro.webp
-      light: /landing/light/templates-ui-pro.webp
+      dark: /images/vault_tracker_modern_ui.png
+      light: /images/vault_tracker_modern_ui.png
       ---
       :::::
 
@@ -89,8 +89,14 @@ Private, offline-first, and open-source. :br Manage your accounts, transactions,
     target: _blank
     to: /developer-guide/architecture
     ---
-      :::::div{.h-full.flex.items-center.justify-center.text-6xl}
-      🧑‍💻
+      :::::u-color-mode-image
+      ---
+      height: 320
+      alt: Beautiful visual powered by UI
+      class: w-full h-80 object-cover rounded-lg
+      dark: /images/vault_tracker_open_source.png
+      light: /images/vault_tracker_open_source.png
+      ---
       :::::
 
     #title
