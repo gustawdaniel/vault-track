@@ -1,7 +1,7 @@
 import type { AppEvent } from './types';
 import type { AppState } from './types';
 import { getCursor, updateCursor } from './cursor';
-import { getAllEvents } from './db';
+import { getAllEvents, addEvent } from './db';
 import { mergeRemoteEvents } from './merger';
 import { sortEvents } from './ordering';
 import { replay } from './reducer';
@@ -130,8 +130,6 @@ export async function syncWithServer(options?: SyncOptions): Promise<AppState | 
     // Import `addEvent` dynamically or from module to avoid circular dependency issues? No, `client` depends on `db`, that's fine.
     // However, since we are using vite, we can just use top level import if we remove circular deps, or keep this.
     // The previous error suggests syntax issues.
-    const dbModule = await import('./db');
-    const addEvent = dbModule.addEvent;
     for (const event of newEvents) {
         await addEvent(event);
     }

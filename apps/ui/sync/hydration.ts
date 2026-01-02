@@ -3,6 +3,8 @@ import { useTransactionStore } from '~/store/transaction';
 import { useCategoryStore } from '~/store/category';
 import { useProjectStore } from '~/store/project';
 import { getAppState } from '~/sync/manager';
+import { Trx } from '~/store/transaction.model';
+import { sumArray } from '~/store/currency';
 
 export async function hydratePinia() {
     console.log('Hydrating Pinia from Sync State...');
@@ -23,10 +25,7 @@ export async function hydratePinia() {
     const transactionStore = useTransactionStore();
 
     // 1. Prepare Data
-    // We need to import classes dynamically
-    const { Trx } = await import('~/store/transaction.model');
-    const { sumArray } = await import('~/store/currency');
-
+    // Static imports are now safe since Trx is in a separate model file
     const restoredTrx = Object.values(state.transactions);
     const finalTransactions = restoredTrx.map(t => new Trx(t as any).json);
 
