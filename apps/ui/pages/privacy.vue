@@ -2,16 +2,10 @@
 
 <template>
   <div class="relative mt-0.5 [5.75rem] overflow-hidden pt-[5.75rem] mb-20">
-    <img
-      alt=""
-      class="absolute left-1/2 top-0 -ml-[39rem] w-[113.125rem] max-w-none"
-      src="../assets/beams-basic.png"
-    />
+    <img alt="" class="absolute left-1/2 top-0 -ml-[39rem] w-[113.125rem] max-w-none" src="../assets/beams-basic.png" />
     <div class="px-4 sm:px-6 lg:px-8">
       <div class="relative mx-auto max-w-[37.5rem] pt-20 text-center pb-24">
-        <h1
-          class="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl"
-        >
+        <h1 class="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
           Privacy policy
         </h1>
         <p class="mt-4 text-base leading-7 text-slate-600">
@@ -21,13 +15,12 @@
     </div>
     <div class="relative px-4 sm:px-6 lg:px-8">
       <div
-        class="mx-auto max-w-[40rem] prose-sm prose prose-slate prose-a:font-semibold prose-a:text-sky-500 hover:prose-a:text-sky-600"
-      >
+        class="mx-auto max-w-[40rem] prose-sm prose prose-slate prose-a:font-semibold prose-a:text-sky-500 hover:prose-a:text-sky-600">
         <p>
           This privacy policy ("Policy") describes how Open Cash Manger ("App",
           "we", "us" or "our") collects, protects and uses the personally
           identifiable information ("Personal Information") you ("User", "you"
-          or "your") may provide through the Open Cash Manager website. The
+          or "your") may provide through the VaultTrack website. The
           Policy also describes the choices available to you regarding our use
           of your Personal Information and how you can access and update this
           information.

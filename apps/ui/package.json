@@ -1,6 +1,6 @@
 {
   "name": "ui",
-  "description": "nuxt-image",
+  "description": "VaultTrack UI",
   "version": "0.1.0",
   "private": true,
   "type": "module",

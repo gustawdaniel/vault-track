@@ -6,11 +6,11 @@ export default defineAppConfig({
       'https://user-images.githubusercontent.com/904724/185365452-87b7ca7b-6030-4813-a2db-5e65c785bf88.png',
     socials: {
       twitter: '_GustawDaniel',
-      github: 'gustawdaniel/open_cash_manager',
+      github: 'gustawdaniel/vault-track',
       nuxt: {
         label: 'App',
         icon: 'twemoji:pound-banknote',
-        href: 'https://opencash.app/',
+        href: 'https://VaultTrack.org/',
       },
     },
     github: {

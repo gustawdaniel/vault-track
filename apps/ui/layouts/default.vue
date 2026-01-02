@@ -12,7 +12,7 @@ const routeName = computed<string>(() => {
   if (words[words.length - 1] === 'new') {
     words.reverse();
   }
-  return ucFirst(words.join(' ').trim()) || 'Open Cash Manager';
+  return ucFirst(words.join(' ').trim()) || 'VaultTrack';
 });
 
 useHead({

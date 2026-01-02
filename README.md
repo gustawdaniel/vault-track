@@ -1,13 +1,13 @@
-# Open Cash Manager
+# VaultTrack
 
 **Open Source Expense Management Application**
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6/deploy-status)](https://app.netlify.com/sites/open-cash-manager/deploys)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-Open Cash Manager is a modern, privacy-focused, offline-first personal finance application inspired by tools like YNAB and GNUCash. It helps you track accounts, transactions, and budgets with a seamless multi-device experience.
+VaultTrack is a modern, privacy-focused, offline-first personal finance application inspired by tools like YNAB and GNUCash. It helps you track accounts, transactions, and budgets with a seamless multi-device experience.
 
-**[Live Demo](https://opencash.app)** | **[Documentation](https://docs.opencash.app)**
+**[Live Demo](https://vaulttrack.org)** | **[Documentation](https://docs.vaulttrack.org)**
 
 ---
 
@@ -48,8 +48,8 @@ Open Cash Manager is a modern, privacy-focused, offline-first personal finance a
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/gustawdaniel/open_cash_manager.git
-    cd open_cash_manager
+    git clone https://github.com/gustawdaniel/vault-track.git
+    cd vault-track
     ```
 
 2.  **Install dependencies:**
@@ -73,7 +73,7 @@ pnpm build
 
 ### Offline Sync Engine
 
-Open Cash Manager uses a unique **Event Sourcing** approach for synchronization, designed to be robust and conflict-free without requiring complex server-side databases (can run on serverless edge functions):
+VaultTrack uses a unique **Event Sourcing** approach for synchronization, designed to be robust and conflict-free without requiring complex server-side databases (can run on serverless edge functions):
 
 1.  **Local First**: All actions (creating a transaction, updating an account) are strictly local first. They generate an "Event" (e.g., `TRANSACTION_ADDED`, `ACCOUNT_UPDATED`).
 2.  **Event Log**: These events are stored in `IndexedDB`.
@@ -106,3 +106,25 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## 📄 License
 
 Distributed under the MIT License. See `LICENSE` for more information.
+
+---
+
+## 🗺️ Long Term Roadmap
+
+Our development focus is strictly prioritized on the following key pillars:
+
+1.  **Full Feature Parity with CashDroid**
+    *   Bring back the complete feature set of the classic 2012 Android application, ensuring robust, proven functionality for personal finance management.
+    *   Includes: Recurring transactions, advanced filtering, and specific report types.
+
+2.  **Advanced Visualization & Charts**
+    *   Implement comprehensive graphing capabilities to visualize spending trends, category breakdowns, and net worth evolution over time.
+
+3.  **Backend-Synchronized Exchange Rates**
+    *   Automatic synchronization of relative currency values via the backend.
+    *   Seamless handling of multi-currency portfolios with up-to-date rates.
+
+4.  **Purchasing Power Analysis Layer (Inflation-Awareness)**
+    *   A unique analytical layer that allows users to view their finances in **Real Terms** vs **Nominal Terms**.
+    *   Analyze spending power relative to external economic metrics (e.g., Average Wage, Inflation/CPI baskets, Big Mac Index) rather than just raw currency numbers.
+    *   "How much of the average national wage did I spend on groceries in 2015 vs today?"
