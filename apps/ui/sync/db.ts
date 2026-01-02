@@ -28,14 +28,33 @@ import { toRaw } from 'vue';
 
 export async function addEvent(event: AppEvent): Promise<void> {
     const db = await getDB();
-    await db.put(STORE_NAME, toRaw(event));
+    // Use JSON clone to strip all Proxies and ensure structured clone compatibility (DataCloneError fix)
+    const plainEvent = JSON.parse(JSON.stringify(event));
+    await db.put(STORE_NAME, plainEvent);
 }
 
 export async function addEvents(events: AppEvent[]): Promise<void> {
     const db = await getDB();
     const tx = db.transaction(STORE_NAME, 'readwrite');
-    await Promise.all(events.map(event => tx.store.put(toRaw(event))));
+    const plainEvents = JSON.parse(JSON.stringify(events));
+
+    let addedCount = 0;
+    let skippedCount = 0;
+
+    for (const event of plainEvents) {
+        const existing = await tx.store.get(event.eventId);
+        if (existing) {
+            console.log(`[DB] Skipping duplicate event: ${event.eventId}`);
+            skippedCount++;
+        } else {
+            await tx.store.put(event);
+            console.log(`[DB] Added new event: ${event.eventId}`);
+            addedCount++;
+        }
+    }
+
     await tx.done;
+    console.log(`[DB] Summary: ${addedCount} added, ${skippedCount} skipped (duplicates)`);
 }
 
 export async function getAllEvents(): Promise<AppEvent[]> {

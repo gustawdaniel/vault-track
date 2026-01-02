@@ -1,6 +1,6 @@
 import { defineEventHandler, getQuery, getHeader, createError } from 'h3';
 import { useTurso } from '~/server/utils/turso';
-import type { AppEvent } from '~/sync/types';
+import type { TransportEvent } from '~/sync/types';
 
 export default defineEventHandler(async (event) => {
     const groupId = getHeader(event, 'X-Sync-Group-ID');
@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
     while (true) {
         try {
             const result = await client.execute({
-                sql: `SELECT payload FROM events 
+                sql: `SELECT event_id, device_id, counter, timestamp, payload FROM events 
                       WHERE group_id = ? AND timestamp > ? 
                       ORDER BY timestamp ASC, counter ASC 
                       LIMIT 2000`,
@@ -27,9 +27,14 @@ export default defineEventHandler(async (event) => {
             });
 
             if (result.rows.length > 0) {
-                // Parse payloads back to objects
-                // row.payload is a string (JSON)
-                const events = result.rows.map(row => JSON.parse(row.payload as string));
+                // Build TransportEvent objects with raw encrypted payloads
+                const events: TransportEvent[] = result.rows.map(row => ({
+                    eventId: row.event_id as string,
+                    deviceId: row.device_id as string,
+                    counter: row.counter as number,
+                    timestamp: row.timestamp as number,
+                    payload: row.payload as string // Raw encrypted string
+                }));
                 return { events };
             }
         } catch (e: any) {

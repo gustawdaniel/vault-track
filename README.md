@@ -130,18 +130,31 @@ Our development focus is strictly prioritized on the following key pillars:
     *   Analyze spending power relative to external economic metrics (e.g., Average Wage, Inflation/CPI baskets, Big Mac Index) rather than just raw currency numbers.
     *   "How much of the average national wage did I spend on groceries in 2015 vs today?"
 
+Sqlite
 
-todo:
+```
+# Open the database
+sqlite3 apps/ui/local.db
 
-10:39:40.308 
-../docs postinstall$ nuxi prepare
-10:39:42.239 
-../docs postinstall: [warn] Module `nuxt-icon` is disabled due to incompatibility issues:
-10:39:42.240 
-../docs postinstall:  - [nuxt] Nuxt version `^3.0.0-rc.9` is required but currently using `4.2.2`
-10:39:42.682 
-../docs postinstall: [warn] Module `docus` is disabled due to incompatibility issues:
-10:39:42.683 
-../docs postinstall:  - [nuxt] Nuxt version `^3.0.0-rc.14` is required but currently using `4.2.2`
-10:39:43.094 
-../docs postinstall: [warn] [nuxt-config-schema] Unable to load schema from /vercel/path0/node_modules/.pnpm/@nuxt-themes+docus@1.15.1_axios@1.13.2_change-case@5.4.4_db0@0.3.4_ioredis@5.8.2_magicast@0.5_kqbcirdbg64wnk646kc65malkm/node_modules/@nuxt-themes/docus/nuxt.schema.ts defineNuxtSchema is not defined
+# List tables to verify
+.tables
+# Output should be: events
+
+# See data
+SELECT * FROM events;
+# (or nicer formatting)
+.mode column
+.headers on
+SELECT * FROM events LIMIT 5;
+
+# Exit
+.quit
+```
+
+Fix:
+
+Uncaught (in promise) DataCloneError: Failed to execute 'put' on 'IDBObjectStore': #<Object> could not be cloned.
+    at Proxy.<anonymous> (idb.js?v=7134d0ef:117:22)
+    at Proxy.method (idb.js?v=7134d0ef:203:30)
+    at addEvent (db.ts:31:14)
+    at async updateCategory (manager.ts:143:5)
