@@ -4,6 +4,10 @@ export default defineNuxtConfig({
   ssr: false,
   devtools: { enabled: false },
   modules: ['@nuxt/ui', '@pinia/nuxt', '@vueuse/nuxt', '@nuxtjs/robots', '@nuxt/eslint'],
+  sourcemap: {
+    client: true,
+    server: false
+  },
 
   colorMode: {
     preference: 'light',

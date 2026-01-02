@@ -2,9 +2,8 @@ import { syncWithServer } from '~/sync/client';
 import { useDocumentVisibility } from '@vueuse/core';
 import { hydratePinia } from '~/sync/hydration';
 import { setDebouncedSync } from '~/sync/manager';
-import type { NuxtApp } from 'nuxt/schema';
 
-export default defineNuxtPlugin((nuxtApp: NuxtApp) => {
+export default defineNuxtPlugin((nuxtApp: unknown) => {
     // Only run on client
     if (import.meta.server) return;
 
