@@ -1,7 +1,9 @@
 {
     "$schema": "https://turbo.build/schema.json",
     "globalEnv": [
-        "REDIS_URL"
+        "REDIS_URL",
+        "TURSO_AUTH_TOKEN",
+        "TURSO_DATABASE_URL"
     ],
     "tasks": {
         "build": {

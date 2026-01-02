@@ -1,5 +1,6 @@
 import { defineEventHandler, getQuery, getHeader, createError } from 'h3';
-import type { BaseEvent } from '~/sync/types';
+import { useTurso } from '~/server/utils/turso';
+import type { AppEvent } from '~/sync/types';
 
 export default defineEventHandler(async (event) => {
     const groupId = getHeader(event, 'X-Sync-Group-ID');
@@ -9,53 +10,38 @@ export default defineEventHandler(async (event) => {
 
     const query = getQuery(event);
     const since = Number(query.since) || 0;
-    const storage = useStorage('sync');
-
-    // Long Polling Logic
     const shouldWait = query.wait === 'true';
+    const client = useTurso();
+
     const startTime = Date.now();
-    const TIMEOUT = 5000; // 5s timeout to safely stay under Vercel's 10s limit
+    const TIMEOUT = 5000; // 5s timeout
 
     while (true) {
-        // Prefix scan using storage keys.
-        // Ideally unstorage driver dependent, but for FS/Redis this works.
-        const keys = await storage.getKeys(`events:${groupId}`);
-
-        const relevantKeys = keys.filter(key => {
-            // key: events:<groupId>:<timestamp>:...
-            const parts = key.split(':');
-            const timestamp = Number(parts[2]);
-            return timestamp > since;
-        });
-
-        if (relevantKeys.length > 0) {
-            const events: BaseEvent[] = [];
-            for (const key of relevantKeys) {
-                const item = await storage.getItem<BaseEvent>(key);
-                if (item) {
-                    events.push(item);
-                }
-            }
-
-            // Sort by timestamp, then deviceId, then counter
-            events.sort((a: BaseEvent, b: BaseEvent) => {
-                if (a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
-                if (a.deviceId !== b.deviceId) return a.deviceId.localeCompare(b.deviceId);
-                return a.counter - b.counter;
+        try {
+            const result = await client.execute({
+                sql: `SELECT payload FROM events 
+                      WHERE group_id = ? AND timestamp > ? 
+                      ORDER BY timestamp ASC, counter ASC 
+                      LIMIT 2000`,
+                args: [groupId, since]
             });
 
-            return { events };
+            if (result.rows.length > 0) {
+                // Parse payloads back to objects
+                // row.payload is a string (JSON)
+                const events = result.rows.map(row => JSON.parse(row.payload as string));
+                return { events };
+            }
+        } catch (e: any) {
+            console.error('Turso pull error:', e);
+            throw createError({ statusCode: 500, statusMessage: 'Database error', message: e.message });
         }
 
-        if (!shouldWait) {
+        if (!shouldWait || (Date.now() - startTime > TIMEOUT)) {
             return { events: [] };
         }
 
-        if (Date.now() - startTime > TIMEOUT) {
-            return { events: [] };
-        }
-
-        // Wait 1s before checking again
+        // Wait 1s and retry (efficient polling)
         await new Promise(resolve => setTimeout(resolve, 1000));
     }
 });
