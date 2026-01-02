@@ -26,16 +26,6 @@ export default defineNuxtConfig({
     prerender: {
       routes: ['/robots.txt'],
     },
-    storage: {
-      sync: process.env.NODE_ENV === 'production'
-        ? {
-          driver: 'redis',
-          url: process.env.REDIS_URL || process.env.KV_URL,
-        }
-        : {
-          driver: 'fs',
-          base: '.data/sync',
-        },
-    },
+
   },
 });
