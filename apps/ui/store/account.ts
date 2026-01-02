@@ -5,6 +5,7 @@ import { uid } from 'uid';
 import { z } from 'zod';
 import { useTransactionStore } from '~/store/transaction';
 import { type Currency, sumArray, getCurrency, sum } from '~/store/currency';
+import { createAccount as syncCreateAccount, updateAccount as syncUpdateAccount, deleteAccount as syncDeleteAccount, reorderAccounts as syncReorderAccounts } from '~/sync/manager';
 
 export const AccountModel = z.object({
   id: z.string(),
@@ -57,16 +58,17 @@ export const useAccountStore = defineStore('account', {
         };
 
         const p = AccountModel.safeParse(accountToSave);
-        if (p.success) this.$state.accounts.push(accountToSave);
+        if (p.success) {
+          this.$state.accounts.push(accountToSave);
+          syncCreateAccount(accountToSave);
+        }
         else {
           throw p.error;
         }
       } else {
-        this.$state.accounts.splice(
-          index,
-          1,
-          Object.assign(this.$state.accounts[index], account),
-        );
+        const updated = Object.assign(this.$state.accounts[index], account);
+        this.$state.accounts.splice(index, 1, updated);
+        syncUpdateAccount(updated);
       }
     },
     update(accountId: string, accountData: Omit<Account, 'id'>) {
@@ -89,6 +91,7 @@ export const useAccountStore = defineStore('account', {
           1,
           Object.assign(foundAccount, accountData),
         );
+        syncUpdateAccount(foundAccount);
       } else {
         this.create(accountData);
       }
@@ -103,6 +106,7 @@ export const useAccountStore = defineStore('account', {
       const index = this.getIndexById(id);
       if (index === -1) return;
       this.$state.accounts.splice(index, 1);
+      syncDeleteAccount(id);
     },
     getNew(): ComputedAccount {
       return {
@@ -181,6 +185,14 @@ export const useAccountStore = defineStore('account', {
           acc.order = currentOrders[index] !== undefined ? currentOrders[index] : index;
         }
       });
+
+      syncReorderAccounts(reorderedAccounts.map((a, i) => {
+        // Careful: we want to send the new order for each account ID.
+        // The local logic above already mutated the store.
+        // The event payload expects { accountId, order }.
+        const acc = this.getById(a.id);
+        return { accountId: a.id, order: acc?.order ?? i };
+      }));
     },
   },
   getters: {

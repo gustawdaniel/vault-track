@@ -4,6 +4,7 @@ import { uid } from 'uid';
 import { getRandomColor } from '~/utils/getRandomColor';
 import { useProjectStore } from '~/store/project';
 import type { Transaction } from '~/store/transaction';
+import { createCategory as syncCreateCategory, updateCategory as syncUpdateCategory, deleteCategory as syncDeleteCategory } from '~/sync/manager';
 
 export interface Category {
   category: string;
@@ -151,6 +152,7 @@ export const useCategoryStore = defineStore('category', {
               1,
               Object.assign(existing, cat.pureCategoryWithoutProject),
             );
+            syncUpdateCategory(existing);
           }
         } else {
           // New Item: Assign order = max(siblings.order) + 1
@@ -172,6 +174,7 @@ export const useCategoryStore = defineStore('category', {
           cat.data.order = maxOrder + 1;
 
           this.$state.categories.push(cat.pureCategoryWithoutProject);
+          syncCreateCategory(cat.pureCategoryWithoutProject);
         }
       }
 
@@ -234,6 +237,7 @@ export const useCategoryStore = defineStore('category', {
         }
 
         this.$state.categories.splice(index, 1, cat.pureCategoryWithoutProject);
+        syncUpdateCategory(cat.pureCategoryWithoutProject);
       } else {
         this.create(cat.json);
       }
@@ -259,6 +263,7 @@ export const useCategoryStore = defineStore('category', {
         const newIndex = this.getIndexById(id);
         if (newIndex !== -1) {
           this.$state.categories.splice(newIndex, 1);
+          syncDeleteCategory(id);
         }
       }
     },

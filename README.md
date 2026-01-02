@@ -1,175 +1,108 @@
 # Open Cash Manager
 
-Documentation:
+**Open Source Expense Management Application**
 
-https://docs.opencash.app
+[![Netlify Status](https://api.netlify.com/api/v1/badges/a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6/deploy-status)](https://app.netlify.com/sites/open-cash-manager/deploys)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-Production:
+Open Cash Manager is a modern, privacy-focused, offline-first personal finance application inspired by tools like YNAB and GNUCash. It helps you track accounts, transactions, and budgets with a seamless multi-device experience.
 
-https://opencash.app
-
-Beta:
-
-https://gustawdaniel.github.io/open_cash_manager
-
-## Below there are dev notes, real documentation was linked above:
-
-#### About Sync plans
-
-UI (pinia) -> stream of atomic operations
-
-First operation: account creation for unique id. This operation has assigned uuid by server.
-
-Next, if you want to save, then send prev hash
-if it is different then you will get all operations from lash hash that you remember.
-
-then:
-a) revert your operations to this hash
-b) apply operations from server
-c) apply your operations
-
-So any operation should be reversible.
-
-In case of creation, reverse operation is deletion
-In case of deletion, reversing operation should contain all deleted object properties to create is again
-In case of update we need snapshot before update and after update
-
-All resources have:
-a) collection
-b) id
-c) data (general json)
-
-op: c|u|d (create update delete)
-id: uuid|mongoid
-c: collection
-0: initial state (without id)
-1: final state (without id)
+**[Live Demo](https://opencash.app)** | **[Documentation](https://docs.opencash.app)**
 
 ---
 
-You should be able to download all by websocket and http to be updated
+## 🚀 Key Features
 
-Backup of data should be available also, so you generally need data and last snapshot id for pure restore.
-Last id should be attached to any server response.
+*   **Offline-First & Real-Time Sync**: 
+    *   Works completely offline using `IndexedDB`.
+    *   Synchronizes data between devices in near real-time using an Event Sourcing architecture (Long Polling + WebSockets equivalent).
+    *   Conflict-free data merging.
+*   **Multi-Device**: Seamlessly switch between desktop and mobile.
+*   **Privacy Focused**: Your data belongs to you. No third-party tracking.
+*   **Comprehensive Tracking**:
+    *   Manage multiple accounts (Cash, Bank, Investment, etc.).
+    *   Track income, expenses, and transfers.
+    *   Multi-currency support with automatic exchange rate handling.
+    *   Categories and Projects organization.
+*   **Import/Export**:
+    *   Full QIF (Quicken Interchange Format) import support.
+    *   JSON backup and restore.
 
-Steps:
+## 🛠 Tech Stack
 
-- create front
-- create qif import
-- create qif export
-- create backend
-- create account
+*   **Framework**: [Nuxt 3](https://nuxt.com) (Vue 3)
+*   **UI Library**: [Nuxt UI](https://ui.nuxt.com) + [TailwindCSS](https://tailwindcss.com)
+*   **State Management**: [Pinia](https://pinia.vuejs.org) + [VueUse](https://vueuse.org)
+*   **Database (Client)**: `IndexedDB` (via `idb`)
+*   **Sync Engine**: Custom Event Sourcing engine with "Long Polling + Immediate Push".
+*   **Testing**: Vitest
 
+## 📦 Getting Started
 
+### Prerequisites
 
+*   Node.js (v20+)
+*   pnpm (v9+)
 
----
+### Installation
 
-# Debug mode
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/gustawdaniel/open_cash_manager.git
+    cd open_cash_manager
+    ```
 
-Paste in console
+2.  **Install dependencies:**
+    ```bash
+    pnpm install
+    ```
 
-```
-postMessage({debug: false})
-postMessage({debug: true})
+3.  **Start the development server:**
+    ```bash
+    pnpm dev
+    ```
+    The app will be available at `http://localhost:3000`.
+
+### Building for Production
+
+```bash
+pnpm build
 ```
 
-Next tasks:
+## 🏗 Architecture
 
-- split
-    - amount
-    - type Expense, Income, Transfer to, Transfer from
-    - category
-    - project
-    - memo
+### Offline Sync Engine
 
-- amountFrom
-- amountTo
-- exchange rate
-- toAccount
+Open Cash Manager uses a unique **Event Sourcing** approach for synchronization, designed to be robust and conflict-free without requiring complex server-side databases (can run on serverless edge functions):
 
-Next tasks:
-- budgets
-- schedules
-- search
-- reports
-- database
-- preferences
-- exchange rates
+1.  **Local First**: All actions (creating a transaction, updating an account) are strictly local first. They generate an "Event" (e.g., `TRANSACTION_ADDED`, `ACCOUNT_UPDATED`).
+2.  **Event Log**: These events are stored in `IndexedDB`.
+3.  **Synchronization**:
+    *   **Push**: The client debounces local changes and pushes new events to the server.
+    *   **Pull**: The client uses Long Polling to wait for new events from other devices.
+    *   **Merge**: Incoming events are merged into the local event log.
+    *   **Replay**: The application state (Balances, Lists) is rebuilt by replaying the event log (Reducer pattern).
+4.  **Idempotency**: All writes are idempotent, preventing duplicate data issues even with unstable network connections.
 
-Interesting design
-https://tailwindui.com/components/application-ui/feedback/empty-states
+### Directory Structure
 
-- [x] stats view over backup
-- [x] notification on success / fail
-- [x] confirm if remove all data
-- [x] disable backup if no data
+*   `apps/ui`: Main Nuxt 3 application.
+    *   `components`: Vue components.
+    *   `pages`: Application routes.
+    *   `store`: Pinia stores (Account, Transaction, etc.).
+    *   `sync`: Core synchronization logic (`db.ts`, `client.ts`, `manager.ts`, `reducer.ts`).
+    *   `server`: Server-side API routes for sync (`/api/sync/*`).
 
----
+## 🤝 Contributing
 
-Main page:
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-- demo
-- add account
-- description
-- wyszukiwanie po transakcjach
+1.  Fork the project.
+2.  Create your feature branch (`git checkout -b feature/AmazingFeature`).
+3.  Commit your changes (`git commit -m 'Add some AmazingFeature'`).
+4.  Push to the branch (`git push origin feature/AmazingFeature`).
+5.  Open a Pull Request.
 
-https://www.goodfirms.co/expense-management-software/blog/the-top-8-free-and-open-source-expense-management-software
+## 📄 License
 
-Tax Pal
-https://salient.tailwindui.com/
-
-Docs:
-
-- https://github.com/nuxt-themes/docus
-- https://docus.dev/api/components
-- https://docus.dev/
-- https://content.nuxt.com/
-- https://nuxt.studio/?utm_source=content-site&utm_medium=section&utm_campaign=home
-
-- Screenshots on landing
-- Setup Page
-- Guides
-
-Charts:
-
-https://flowbite.com/docs/plugins/charts/
-
-add videos with instructions:
-
-Vidyard
-https://secure.vidyard.com/organizations/3506184/library
-
-Next tasks:
-
-- Guide
-- Screenshot on landing
-- Redesign for full screen
-- Import transaction from json files
-
-For publication, we need:
-
-- redesign
-- screenshot
-- guide
-
-Docs edition:
-
-https://nuxt.studio/@gustawdaniel/open-cash-manager/studio/content?valueId=0.index.md&refId=main
-
-
-Next task:
-- replace tailwind icon by our logo
-- Add relations between currencies
-- Add exchange rates
-- Graphs showing spendings
-- Add synchronization between devices by cloud
-
-Scale down image
-
-convert input.jpg \
-  -strip \
-  -interlace Plane \
-  -sampling-factor 4:2:0 \
-  -quality 85 \
-  output.jpg
+Distributed under the MIT License. See `LICENSE` for more information.

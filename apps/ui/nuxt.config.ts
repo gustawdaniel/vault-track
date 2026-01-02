@@ -22,5 +22,11 @@ export default defineNuxtConfig({
     prerender: {
       routes: ['/robots.txt'],
     },
+    storage: {
+      sync: {
+        driver: 'fs',
+        base: '.data/sync',
+      },
+    },
   },
 });

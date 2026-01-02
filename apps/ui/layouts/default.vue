@@ -52,6 +52,10 @@ const accountStore = useAccountStore();
             <UButton :icon="accountStore.showHidden ? 'i-heroicons-eye-20-solid' : 'i-heroicons-eye-slash-20-solid'"
               color="neutral" variant="ghost" @click="accountStore.toggleShowHidden()" />
           </div>
+
+          <div class="flex items-center ml-2">
+            <UButton to="/settings/sync" icon="i-heroicons-arrow-path" color="neutral" variant="ghost" />
+          </div>
         </div>
       </div>
     </Disclosure>

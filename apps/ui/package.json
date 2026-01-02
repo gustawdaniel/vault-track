@@ -45,6 +45,7 @@
     "@vercel/analytics": "^1.6.1",
     "dayjs": "^1.11.19",
     "eslint-config-prettier": "^10.1.8",
+    "idb": "^8.0.3",
     "legacy-encoding": "^3.0.0",
     "object-hash": "^3.0.0",
     "pinia": "^3.0.4",

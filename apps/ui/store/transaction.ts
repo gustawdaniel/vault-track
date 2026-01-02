@@ -9,6 +9,7 @@ import { useAccountStore } from '~/store/account';
 import { getFullCategoryName } from '~/store/category';
 import { getFullProjectName } from '~/store/project';
 import type { ClearedStatus } from '~/store/clearedStatus';
+import { createTransaction as syncCreateTransaction, updateTransaction as syncUpdateTransaction, deleteTransaction as syncDeleteTransaction } from '~/sync/manager';
 
 export const TransactionModel = z.object({
   id: z.string(),
@@ -207,8 +208,10 @@ export const useTransactionStore = defineStore('transaction', {
         }
 
         this.$state.transactions.push(trx.json);
+        syncCreateTransaction(trx.json);
       } else {
         this.$state.transactions.splice(index, 1, trx.json);
+        syncUpdateTransaction(trx.json);
       }
     },
     update(id: string, transaction: Transaction) {
@@ -233,6 +236,7 @@ export const useTransactionStore = defineStore('transaction', {
           1,
           Object.assign(oldTrx.json, newTrx.json),
         );
+        syncUpdateTransaction(newTrx.json);
 
         if (oldTrx.data.transferHash && !newTrx.data.transferHash) {
           const reverse = this.getReverseByIdAndHash(
@@ -267,6 +271,7 @@ export const useTransactionStore = defineStore('transaction', {
 
       accountStore.pathBalance(transaction.accountId, -transaction.amount);
       this.$state.transactions.splice(index, 1);
+      syncDeleteTransaction(id);
 
       if (transaction.transferHash) {
         const reverse = this.getReverseByIdAndHash(
