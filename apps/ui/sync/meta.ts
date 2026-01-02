@@ -22,3 +22,11 @@ export function getMetaDB() {
     }
     return dbPromise;
 }
+
+export async function clearMeta() {
+    const db = await getMetaDB();
+    await Promise.all([
+        db.clear(META_STORE),
+        db.clear(CURSOR_STORE),
+    ]);
+}
