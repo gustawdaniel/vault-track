@@ -124,6 +124,10 @@ export async function fetchRemoteEvents(sinceTimestamp: number, options?: SyncOp
 }
 
 export async function pushLocalEvents(events: AppEvent[]): Promise<boolean> {
+    // Check group ID first
+    const groupId = await getGroupIdAsync();
+    if (!groupId) return false;
+
     if (events.length === 0) {
         console.log('[Sync] No local events to push');
         return true;
@@ -132,11 +136,6 @@ export async function pushLocalEvents(events: AppEvent[]): Promise<boolean> {
     console.log(`[Sync] Pushing ${events.length} local events to server...`);
 
     try {
-        const groupId = await getGroupIdAsync();
-        if (!groupId) {
-            console.error('[Sync] Push failed: No group ID found');
-            return false;
-        }
         console.log(`[Sync] Group ID: ${groupId.substring(0, 16)}...`);
 
         const key = await getEncryptionKey();
@@ -224,6 +223,10 @@ export async function pushLocalEvents(events: AppEvent[]): Promise<boolean> {
  * 3. Merge and Replay
  */
 export async function syncWithServer(options?: SyncOptions): Promise<AppState | null> {
+    // Check group ID first to stay silent if not configured
+    const groupId = await getGroupIdAsync();
+    if (!groupId) return null;
+
     console.log('[Sync] syncWithServer called');
 
     // 0. Get current server cursor
