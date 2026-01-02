@@ -1,57 +1,72 @@
-# Docus Starter
+# Docus Default Starter
 
-Starter template for [Docus](https://docus.dev).
+> A beautiful, minimal starter for creating documentation with Docus
 
-## Clone
+This is the default Docus starter template that provides everything you need to build beautiful documentation sites with Markdown and Vue components.
 
-Clone the repository (using `nuxi`):
+> [!TIP]
+> If you're looking for i18n support, check out the [i18n starter](https://github.com/nuxt-themes/docus/tree/main/.starters/i18n).
 
-```bash
-npx nuxi init -t themes/docus
-```
+## ✨ Features
 
-## Setup
+- 🎨 **Beautiful Design** - Clean, modern documentation theme
+- 📱 **Responsive** - Mobile-first responsive design  
+- 🌙 **Dark Mode** - Built-in dark/light mode support
+- 🔍 **Search** - Full-text search functionality
+- 📝 **Markdown Enhanced** - Extended markdown with custom components
+- 🎨 **Customizable** - Easy theming and brand customization
+- ⚡ **Fast** - Optimized for performance with Nuxt 4
+- 🔧 **TypeScript** - Full TypeScript support
 
-Install dependencies:
-
-```bash
-yarn install
-```
-
-## Development
-
-```bash
-yarn dev
-```
-
-## Edge Side Rendering
-
-Can be deployed to Vercel Functions, Netlify Functions, AWS, and most Node-compatible environments.
-
-Look at all the available presets [here](https://v3.nuxtjs.org/guide/deploy/presets).
+## 🚀 Quick Start
 
 ```bash
-yarn build
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
 ```
 
-## Static Generation
+Your documentation site will be running at `http://localhost:3000`
 
-Use the `generate` command to build your application.
+## 📁 Project Structure
 
-The HTML files will be generated in the .output/public directory and ready to be deployed to any static compatible hosting.
+```
+my-docs/
+├── content/              # Your markdown content
+│   ├── index.md         # Homepage
+│   ├── 1.getting-started/  # Getting started section
+│   └── 2.essentials/    # Essential documentation
+├── public/              # Static assets
+└── package.json         # Dependencies and scripts
+```
+
+## ⚡ Built with
+
+This starter comes pre-configured with:
+
+- [Nuxt 4](https://nuxt.com) - The web framework
+- [Nuxt Content](https://content.nuxt.com/) - File-based CMS
+- [Nuxt UI](https://ui.nuxt.com) - UI components
+- [Nuxt Image](https://image.nuxt.com/) - Optimized images
+- [Tailwind CSS 4](https://tailwindcss.com/) - Utility-first CSS
+- [Docus Layer](https://www.npmjs.com/package/docus) - Documentation theme
+
+## 📖 Documentation
+
+For detailed documentation on customizing your Docus project, visit the [Docus Documentation](https://docus.dev)
+
+## 🚀 Deployment
+
+Build for production:
 
 ```bash
-yarn generate
+npm run build
 ```
 
-## Preview build
+The built files will be in the `.output` directory, ready for deployment to any hosting provider that supports Node.js.
 
-You might want to preview the result of your build locally, to do so, run the following command:
+## 📄 License
 
-```bash
-yarn preview
-```
-
----
-
-For a detailed explanation of how things work, check out [Docus](https://docus.dev).
+[MIT License](https://opensource.org/licenses/MIT) 

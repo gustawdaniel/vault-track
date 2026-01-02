@@ -1,39 +1,26 @@
 export default defineAppConfig({
-  docus: {
-    title: 'Docus',
-    description: 'The best place to start your documentation.',
-    image:
-      'https://user-images.githubusercontent.com/904724/185365452-87b7ca7b-6030-4813-a2db-5e65c785bf88.png',
-    socials: {
-      twitter: '_GustawDaniel',
-      github: 'gustawdaniel/vault-track',
-      nuxt: {
-        label: 'App',
-        icon: 'twemoji:pound-banknote',
-        href: 'https://VaultTrack.org/',
-      },
-    },
-    github: {
-      dir: '.starters/default/content',
-      branch: 'main',
-      repo: 'docus',
-      owner: 'nuxt-themes',
-      edit: true,
-    },
-    aside: {
-      level: 0,
-      collapsed: false,
-      exclude: [],
-    },
-    main: {
-      padded: true,
-      fluid: true,
-    },
-    header: {
-      logo: true,
-      showLinkIcon: true,
-      exclude: [],
-      fluid: true,
-    },
-  },
-});
+    docus: {
+        title: 'VaultTracker',
+        description: 'Documentation for VaultTracker - Personal Finance App',
+        url: 'https://github.com/gustawdaniel/vault-track',
+        image: '/social-card-preview.png',
+        socials: {
+            github: 'gustawdaniel/vault-track',
+        },
+        aside: {
+            level: 0,
+            collapsed: false,
+            exclude: []
+        },
+        main: {
+            padded: true,
+            fluid: true
+        },
+        header: {
+            logo: false,
+            showLinkIcon: true,
+            exclude: [],
+            fluid: true
+        }
+    }
+})

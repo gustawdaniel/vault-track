@@ -54,7 +54,7 @@ export function isTransferByCategory(
     const categoryName = getFullCategoryName(transaction);
 
     return Boolean(
-        categoryName && categoryName.startsWith('[') && categoryName.endsWith(']'),
+        categoryName && categoryName.startsWith('[') && categoryName.includes(']'),
     );
 }
 
@@ -70,7 +70,8 @@ export function getAccountNameFromCategory(
     if (isTransferByCategory(transaction)) {
         const categoryName = getFullCategoryName(transaction);
         if (!categoryName) return categoryName;
-        return categoryName.substring(1, categoryName.length - 1);
+        const match = categoryName.match(/^\[(.*?)\]/);
+        return match ? match[1] : undefined;
     }
 }
 
