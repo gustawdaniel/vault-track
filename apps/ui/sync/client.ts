@@ -146,11 +146,36 @@ export async function pushLocalEvents(events: AppEvent[]): Promise<boolean> {
         }
         console.log('[Sync] Encryption key obtained');
 
+        // Filter out any events with invalid structure (legacy format)
+        const validEvents = events.filter(e => {
+            // Check if event has proper structure
+            if (!e.type || !e.payload || !e.eventId) {
+                console.warn('[Sync] Skipping invalid event:', e.eventId);
+                return false;
+            }
+            // Check if payload is already a string (broken legacy event)
+            if (typeof e.payload === 'string') {
+                console.warn('[Sync] Skipping legacy event with string payload:', e.eventId);
+                return false;
+            }
+            return true;
+        });
+
+        if (validEvents.length < events.length) {
+            console.warn(`[Sync] Filtered out ${events.length - validEvents.length} invalid/legacy events`);
+        }
+
         // Encrypt events before sending
         // We encrypt the ENTIRE event object now.
-        const encryptedEvents = await Promise.all(events.map(async (e) => {
+        const encryptedEvents = await Promise.all(validEvents.map(async (e) => {
             // Encrypt the full AppEvent
             const ciphertext = await encryptEvent(e, key);
+
+            // Validation: ensure ciphertext is a string
+            if (typeof ciphertext !== 'string' || !ciphertext.includes(':')) {
+                console.error('[Sync] Encryption failed for event:', e.eventId, 'ciphertext:', ciphertext);
+                throw new Error(`Invalid ciphertext for event ${e.eventId}`);
+            }
 
             // Construct TransportEvent
             // We duplicate the metadata for the server's columns/indexing
@@ -162,6 +187,12 @@ export async function pushLocalEvents(events: AppEvent[]): Promise<boolean> {
                 payload: ciphertext // The encrypted blob of everything
             };
         }));
+
+        // Log first event payload sample for debugging
+        if (encryptedEvents.length > 0) {
+            const sample = encryptedEvents[0]!.payload;
+            console.log(`[Sync] Sample encrypted payload: ${sample.substring(0, 50)}...`);
+        }
 
         const response = await fetch(`${SYNC_API_URL}/push`, {
             method: 'POST',
