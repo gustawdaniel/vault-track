@@ -6,14 +6,9 @@ const dialog = useDialog();
 </script>
 
 <template>
-  <UModal v-model:open="dialog.isDialogOpen">
-    <!-- <UButton label="Open" color="neutral" variant="subtle" /> -->
-
-    <template #content>
-      <VisuallyHidden>
-        <DialogTitle>{{ dialog.title || 'Dialog' }}</DialogTitle>
-        <DialogDescription>{{ dialog.description || 'Dialog Content' }}</DialogDescription>
-      </VisuallyHidden>
+  <UModal v-model:open="dialog.isDialogOpen" :title="dialog.title" :description="dialog.description"
+    :ui="{ content: 'sm:max-w-lg' }">
+    <template #body>
       <component :is="dialog.dialogComponent" v-bind="dialog.dialogProps" @close="dialog.closeDialog" />
     </template>
   </UModal>

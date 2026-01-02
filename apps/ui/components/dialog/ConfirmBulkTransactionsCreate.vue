@@ -36,37 +36,31 @@ function confirm() {
 </script>
 
 <template>
-  <UCard>
-    <template #header>
-      <h1 class="flex items-center">
-        <i class="i-heroicons-exclamation-triangle w-5 h-5 mr-2" />
-        <span>Create {{ transactions.length }} transactions</span>
-      </h1>
-    </template>
+  <div>
+    <!-- Title/Icon managed by UModal props via DialogRoot -->
+    <p class="mb-4">Are you sure to create the following transactions:</p>
 
-    <p class="mb-2">Are you sure to create the following transactions:</p>
+    <div class="overflow-y-auto max-h-60 border rounded p-2 mb-4">
+      <table class="text-xs w-full text-left">
+        <tbody>
+          <tr v-for="(transaction, index) of transactions" :key="index">
+            <td class="whitespace-nowrap font-bold pr-2">{{ transaction.date }}</td>
+            <td class="text-gray-700 line-clamp-1 pr-2">{{ transaction.payee }}</td>
+            <td :class="textColorByAmount(transaction.amount)" class="whitespace-nowrap font-bold text-right">
+              {{ formatAmount(transaction.amount ?? 0) }} {{ account.currency }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
-    <table class="text-xs">
-      <tbody>
-        <tr v-for="(transaction, index) of transactions" :key="index">
-          <td class="whitespace-nowrap font-bold">{{ transaction.date }}</td>
-          <td class="text-gray-700 line-clamp-1">{{ transaction.payee }}</td>
-          <td :class="textColorByAmount(transaction.amount)" class="whitespace-nowrap font-bold text-right">
-            {{ formatAmount(transaction.amount ?? 0) }} {{ account.currency }}
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
-    <template #footer>
-      <div class="grid grid-cols-2 gap-4">
-        <UButton class="w-full justify-center" color="neutral" @click.stop="cancel">Cancel
-        </UButton>
-        <UButton class="w-full justify-center" color="neutral" @click.stop="confirm">Ok
-        </UButton>
-      </div>
-    </template>
-  </UCard>
+    <div class="grid grid-cols-2 gap-4">
+      <UButton class="w-full justify-center" color="neutral" @click.stop="cancel">Cancel
+      </UButton>
+      <UButton class="w-full justify-center" color="neutral" @click.stop="confirm">Ok
+      </UButton>
+    </div>
+  </div>
 </template>
 
 <style scoped></style>

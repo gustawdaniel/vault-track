@@ -20,6 +20,11 @@ const props = defineProps<{
 // const router = useRouter(); // Hoist router
 const dialog = useDialog(); // Hoist dialog controller
 
+// Helper to capitalize first letter
+function ucFirst(str: string) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
 const options = computed(() => {
   const opts = [];
   switch (props.resource) {
@@ -35,6 +40,9 @@ const options = computed(() => {
             dialog.openDialog(ConfirmDelete, {
               resource: props.resource,
               id: props.id,
+            }, {
+              title: 'Delete Project',
+              description: 'Are you sure you want to delete this project?'
             });
           },
         }
@@ -43,7 +51,7 @@ const options = computed(() => {
     case 'category': {
       const categoryStore = useCategoryStore();
       const category = categoryStore.getById(props.id);
-      
+
       opts.push(
         {
           label: 'Edit category',
@@ -60,6 +68,9 @@ const options = computed(() => {
             dialog.openDialog(ConfirmDelete, {
               resource: props.resource,
               id: props.id,
+            }, {
+              title: 'Delete Category',
+              description: 'Are you sure you want to delete this category?'
             });
           },
         }
@@ -78,6 +89,9 @@ const options = computed(() => {
             dialog.openDialog(ConfirmDelete, {
               resource: props.resource,
               id: props.id,
+            }, {
+              title: 'Delete Account',
+              description: 'Are you sure you want to delete this account?'
             });
           },
         }
@@ -91,6 +105,9 @@ const options = computed(() => {
             dialog.openDialog(ConfirmDelete, {
               resource: props.resource,
               id: props.id,
+            }, {
+              title: 'Delete Transaction',
+              description: 'Are you sure you want to delete this transaction?'
             });
           },
         },
@@ -106,12 +123,9 @@ const options = computed(() => {
 </script>
 
 <template>
-  <UContextMenu
-    :items="options"
-    :ui="{
-      content: 'min-w-48 bg-white dark:bg-gray-900 shadow-xl ring-1 ring-gray-200 dark:ring-gray-800 rounded-lg overflow-hidden'
-    }"
-  >
+  <UContextMenu :items="options" :ui="{
+    content: 'min-w-48 bg-white dark:bg-gray-900 shadow-xl ring-1 ring-gray-200 dark:ring-gray-800 rounded-lg overflow-hidden'
+  }">
     <slot />
   </UContextMenu>
 </template>

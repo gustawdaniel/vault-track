@@ -63,9 +63,7 @@ const accountStore = useAccountStore();
 
     <slot />
 
-    <!-- <UModal v-model:open="dialog.isDialogOpen">
-      <component :is="dialog.dialogComponent" v-bind="dialog.dialogProps" />
-    </UModal> -->
+
 
     <SpeedInsights />
   </div>

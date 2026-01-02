@@ -5,7 +5,74 @@
                 <h2 class="text-xl font-bold">Synchronization Settings</h2>
             </template>
 
-            <div class="space-y-6">
+            <!-- 1. Setup / Pairing Mode -->
+            <div v-if="!savedGroupId" class="space-y-6 text-center py-8">
+                <div class="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <UIcon name="i-heroicons-cloud" class="text-3xl text-gray-400" />
+                </div>
+                <h3 class="text-lg font-semibold">Enable Synchronization</h3>
+                <p class="text-gray-600 max-w-md mx-auto">
+                    Sync is disabled by default to protect your data. To sync between devices, you need to create or
+                    enter a
+                    <strong>Pairing Code</strong>.
+                </p>
+
+                <div class="max-w-md mx-auto mt-6 p-4 bg-gray-50 rounded-lg border border-gray-100 text-left">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Enter Pairing Code</label>
+                    <div class="flex gap-2">
+                        <UInput v-model="groupId" type="text" class="flex-1" placeholder="e.g. my-secret-vault-123" />
+                        <UTooltip text="Scan QR Code">
+                            <UButton color="neutral" variant="ghost" icon="i-heroicons-qr-code"
+                                @click="showScanner = true" />
+                        </UTooltip>
+                    </div>
+                    <div class="flex justify-between items-center mt-2">
+                        <UButton size="xs" color="primary" variant="link" class="p-0" @click="generateRandomCode">
+                            Generate Random Code
+                        </UButton>
+                        <UButton @click="saveGroupId" color="primary" :disabled="!groupId">
+                            Save & Connect
+                        </UButton>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">
+                        Treat this code like a password. Use the <strong>exact same code</strong> on all your devices.
+                    </p>
+
+                    <!-- QR Code Display -->
+                    <div v-if="qrCodeUrl" class="mt-4 text-center">
+                        <p class="text-xs text-gray-500 mb-2">Scan to connect another device</p>
+                        <img :src="qrCodeUrl" alt="Pairing Code QR"
+                            class="mx-auto border p-2 bg-white rounded shadow-sm w-48 h-48" />
+                    </div>
+                </div>
+
+                <!-- Scanner Modal -->
+                <!-- Scanner Modal -->
+                <UModal v-model:open="showScanner" title="Scan Pairing Code" :ui="{ content: 'max-w-sm' }">
+                    <template #body>
+                        <div v-if="showScanner" class="aspect-square bg-black rounded overflow-hidden">
+                            <QrcodeStream @detect="onScan" />
+                        </div>
+                    </template>
+                </UModal>
+            </div>
+
+            <!-- 2. Dashboard Mode -->
+            <div v-else class="space-y-6">
+                <!-- Status Header -->
+                <div class="flex items-center justify-between bg-green-50 p-4 rounded-lg border border-green-100">
+                    <div>
+                        <div class="text-sm font-bold text-green-800 flex items-center gap-2">
+                            <UIcon name="i-heroicons-check-circle" />
+                            Sync Active
+                        </div>
+                        <div class="text-xs text-green-700 mt-1">
+                            Pairing Code: <span class="font-mono font-bold">{{ savedGroupId }}</span>
+                        </div>
+                    </div>
+                    <UButton size="xs" color="neutral" variant="ghost" @click="resetGroupId">Disconnect</UButton>
+                </div>
+
                 <div>
                     <h3 class="text-sm font-medium text-gray-700">Data Status</h3>
                     <div class="mt-2 grid grid-cols-2 gap-4">
@@ -60,23 +127,33 @@
                         <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-clipboard-document"
                             @click="copyDeviceId" />
                     </div>
+                    <div class="mt-2">
+                        <UButton size="xs" variant="link" class="p-0 text-primary-600" icon="i-heroicons-qr-code"
+                            @click="showPairingCode = true">
+                            Show Pairing Code & QR
+                        </UButton>
+                    </div>
                     <p class="text-xs text-gray-500 mt-1">This ID uniquely identifies this browser session.</p>
                 </div>
 
-                <hr />
-
-                <!-- Pairing / Group ID -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Pairing Code (Group ID)</label>
-                    <div class="mt-1 flex gap-2">
-                        <UInput v-model="groupId" type="text" class="flex-1"
-                            placeholder="Enter a secret code to pair devices..." />
-                        <UButton @click="saveGroupId" color="primary" :disabled="!isGroupIdChanged">Save</UButton>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-1">
-                        Enter the same code on all devices you want to sync together. Treat this like a password!
-                    </p>
-                </div>
+                <!-- Pairing Code Modal -->
+                <!-- Pairing Code Modal -->
+                <UModal v-model:open="showPairingCode" title="Pairing Code"
+                    description="Use this code to connect other devices to your sync group."
+                    :ui="{ content: 'max-w-sm' }">
+                    <template #body>
+                        <div class="text-center space-y-4">
+                            <div
+                                class="p-4 bg-gray-50 rounded font-mono font-bold text-lg border border-gray-200 break-all">
+                                {{ savedGroupId }}
+                            </div>
+                            <div v-if="qrCodeUrl" class="flex justify-center">
+                                <img :src="qrCodeUrl" alt="Pairing Code QR"
+                                    class="border p-2 bg-white rounded shadow-sm w-48 h-48" />
+                            </div>
+                        </div>
+                    </template>
+                </UModal>
 
                 <hr />
 
@@ -128,7 +205,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useClipboard } from '@vueuse/core';
 import AppContainer from '~/components/shared/AppContainer.vue';
 import { getDeviceId } from '~/sync/deviceId';
@@ -140,6 +217,11 @@ import { useProjectStore } from '~/store/project';
 import { createAccount, createTransaction, createCategory, createProject, importLocalData } from '~/sync/manager';
 import { hydratePinia } from '~/sync/hydration';
 
+// QR & Mnemonic
+import { generateMnemonic } from 'bip39';
+import QRCode from 'qrcode';
+import { QrcodeStream } from 'vue-qrcode-reader';
+
 const deviceId = ref('');
 const groupId = ref('');
 const savedGroupId = ref('');
@@ -147,6 +229,10 @@ const isSyncing = ref(false);
 const isMigrating = ref(false);
 const lastSyncTime = ref<string | null>(null);
 const logs = ref<string[]>([]);
+const showScanner = ref(false);
+const showPairingCode = ref(false);
+const qrCodeUrl = ref('');
+
 
 const localStats = computed(() => {
     const accountStore = useAccountStore();
@@ -190,12 +276,41 @@ onMounted(async () => {
     if (storedGid) {
         groupId.value = storedGid;
         savedGroupId.value = storedGid;
-    } else {
-        groupId.value = 'default';
-        savedGroupId.value = 'default';
     }
+    // Do NOT set default anymore
     await updateSyncStats();
 });
+
+// Watch input to update QR code dynamically
+watch(groupId, async (val) => {
+    if (val) {
+        try {
+            qrCodeUrl.value = await QRCode.toDataURL(val);
+        } catch (e) {
+            console.error(e);
+        }
+    } else {
+        qrCodeUrl.value = '';
+    }
+});
+
+function generateRandomCode() {
+    // Generate 12-word mnemonic
+    const mnemonic = generateMnemonic();
+    groupId.value = mnemonic;
+    log('Generated new random code.');
+}
+
+async function onScan(decodedText: object[]) {
+    // vue-qrcode-reader emits array of objects: [{ rawValue: '...' }, ...]
+    const result = decodedText[0] as { rawValue: string };
+    if (result && result.rawValue) {
+        groupId.value = result.rawValue;
+        showScanner.value = false;
+        log('QR Code scanned successfully.');
+        // Optionally auto-save? Let user review first.
+    }
+}
 
 function log(msg: string) {
     logs.value.unshift(`[${new Date().toLocaleTimeString()}] ${msg}`);
@@ -207,9 +322,20 @@ async function copyDeviceId() {
 }
 
 function saveGroupId() {
+    if (!groupId.value) return;
     localStorage.setItem('ocm-sync-group-id', groupId.value);
     savedGroupId.value = groupId.value;
-    log('Pairing code saved.');
+    log('Pairing code saved. Sync enabled.');
+    // Trigger an initial sync immediately
+    handleSync();
+}
+
+function resetGroupId() {
+    if (!confirm('This will stop synchronization on this device. Local data is preserved. Continue?')) return;
+    localStorage.removeItem('ocm-sync-group-id');
+    savedGroupId.value = '';
+    groupId.value = '';
+    log('Sync disconnected.');
 }
 
 async function handleSync() {
