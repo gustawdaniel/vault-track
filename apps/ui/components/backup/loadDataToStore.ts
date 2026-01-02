@@ -1,4 +1,4 @@
-import type { Data } from 'qif2json/src/lib/types';
+import type { Data } from 'qif2json';
 import type { QifAccount } from 'qif-ts';
 import { useAccountStore } from '~/store/account';
 import { type Category, useCategoryStore } from '~/store/category';

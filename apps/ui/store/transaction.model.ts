@@ -15,6 +15,11 @@ export const TransactionModel = z.object({
     clearedStatus: z.enum(['', '*', 'X', '?']).optional(),
 });
 
+export interface CreateTransactionOptions {
+    allowDuplicates?: boolean;
+    updateAccountBalance?: boolean;
+}
+
 export interface Transaction {
     account: string;
     accountId: string;

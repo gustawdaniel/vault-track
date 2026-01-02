@@ -23,10 +23,15 @@ export default defineNuxtConfig({
       routes: ['/robots.txt'],
     },
     storage: {
-      sync: {
-        driver: 'fs',
-        base: '.data/sync',
-      },
+      sync: process.env.NODE_ENV === 'production'
+        ? {
+          driver: 'redis',
+          url: process.env.KV_URL || process.env.UPSTASH_REDIS_REST_URL || process.env.REDIS_URL,
+        }
+        : {
+          driver: 'fs',
+          base: '.data/sync',
+        },
     },
   },
 });

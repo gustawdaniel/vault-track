@@ -49,6 +49,7 @@ function setupTransactionTimeline(): void {
       const exisingIndex = transactionsInThisGroup.findIndex(
         (t) =>
           t.amount === transaction.amount &&
+          'hash' in transaction &&
           Boolean(transaction.hash) !== Boolean(t.hash) &&
           !t.excluded,
       );
@@ -63,7 +64,9 @@ function setupTransactionTimeline(): void {
       };
 
       if (exisingIndex >= 0) {
-        transactionsInThisGroup[exisingIndex].excluded = true;
+        if(transactionsInThisGroup[exisingIndex]) {
+          transactionsInThisGroup[exisingIndex].excluded = true;
+        }
         transactionWithExclusionMark.excluded = true;
       }
 

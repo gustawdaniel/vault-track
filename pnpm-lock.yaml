@@ -115,6 +115,9 @@ importers:
       idb:
         specifier: ^8.0.3
         version: 8.0.3
+      ioredis:
+        specifier: ^5.8.2
+        version: 5.8.2
       legacy-encoding:
         specifier: ^3.0.0
         version: 3.0.0
@@ -128,8 +131,8 @@ importers:
         specifier: ^3.7.4
         version: 3.7.4
       qif-ts:
-        specifier: '*'
-        version: 1.0.0
+        specifier: workspace:*
+        version: link:../../libs/qif-ts
       qif2json:
         specifier: workspace:*
         version: link:../../libs/qif2json
@@ -6693,9 +6696,6 @@ packages:
 
   pure-rand@7.0.1:
     resolution: {integrity: sha512-oTUZM/NAZS8p7ANR3SHh30kXB+zK2r2BPcEn/awJIbOvq82WoMN4p62AWWp3Hhw50G0xMsw1mhIBLqHw64EcNQ==}
-
-  qif-ts@1.0.0:
-    resolution: {integrity: sha512-j9tAuTHkAMbeglb041+yALbbvmoDXZHdA7KUlyeLD+ZCj4gBJIm3C6+uyaX7D9nnIuIHfWs/Qb43DsfahHGKkg==}
 
   quansync@0.2.11:
     resolution: {integrity: sha512-AifT7QEbW9Nri4tAwR5M/uzpBuqfZf+zwaEM/QkzEjj7NBuFD2rBuy0K3dE+8wltbezDV7JMA0WfnCPYRSYbXA==}
@@ -16134,8 +16134,6 @@ snapshots:
   punycode@2.3.1: {}
 
   pure-rand@7.0.1: {}
-
-  qif-ts@1.0.0: {}
 
   quansync@0.2.11: {}
 
