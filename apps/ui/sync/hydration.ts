@@ -24,7 +24,7 @@ export async function hydratePinia() {
 
     // 1. Prepare Data
     // We need to import classes dynamically
-    const { Trx } = await import('~/store/transaction');
+    const { Trx } = await import('~/store/transaction.model');
     const { sumArray } = await import('~/store/currency');
 
     const restoredTrx = Object.values(state.transactions);

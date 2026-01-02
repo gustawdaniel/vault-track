@@ -1,191 +1,27 @@
 import { type RemovableRef, useLocalStorage } from '@vueuse/core';
-import hash from 'object-hash';
-
 import { defineStore } from 'pinia';
-import { z } from 'zod';
-import { uid } from 'uid';
 import dayjs from 'dayjs';
 import { useAccountStore } from '~/store/account';
-import { getFullCategoryName } from '~/store/category';
 import { getFullProjectName } from '~/store/project';
-import type { ClearedStatus } from '~/store/clearedStatus';
 import { createTransaction as syncCreateTransaction, updateTransaction as syncUpdateTransaction, deleteTransaction as syncDeleteTransaction } from '~/sync/manager';
+import {
+  Trx,
+  type Transaction,
+  type FullTransaction,
+  type PersistedTransaction,
+  type CreateTransactionOptions
+} from '~/store/transaction.model';
 
-export const TransactionModel = z.object({
-  id: z.string(),
-  account: z.string(),
-  accountId: z.string(),
-  amount: z.number(),
-  category: z.string().optional(),
-  date: z.string(),
-  payee: z.string().optional(),
-  memo: z.string().optional(),
-  clearedStatus: z.enum(['', '*', 'X', '?']).optional(),
-});
-
-export interface Transaction {
-  account: string;
-  accountId: string;
-  amount: number;
-  category?: string;
-  date: string;
-  payee?: string;
-  memo?: string;
-  clearedStatus?: ClearedStatus;
-}
-
-interface PersistedTransaction extends Transaction {
-  id: string;
-  transferHash?: string;
-}
-
-export interface FullTransaction extends PersistedTransaction {
-  hash: string;
-}
-
-interface State {
-  transactions: RemovableRef<FullTransaction[]>;
-}
-
-export function isTransferByCategory(
-  transaction: Pick<FullTransaction, 'category'>,
-): boolean {
-  const categoryName = getFullCategoryName(transaction);
-
-  return Boolean(
-    categoryName && categoryName.startsWith('[') && categoryName.endsWith(']'),
-  );
-}
-
-// amount is excluded because there can be different currencies
-export interface TransactionInvariant {
-  fromAccount: string;
-  toAccount: string;
-  date: string;
-  payee?: string;
-  project?: string;
-  memo?: string;
-}
-
-export type NormalTransactionContextType = 'expense' | 'income';
-
-export function getTransactionNormalType(
-  transaction: Pick<Transaction, 'amount'>,
-): NormalTransactionContextType {
-  return transaction.amount > 0 ? 'income' : 'expense';
-}
-
-export function getAccountNameFromCategory(
-  transaction: Pick<Transaction, 'category'>,
-): string | undefined {
-  if (isTransferByCategory(transaction)) {
-    const categoryName = getFullCategoryName(transaction);
-    if (!categoryName) return categoryName;
-    return categoryName.substring(1, categoryName.length - 1);
-  }
-}
-
-const TransactionInvariantModel = z.object({
-  fromAccount: z.string(),
-  toAccount: z.string(),
-  date: z.string(),
-  payee: z.string().optional(),
-  project: z.string().optional(),
-  memo: z.string().optional(),
-});
-
-function projectIdAndAccount(
-  tx: FullTransaction,
-): Pick<FullTransaction, 'id' | 'account'> {
-  return {
-    id: tx.id,
-    account: tx.account,
-  };
-}
-
-export function getTransferTransactionOrder(
-  tx1: FullTransaction,
-  tx2: FullTransaction,
-): {
-  from: Pick<FullTransaction, 'id' | 'account'>;
-  to: Pick<FullTransaction, 'id' | 'account'>;
-} {
-  const type = getTransactionNormalType(tx1);
-  return type === 'income'
-    ? { from: projectIdAndAccount(tx2), to: projectIdAndAccount(tx1) }
-    : { from: projectIdAndAccount(tx1), to: projectIdAndAccount(tx2) };
-}
-
-function getTransactionInvariant(
-  transaction: Pick<
-    Transaction,
-    'account' | 'category' | 'payee' | 'date' | 'memo' | 'amount'
-  >,
-): TransactionInvariant {
-  // from Account is account if an amount is negative, but account(category) is an amount is positive
-  const type = getTransactionNormalType(transaction);
-  const [fromAccount, toAccount] =
-    type === 'income'
-      ? [getAccountNameFromCategory(transaction), transaction.account]
-      : [transaction.account, getAccountNameFromCategory(transaction)];
-
-  const validModel = TransactionInvariantModel.safeParse({
-    fromAccount,
-    toAccount,
-    date: transaction.date,
-    payee: transaction.payee,
-    project: getFullProjectName(transaction),
-    memo: transaction.memo,
-  });
-
-  if (!validModel.success) throw validModel.error;
-
-  return validModel.data;
-}
-
-export class Trx {
-  data: PersistedTransaction;
-
-  constructor(transaction: Transaction | PersistedTransaction) {
-    if (isTransferByCategory(transaction) && !('transferHash' in transaction)) {
-      Object.assign(transaction, {
-        transferHash: hash(getTransactionInvariant(transaction)),
-      });
-    }
-
-    this.data = {
-      ...transaction,
-      id: 'id' in transaction ? transaction.id : uid(),
-    };
-  }
-
-  _hash: string | undefined;
-
-  get hash(): string {
-    if (this._hash) {
-      return this._hash;
-    }
-
-    const computedHash = hash(this.data);
-    this._hash = computedHash;
-    return computedHash;
-  }
-
-  get id(): string {
-    return this.data.id;
-  }
-
-  get json(): FullTransaction {
-    return {
-      ...this.data,
-      hash: this.hash,
-    };
-  }
-}
+// Re-export for compatibility
+export * from '~/store/transaction.model';
 
 export interface CreateTransactionOptions {
   allowDuplicates: boolean;
   updateAccountBalance: boolean;
+}
+
+interface State {
+  transactions: RemovableRef<FullTransaction[]>;
 }
 
 export const useTransactionStore = defineStore('transaction', {
