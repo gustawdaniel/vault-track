@@ -10,6 +10,7 @@ import { replay } from './reducer';
 import type { AppEvent, AppState, TransactionAdded, TransactionUpdated, TransactionDeleted, AccountCreated, AccountUpdated, AccountDeleted, AccountReordered, CategoryCreated, CategoryUpdated, CategoryDeleted, ProjectCreated, ProjectUpdated, ProjectDeleted } from './types';
 import { useDebounceFn } from '@vueuse/core';
 import { hashEntityId } from './crypto';
+import { toRaw } from 'vue';
 
 let debouncedSync: (() => void) | null = null;
 
@@ -39,7 +40,7 @@ export async function createTransaction(payload: Transaction & { id: string }): 
     const event: TransactionAdded = {
         ...base,
         type: 'TRANSACTION_ADDED',
-        payload
+        payload: toRaw(payload)
     };
     await addEvent(event);
     triggerSync();
@@ -51,7 +52,7 @@ export async function updateTransaction(payload: Transaction & { id: string }): 
     const event: TransactionUpdated = {
         ...base,
         type: 'TRANSACTION_UPDATED',
-        payload
+        payload: toRaw(payload)
     };
     await addEvent(event);
     triggerSync();
@@ -77,7 +78,7 @@ export async function createAccount(payload: Account): Promise<AppState> {
     const event: AccountCreated = {
         ...base,
         type: 'ACCOUNT_CREATED',
-        payload
+        payload: toRaw(payload)
     };
     await addEvent(event);
     triggerSync();
@@ -89,7 +90,7 @@ export async function updateAccount(payload: Account): Promise<AppState> {
     const event: AccountUpdated = {
         ...base,
         type: 'ACCOUNT_UPDATED',
-        payload
+        payload: toRaw(payload)
     };
     await addEvent(event);
     triggerSync();
@@ -127,7 +128,7 @@ export async function createCategory(payload: PersistedCategory): Promise<AppSta
     const event: CategoryCreated = {
         ...base,
         type: 'CATEGORY_CREATED',
-        payload
+        payload: toRaw(payload)
     };
     await addEvent(event);
     triggerSync();
@@ -139,7 +140,7 @@ export async function updateCategory(payload: PersistedCategory): Promise<AppSta
     const event: CategoryUpdated = {
         ...base,
         type: 'CATEGORY_UPDATED',
-        payload
+        payload: toRaw(payload)
     };
     await addEvent(event);
     triggerSync();
@@ -165,7 +166,7 @@ export async function createProject(payload: PersistedProject): Promise<AppState
     const event: ProjectCreated = {
         ...base,
         type: 'PROJECT_CREATED',
-        payload
+        payload: toRaw(payload)
     };
     await addEvent(event);
     triggerSync();
@@ -177,7 +178,7 @@ export async function updateProject(payload: PersistedProject): Promise<AppState
     const event: ProjectUpdated = {
         ...base,
         type: 'PROJECT_UPDATED',
-        payload
+        payload: toRaw(payload)
     };
     await addEvent(event);
     triggerSync();

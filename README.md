@@ -60,7 +60,7 @@ VaultTrack is a modern, privacy-focused, offline-first personal finance applicat
 
 3.  **Start the development server:**
     ```bash
-    pnpm dev
+    pnpm dev --filter ui
     ```
     The app will be available at `http://localhost:3000`.
 
@@ -150,11 +150,3 @@ SELECT * FROM events LIMIT 5;
 # Exit
 .quit
 ```
-
-Fix:
-
-Uncaught (in promise) DataCloneError: Failed to execute 'put' on 'IDBObjectStore': #<Object> could not be cloned.
-    at Proxy.<anonymous> (idb.js?v=7134d0ef:117:22)
-    at Proxy.method (idb.js?v=7134d0ef:203:30)
-    at addEvent (db.ts:31:14)
-    at async updateCategory (manager.ts:143:5)

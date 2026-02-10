@@ -105,6 +105,24 @@ function setType(newType: NormalTransactionContextType | 'transfer') {
   }
   state.value.type = newType;
 }
+
+const transactionStore = useTransactionStore();
+
+const autoCategorize = useDebounceFn((payee: string) => {
+  if (!payee) return;
+
+  const category = transactionStore.getCategoryByPayee(payee);
+  if (category && 'categoryName' in state.value) {
+    state.value.categoryName = category;
+  }
+}, 150);
+
+watch(
+  () => state.value.payee,
+  (newPayee) => {
+    if (newPayee) autoCategorize(newPayee);
+  },
+);
 </script>
 
 <template>
