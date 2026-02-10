@@ -16,8 +16,9 @@ export async function clearLocalStorage() {
     clearMeta(),
   ]);
 
-  // Clear Sync ID
+  // Clear Sync ID and Mnemonic
   if (typeof localStorage !== 'undefined') {
     localStorage.removeItem('ocm-sync-group-id');
+    localStorage.removeItem('ocm-mnemonic');
   }
 }

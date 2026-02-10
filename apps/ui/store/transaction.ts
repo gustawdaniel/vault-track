@@ -189,5 +189,23 @@ export const useTransactionStore = defineStore('transaction', {
         (t) => t.transferHash === transferHash && t.id !== id,
       );
     },
+    getCategoryByPayee(payee: string): string | undefined {
+      if (!payee) return undefined;
+
+      let latestTransaction: FullTransaction | undefined;
+
+      for (const transaction of this.$state.transactions) {
+        if (transaction.payee === payee && transaction.category) {
+          if (
+            !latestTransaction ||
+            transaction.date > latestTransaction.date
+          ) {
+            latestTransaction = transaction;
+          }
+        }
+      }
+
+      return latestTransaction?.category;
+    },
   },
 });
