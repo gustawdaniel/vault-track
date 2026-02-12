@@ -16,9 +16,9 @@ const showHiddenAccounts = ref<boolean>(false);
   <AppContainer>
     <ul>
       <li
-        v-for="account of accountStore.accounts.filter((acc) =>
-          showHiddenAccounts ? true : !acc.hidden,
-        )"
+        v-for="account of accountStore.accounts
+          .filter((acc) => (showHiddenAccounts ? true : !acc.hidden))
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))"
         :key="account.name"
       >
         <ContextMenu :id="account.id" resource="account">

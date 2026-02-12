@@ -1,8 +1,7 @@
-export type Currency =
+export type FiatCurrency =
   | 'PLN'
   | 'USD'
   | 'EUR'
-  | 'BTC'
   | 'GBP'
   | 'PHP'
   | 'SGD'
@@ -12,11 +11,15 @@ export type Currency =
   | 'TND'
   | 'TWD'
   | 'GEL';
-export const currencies: Currency[] = [
+
+export type CryptoCurrency = 'BTC' | 'ETH' | 'SOL' | 'DOGE';
+
+export type Currency = FiatCurrency | CryptoCurrency;
+
+export const fiatCurrencies: FiatCurrency[] = [
   'PLN',
   'USD',
   'EUR',
-  'BTC',
   'GBP',
   'PHP',
   'SGD',
@@ -28,8 +31,12 @@ export const currencies: Currency[] = [
   'GEL',
 ];
 
+export const cryptoCurrencies: CryptoCurrency[] = ['BTC', 'ETH', 'SOL', 'DOGE'];
+
+export const currencies: Currency[] = [...fiatCurrencies, ...cryptoCurrencies];
+
 export function getCurrencyDigits(currency: Currency): 2 | 8 {
-  return currency === 'BTC' ? 8 : 2;
+  return (cryptoCurrencies as Currency[]).includes(currency) ? 8 : 2;
 }
 
 export function sum(a: number, b: number, currency: Currency) {

@@ -160,3 +160,20 @@ https://nuxt.studio/@gustawdaniel/open-cash-manager/studio/content?valueId=0.ind
 
 Next task:
 - replace tailwind icon by our logo
+
+
+
+I have implemented the Split Transaction feature.
+
+Key Changes:
+
+Data Model: Added splitId to transaction interfaces and store.
+UI: Implemented a split editor in SingleTransactionEdit.vue with validation and category suggestions.
+Display: Updated the transaction list to group split transactions into a single entry.
+You can now test the feature in the running application. I've created a walkthrough.md with detailed testing instructions.
+
+Walkthrough
+Open
+Walkthrough of the new Split Transaction feature, explaining how to use it and the changes made to the codebase.
+Good
+Bad

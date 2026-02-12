@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { ucFirst } from '~/utils/ucFirst';
 
-export type TransferContextType = 'expense' | 'income' | 'transfer';
+export type TransferContextType = 'expense' | 'income' | 'transfer' | 'split';
 
 const types: Array<{
   id: TransferContextType;
@@ -10,6 +10,7 @@ const types: Array<{
   { id: 'expense', name: 'Expense' },
   { id: 'income', name: 'Income' },
   { id: 'transfer', name: 'Transfer' },
+  { id: 'split', name: 'Split' },
 ];
 
 const props = defineProps<{

@@ -20,6 +20,7 @@ export const TransactionModel = z.object({
   payee: z.string().optional(),
   memo: z.string().optional(),
   clearedStatus: z.enum(['', '*', 'X', '?']).optional(),
+  splitId: z.string().optional(),
 });
 
 export interface Transaction {
@@ -31,6 +32,7 @@ export interface Transaction {
   payee?: string;
   memo?: string;
   clearedStatus?: ClearedStatus;
+  splitId?: string;
 }
 
 interface PersistedTransaction extends Transaction {
@@ -350,6 +352,37 @@ export const useTransactionStore = defineStore('transaction', {
       return this.$state.transactions.findIndex(
         (t) => t.transferHash === transferHash && t.id !== id,
       );
+    },
+    getSiblingsBySplitId(splitId: string): FullTransaction[] {
+      return this.$state.transactions.filter((t) => t.splitId === splitId);
+    },
+    getSuggestedCategory(payee: string): string | undefined {
+      if (!payee) return undefined;
+
+      const payeeTransactions = this.$state.transactions.filter(
+        (t) => t.payee === payee && t.category
+      );
+
+      if (payeeTransactions.length === 0) return undefined;
+
+      const categoryCounts = new Map<string, number>();
+      for (const t of payeeTransactions) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const category = t.category!;
+        categoryCounts.set(category, (categoryCounts.get(category) || 0) + 1);
+      }
+
+      let bestCategory: string | undefined;
+      let maxCount = 0;
+
+      for (const [category, count] of categoryCounts.entries()) {
+        if (count > maxCount) {
+          maxCount = count;
+          bestCategory = category;
+        }
+      }
+
+      return bestCategory;
     },
   },
 });

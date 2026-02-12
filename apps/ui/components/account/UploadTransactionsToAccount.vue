@@ -48,6 +48,8 @@ function removeRow(index: number): void {
 
 const possibleHeaders = ref<Array<{ name: UploadTransactionsHeaderType }>>([
   { name: 'amount' },
+  { name: 'in' },
+  { name: 'out' },
   { name: 'category' },
   { name: 'date' },
   { name: 'payee' },
@@ -78,11 +80,15 @@ function stringToClearedStatus(input?: string): ClearedStatus {
 const readyToReview = ref<boolean>(false);
 
 function parseAmount(value: string): number {
+  if (!value) return 0;
   return Number(value.replaceAll(',', '.').replace(/[^0-9.-]/g, ''));
 }
 
 function csvToJson(): void {
   const headerMap = tableHeadersToTransactionKeys(headers.value);
+  console.log('before guess', dateFormat.value);
+  guessDateFormat();
+  console.log('after guess', dateFormat.value);
 
   for (const row of csvTable.value.filter((row) =>
     isValidRow(row, headers.value),
@@ -92,10 +98,12 @@ function csvToJson(): void {
       accountId: props.account.id,
       date: dayjs(row[headerMap.date], dateFormat.value).format('YYYY-MM-DD'),
       category: row[headerMap.category],
-      amount: parseAmount(
-        row[headerMap.amount] ||
-          row[Math.min(headerMap.amount + 1, row.length - 1)],
-      ),
+      amount:
+        parseAmount(row[headerMap.in] || row[headerMap.amount]) ||
+        -parseAmount(
+          row[headerMap.out] ||
+            row[Math.min(headerMap.amount + 1, row.length - 1)],
+        ),
       memo: row[headerMap.memo],
       payee: row[headerMap.payee],
       clearedStatus: stringToClearedStatus(row[headerMap.clearedStatus]),
@@ -242,12 +250,19 @@ function isValidRow(
 ): boolean {
   const headerMap = tableHeadersToTransactionKeys(headers);
 
-  if (!Number.isFinite(headerMap.date) || !Number.isFinite(headerMap.amount))
+  if (
+    !Number.isFinite(headerMap.date) ||
+    (!Number.isFinite(headerMap.amount) &&
+      !Number.isFinite(headerMap.in) &&
+      !Number.isFinite(headerMap.out))
+  )
     return false;
 
   return (
     isCorrect(row[headerMap.date], 'date', dateFormat.value) &&
-    isCorrect(row[headerMap.amount], 'amount') &&
+    (isCorrect(row[headerMap.amount], 'amount') ||
+      isCorrect(row[headerMap.in], 'amount') ||
+      isCorrect(row[headerMap.out], 'amount')) &&
     isCorrect(row[headerMap.state], 'state')
   );
 }
@@ -259,10 +274,11 @@ function guessDateFormat() {
 
   if (!Number.isFinite(headerMap.date)) return false;
 
-  const knownFormats = ['YYYY-MM-DD', 'DD.MM.YYYY'] as const;
+  const knownFormats = ['YYYY-MM-DD', 'DD.MM.YYYY', 'DD/MM/YYYY'] as const;
   const knownRegexes = {
     'YYYY-MM-DD': /\d{4}-\d{2}-\d{2}/,
     'DD.MM.YYYY': /\d{2}.\d{2}.\d{4}/,
+    'DD/MM/YYYY': /\d{2}\/\d{2}\/\d{4}/,
   } as const;
   const points = new Map(knownFormats.map((format) => [format, 0]));
 
@@ -276,7 +292,7 @@ function guessDateFormat() {
     }
   }
 
-  console.log(points);
+  console.log('points', points);
 
   dateFormat.value = [...points.entries()].reduce((a, b) =>
     a[1] > b[1] ? a : b,

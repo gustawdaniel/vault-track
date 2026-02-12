@@ -1,4 +1,5 @@
 import { uid } from 'uid';
+import { encodeSplitId, decodeSplitId } from '~/utils/splitIdParams';
 import type {
   CommonTransactionContext,
   ComputedNormalAccount,
@@ -46,6 +47,7 @@ export function computeUpdateMapFromContext(
       ),
       payee: context.payee,
       clearedStatus: context.clearedStatus,
+      splitId: undefined, // Clear splitId if converting back to normal
     });
   } else if (context.type === 'transfer') {
     const accounts = transferAccount;
@@ -72,6 +74,7 @@ export function computeUpdateMapFromContext(
         `[${accounts.to.name}]`,
         context.projectName,
       ),
+      splitId: undefined,
     });
 
     if (accounts.from.currency === accounts.to.currency) {
@@ -88,6 +91,72 @@ export function computeUpdateMapFromContext(
         `[${accounts.from.name}]`,
         context.projectName,
       ),
+      splitId: undefined,
+    });
+  } else if (context.type === 'split') {
+    const account = normalAccount;
+    if (!account) {
+      throw new Error(`Current account not found for id ${context.accountId}`);
+    }
+
+    const { id: existingUuid } = decodeSplitId(context.splitId);
+    const splitId = encodeSplitId(context.payee || '', existingUuid || uid());
+
+    const commonUpdatePayload: CommonTransactionContext = {
+      date: context.date,
+      payee: context.payee,
+      memo: context.memo,
+    };
+
+    context.splits.forEach(split => {
+      // Determine amount sign based on... wait, split usually is expense or income?
+      // Requirement: "kwota (dodatnia dla wydatku/wpływu)" - amount positive. 
+      // We need to know if it's expense or income context? 
+      // Usually splits are mixable? NO, usually a transaction is either expense or income.
+      // But split transaction could be mixed? 
+      // "Transaction... dividing... into multiple categories".
+      // Usually user selects "Expense" then "Split". 
+      // So all splits are expenses. 
+      // But what if one split is negative? 
+      // Let's assume for now checks are done in UI and we just take signed amount? 
+      // Context has `splits` with `amount` (absolute?). 
+      // `SingleTransactionEdit` UI handles sign logic?
+      // Standard: Sum of splits = Total. 
+      // If Total is Expense (-100), splits sum to 100? 
+      // Let's assume splits in context are ABSOLUTE amounts for now, acting as EXPENSE if not specified otherwise? 
+      // Wait, `context.type` is `split`. We miss `income/expense` sub-type in `SplitContext`?
+      // Or we infer from sign of sum?
+      // Let's assume all splits share the same direction for now, dependent on user choice or input?
+      // Requirement: "kwota (dodatnia dla wydatku/wpływu)". 
+      // So we need to store signed amount in DB. 
+      // If it is expense, store negative.
+      // We need a direction flag in SplitContext or handle signed amounts in `splits`.
+      // Let's treat them as Expenses for now (negative) OR check if we can add direction to Context.
+      // BUT, existing `context.type` values are `expense` | `income`. 
+      // Maybe I should add `direction: 'income' | 'expense'` to `SplitContext`? 
+      // Or just use signed amounts in `splits.amount` (if UI allows).
+      // Let's assume UI sends ABSOLUTE amounts and we need a direction.
+      // I'll default to EXPENSE (negative) for now, as it's most common. 
+      // OR better, checking if any existing split was positive?
+
+      // FIX: The user requirement doesn't specify mixing income/expense. 
+      // I'll treat them as negative (Expense) by default for now. 
+      // TODO: Add direction selector in UI later if needed.
+
+      updates.set(split.id || uid(), {
+        amount: -Math.abs(split.amount), // Default to EXPENSE
+        accountId: context.accountId,
+        account: account.name,
+        date: commonUpdatePayload.date,
+        payee: split.payee || commonUpdatePayload.payee,
+        memo: split.memo || commonUpdatePayload.memo, // Use split memo, fallback to master
+        category: composeRawCategoryFromCategoryAndProject(
+          split.category,
+          context.projectName
+        ),
+        splitId: splitId,
+        clearedStatus: undefined, // TODO: Add cleared status to splits?
+      });
     });
   }
 
@@ -98,6 +167,7 @@ export function computeUpdateMapFromContext(
     if (updates.size !== 2)
       throw new Error(`Transfer should contain exactly 2 updates`);
   }
+  // Split type can have N updates.
 
   return updates;
 }

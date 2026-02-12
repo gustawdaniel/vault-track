@@ -1,10 +1,21 @@
-import type { QifAccount, QifAccountType } from 'qif-ts';
+// import type { QifAccount, QifAccountType } from 'qif-ts';
 import { defineStore } from 'pinia';
 import { type RemovableRef, useLocalStorage } from '@vueuse/core';
 import { uid } from 'uid';
 import { z } from 'zod';
 import { useTransactionStore } from '~/store/transaction';
 import { type Currency, sumArray, getCurrency, sum } from '~/store/currency';
+
+export type QifAccountType = 'Cash' | 'Bank' | 'CCard';
+
+export type QifAccount = {
+  name: string;
+  type: QifAccountType;
+  currency?: string; // by default USD
+  description?: string; // eg account number
+  order?: number; // will be used to sort accounts in ui
+  hidden?: boolean; // allow to archive instead of delete data
+};
 
 export const AccountModel = z.object({
   id: z.string(),

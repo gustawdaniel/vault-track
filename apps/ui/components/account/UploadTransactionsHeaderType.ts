@@ -1,3 +1,8 @@
 import type { Transaction } from '~/store/transaction';
 
-export type UploadTransactionsHeaderType = keyof Transaction | 'fee' | 'state';
+export type UploadTransactionsHeaderType =
+  | keyof Transaction
+  | 'fee'
+  | 'state'
+  | 'in'
+  | 'out';

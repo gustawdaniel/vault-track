@@ -9,14 +9,14 @@ import { useContextMenuStore } from '~/store/contextMenu';
 
 const contextMenuStore = useContextMenuStore();
 
-const { x, y } = useMouse();
-const { y: windowY } = useWindowScroll();
-
 const virtualElement = ref({ getBoundingClientRect: () => ({}) });
 
 const contextMenuId = ref<string>(uid());
 
 function onContextMenu() {
+  const { x, y } = useMouse();
+  const { y: windowY } = useWindowScroll();
+
   const top = unref(y) - unref(windowY);
   const left = unref(x);
   virtualElement.value.getBoundingClientRect = () => ({

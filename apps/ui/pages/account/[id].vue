@@ -4,6 +4,7 @@ import { useRoute } from '#imports';
 import { useAccountStore } from '~/store/account';
 import SingleAccountSummary from '~/components/account/SingleAccountSummary.vue';
 import SingleAccountEdit from '~/components/account/SingleAccountEdit.vue';
+import { useTransactionStore } from '~/store/transaction';
 
 const route = useRoute();
 
@@ -11,6 +12,13 @@ const NEW_ACCOUNT_ID = 'new';
 
 const accountId: string = String(route.params.id);
 const accountStore = useAccountStore();
+const transactionStore = useTransactionStore();
+
+const showDebug = ref(false);
+// Use computed to reactively fetch transactions from store
+const debugTransactions = computed(() => 
+  transactionStore.getAllByAccountId(accountId)
+);
 
 const account =
   accountId === NEW_ACCOUNT_ID
@@ -46,6 +54,20 @@ function onAccountEditOrCreate(id?: string) {
     />
 
     <TransactionsList :filter="{ accountId }" />
+    
+    <div class="mt-8 border-t pt-4">
+        <UButton 
+            size="2xs" 
+            variant="ghost" 
+            color="gray" 
+            @click="showDebug = !showDebug"
+        >
+            {{ showDebug ? 'Hide Debug View' : 'Show Debug View' }}
+        </UButton>
+        <pre v-if="showDebug" class="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs overflow-auto max-h-96">
+{{ JSON.stringify(debugTransactions, null, 2) }}
+        </pre>
+    </div>
   </div>
   <div v-else>
     <p>Account {{ accountId }} not found</p>

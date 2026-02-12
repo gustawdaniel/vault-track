@@ -1,14 +1,19 @@
 import { uid } from 'uid';
+import { decodeSplitId } from '~/utils/splitIdParams';
+
+
 import type {
   CommonTransactionContext,
   TransactionContext,
   TransferContext,
+  SplitContext,
 } from './types';
 import {
   type FullTransaction,
   getTransactionNormalType,
   getTransferTransactionOrder,
   isTransferByCategory,
+  useTransactionStore,
 } from '~/store/transaction';
 import { getFullProjectName } from '~/store/project';
 import { getClearedStatusFromString } from '~/store/clearedStatus';
@@ -25,6 +30,32 @@ export function transactionToContext(
     memo: transaction.memo,
     projectName: getFullProjectName(transaction),
   };
+
+  if (transaction.splitId) {
+    const { payee: masterPayee } = decodeSplitId(transaction.splitId);
+    const transactionStore = useTransactionStore();
+    const siblings = transactionStore.getSiblingsBySplitId(transaction.splitId);
+    // ensure current transaction is in siblings (it should be)
+
+    const splits = siblings.map(t => ({
+      id: t.id,
+      amount: Math.abs(t.amount),
+      category: getFullCategoryName(t),
+      memo: t.memo,
+      payee: t.payee,
+    }));
+
+    const totalAmount = splits.reduce((sum, s) => sum + s.amount, 0);
+
+    return {
+      ...common,
+      type: 'split',
+      payee: masterPayee,
+      splitId: transaction.splitId,
+      accountId: transaction.accountId,
+      splits,
+    } as TransactionContext;
+  }
 
   if (isTransferByCategory(transaction)) {
     const accountStore = useAccountStore();

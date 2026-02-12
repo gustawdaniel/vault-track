@@ -1,9 +1,10 @@
-import { ClearedStatus } from '~/store/clearedStatus';
-import {
+import type { ClearedStatus } from '~/store/clearedStatus';
+import type {
   FullTransaction,
   NormalTransactionContextType,
 } from '~/store/transaction';
-import { Account } from '~/store/account';
+import type { Account } from '~/store/account';
+
 
 export type TransferContext = {
   type: 'transfer';
@@ -15,6 +16,19 @@ export type TransferContext = {
   toAbsoluteAmount: number;
   fromClearedStatus: ClearedStatus;
   toClearedStatus: ClearedStatus;
+};
+
+export type SplitContext = {
+  type: 'split';
+  splitId: string;
+  accountId: string;
+  splits: Array<{
+    id: string;
+    amount: number;
+    category?: string;
+    memo?: string;
+    payee?: string;
+  }>;
 };
 
 export type CommonTransactionContext = Pick<
@@ -32,7 +46,7 @@ export type NormalTransactionContext = Pick<FullTransaction, 'accountId'> & {
 };
 
 export type TransactionContext = CommonTransactionContext &
-  (NormalTransactionContext | TransferContext);
+  (NormalTransactionContext | TransferContext | SplitContext);
 
 export type ComputedNormalAccount =
   | Pick<Account, 'id' | 'name' | 'currency'>
@@ -42,3 +56,4 @@ export type ComputedTransferAccounts = {
   from: Pick<Account, 'id' | 'name' | 'currency'> | undefined;
   to: Pick<Account, 'id' | 'name' | 'currency'> | undefined;
 };
+
