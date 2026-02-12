@@ -7,6 +7,9 @@ export default defineNuxtConfig({
         plugins: [
             tailwindcss(),
         ],
+        resolve: {
+            dedupe: ['vue']
+        }
     },
     compatibilityDate: '2026-02-12',
     runtimeConfig: {

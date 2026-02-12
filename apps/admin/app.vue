@@ -8,9 +8,7 @@ useHead({
     meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1' }
     ],
-    script: [
-        { src: 'https://accounts.google.com/gsi/client', async: true, defer: true }
-    ]
+    script: []
 })
 </script>
 
