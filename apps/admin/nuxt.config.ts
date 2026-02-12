@@ -3,10 +3,13 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineNuxtConfig({
     modules: ['@nuxt/ui'],
     css: ['~/assets/css/main.css'],
-      sourcemap: {
-    client: true,
-    server: false
-  },
+    build: {
+        transpile: ['vue3-google-login']
+    },
+    sourcemap: {
+        client: true,
+        server: false
+    },
     vite: {
         plugins: [
             tailwindcss(),
