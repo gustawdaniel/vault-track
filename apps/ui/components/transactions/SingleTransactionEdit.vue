@@ -305,7 +305,7 @@ function suggestCategory(splitIndex: number) {
   <AppContainer>
     <UCard>
       <UForm :state="state" :validate="validate" @submit="submit">
-        <UFormGroup
+        <UFormField
           :label="state.type === 'split' ? 'Group Name' : 'Payee/Item'"
           name="payee"
         >
@@ -313,7 +313,7 @@ function suggestCategory(splitIndex: number) {
             v-model="state.payee"
             :placeholder="state.type === 'split' ? 'Optional group name' : ''"
           />
-        </UFormGroup>
+        </UFormField>
         <!-- Hide Master Payee in split mode, or keep as 'Group Name'? -->
         <!-- User said 'master payee can be just splitId'. implies we don't need to show it? -->
         <!-- But currently 'transactionToContext' puts something there. -->
@@ -415,13 +415,13 @@ function suggestCategory(splitIndex: number) {
             :key="split.id"
             class="grid grid-cols-1 md:grid-cols-12 gap-2 items-end mb-4 border-b border-gray-200 pb-2"
           >
-            <UFormGroup label="Payee" class="md:col-span-3">
+            <UFormField label="Payee" class="md:col-span-3">
               <UInput
                 v-model="split.payee"
                 placeholder="Payee"
                 @blur="suggestCategory(index)"
               />
-            </UFormGroup>
+            </UFormField>
 
             <CategoryPicker
               v-model="split.category"
@@ -436,9 +436,9 @@ function suggestCategory(splitIndex: number) {
               />
             </div>
 
-            <UFormGroup label="Memo" class="md:col-span-3">
+            <UFormField label="Memo" class="md:col-span-3">
               <UInput v-model="split.memo" placeholder="Memo" />
-            </UFormGroup>
+            </UFormField>
 
             <div class="md:col-span-1 flex justify-end">
               <UButton
@@ -491,12 +491,12 @@ function suggestCategory(splitIndex: number) {
           />
         </div>
 
-        <UFormGroup v-if="state.type !== 'split'" label="Memo" name="memo">
+        <UFormField v-if="state.type !== 'split'" label="Memo" name="memo">
           <UInput v-model="state.memo" />
-        </UFormGroup>
+        </UFormField>
 
         <!-- Global memo for split? Or just hide it? Requirement says opcjonalny memo per split. Global memo might be useful for grouping ID derivation if we used it, but we use splitId. -->
-        <UFormGroup
+        <UFormField
           v-if="state.type === 'split'"
           label="Group Memo"
           name="memo"
@@ -505,7 +505,7 @@ function suggestCategory(splitIndex: number) {
             v-model="state.memo"
             placeholder="Optional group description"
           />
-        </UFormGroup>
+        </UFormField>
 
         <div class="mt-2">
           <UButton class="mr-2" color="gray" @click="cancel">Cancel</UButton>
