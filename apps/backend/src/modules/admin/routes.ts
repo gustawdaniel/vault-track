@@ -30,8 +30,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
             try {
                 const ticket = await client.verifyIdToken({
                     idToken: token,
-                    audience: process.env.GOOGLE_CLIENT_ID?.split(/[, ]+/),
+                    audience: process.env.GOOGLE_CLIENT_ID,
                 });
+
                 const payload = ticket.getPayload();
                 const email = payload?.email || '';
 
@@ -49,20 +50,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
                 return { success: true, email };
             } catch (error) {
-                console.error('Expected Audience:', process.env.GOOGLE_CLIENT_ID);
-                try {
-                    // Try to decode payload to see what client ID was in the token (without verify) just for debugging
-                    const base64Url = token.split('.')[1];
-                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
-                        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                    }).join(''));
-                    const p = JSON.parse(jsonPayload);
-                    console.error('Token Audience (aud):', p.aud);
-                } catch (e) {
-                    console.error('Could not decode token for debug');
-                }
-
+                console.error('Google Auth Error:', error);
                 return reply.code(401).send({ error: 'Invalid token: ' + (error as Error).message });
             }
         }
