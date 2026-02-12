@@ -107,8 +107,8 @@ jobs:
             echo "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" >> .env
             
             # Pull and restart
-            docker-compose pull
-            docker-compose up -d --remove-orphans
+            docker compose pull
+            docker compose up -d --remove-orphans
             
             # Check logs
             # docker-compose logs --tail=20 backend
