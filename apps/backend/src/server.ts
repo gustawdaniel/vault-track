@@ -84,7 +84,7 @@ const start = async () => {
         await server.register(adminRoutes, { prefix: '/api/admin' });
         await server.register(receiptsRoutes, { prefix: '/api/receipts' });
 
-        const port = parseInt(process.env.PORT || '4000', 10);
+        const port = parseInt(process.env.PORT || '4500', 10);
         await server.listen({ port, host: '0.0.0.0' });
         console.log(`Server listening on http://localhost:${port}`);
         console.log(`Documentation available at http://localhost:${port}/documentation`);

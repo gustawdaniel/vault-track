@@ -320,7 +320,7 @@ const uploadReceipt = async (event: Event) => {
 
   try {
     // Use backend URL from env or localhost for dev
-    const response = await fetch('http://localhost:4000/api/receipts/analyze', {
+    const response = await fetch('http://localhost:4500/api/receipts/analyze', {
       method: 'POST',
       body: formData,
       headers: {

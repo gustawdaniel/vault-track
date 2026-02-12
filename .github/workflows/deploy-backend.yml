@@ -61,7 +61,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_KEY }}
-          script: mkdir -p ~/vault-track
+          script: mkdir -p ~/api.vaulttrack.org
 
       - name: Copy files via SCP
         uses: appleboy/scp-action@v0.1.7
@@ -70,7 +70,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_KEY }}
           source: "deploy/docker-compose.yml"
-          target: "~/vault-track"
+          target: "~/api.vaulttrack.org"
           strip_components: 1
 
       - name: Deploy via SSH
@@ -81,7 +81,6 @@ jobs:
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
           COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
-          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           IMAGE_NAME: ghcr.io/${{ env.REPO }}/backend:latest
@@ -89,9 +88,9 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_KEY }}
-          envs: OPENAI_API_KEY,TURSO_DATABASE_URL,TURSO_AUTH_TOKEN,ADMIN_EMAIL,COOKIE_SECRET,ADMIN_PASSWORD,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,IMAGE_NAME
+          envs: OPENAI_API_KEY,TURSO_DATABASE_URL,TURSO_AUTH_TOKEN,ADMIN_EMAIL,COOKIE_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,IMAGE_NAME
           script: |
-            cd ~/vault-track
+            cd ~/api.vaulttrack.org
             
             # Login to GHCR (might need PAT if private repo, or use docker login with minimal permissions token passed securely)
             # Assuming public package or manual login setup previously.
@@ -104,7 +103,6 @@ jobs:
             echo "TURSO_AUTH_TOKEN=$TURSO_AUTH_TOKEN" >> .env
             echo "ADMIN_EMAIL=$ADMIN_EMAIL" >> .env
             echo "COOKIE_SECRET=$COOKIE_SECRET" >> .env
-            echo "ADMIN_PASSWORD=$ADMIN_PASSWORD" >> .env
             echo "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" >> .env
             echo "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" >> .env
             

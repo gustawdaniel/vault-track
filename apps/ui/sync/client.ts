@@ -262,7 +262,7 @@ export async function syncWithServer(
   // We'll await to ensure account exists before sync might need it (e.g. for credits check later)
   try {
     // In production, use env var. Hardcoded for dev/demo as requested.
-    await fetch('http://localhost:4000/api/users/sync-register', {
+    await fetch('http://localhost:4500/api/users/sync-register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ syncGroupId: groupId }),
