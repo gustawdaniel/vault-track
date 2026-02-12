@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import mitt from 'mitt';
 import draggable from 'vuedraggable';
 import dayjs, { extend } from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
-import mitt from 'mitt';
 import type { ComputedAccount } from '~/store/account';
 import FileUploadAreaInput from '~/components/account/FileUploadAreaInput.vue';
 import {
@@ -10,7 +10,7 @@ import {
   readFileContentFromInputEvent,
 } from '~/utils/readFileContentFromInputEvent';
 import { dropNotFullColumns, parseTextAsCsv } from '~/utils/parseTextAsCsv';
-import type { Transaction } from '~/store/transaction';
+import type { Transaction } from '~/store/transaction.model';
 import { tableHeadersToTransactionKeys } from '~/components/account/tableHeadersToTransactionKeys';
 import UploadTransactionAcceptance from '~/components/account/UploadTransactionAcceptance.vue';
 import type { ClearedStatus } from '~/store/clearedStatus';
@@ -18,11 +18,7 @@ import type { UploadTransactionsHeaderType } from '~/components/account/UploadTr
 
 extend(customParseFormat);
 
-const signal = mitt<{
-  reset: void;
-}>();
-
-// const signal = new EventEmitter();
+const signal = mitt();
 
 const isOpen = ref(false);
 
@@ -112,14 +108,14 @@ function csvToJson(): void {
     if (
       headerMap.fee &&
       row[headerMap.fee] &&
-      parseAmount(row[headerMap.fee]) > 0
+      parseAmount(row[headerMap.fee] ?? '0') > 0
     ) {
       transactions.value.push({
         account: props.account.name,
         accountId: props.account.id,
         date: dayjs(row[headerMap.date], dateFormat.value).format('YYYY-MM-DD'),
         category: 'fee',
-        amount: -parseAmount(row[headerMap.fee]),
+        amount: -parseAmount(row[headerMap.fee] ?? '0'),
         memo: row[headerMap.memo],
         payee: row[headerMap.payee],
         clearedStatus: stringToClearedStatus(row[headerMap.clearedStatus]),
@@ -194,14 +190,14 @@ function moveKeyToHeaderIndex(
     headersInColumn.some((header) => header.name === key),
   );
   if (!assigned) {
-    headers.value.splice(index, 1, headers.value[index].concat({ name: key }));
+    headers.value.splice(index, 1, (headers.value[index] ?? []).concat({ name: key }));
   }
 }
 
 function autoAssignHeaders() {
   if (!csvTable.value.length) return;
 
-  csvTable.value[0].forEach((title: string, index: number) => {
+  (csvTable.value[0] ?? []).forEach((title: string, index: number) => {
     const keys: UploadTransactionsHeaderType[] = [
       'date',
       'category',
@@ -234,7 +230,7 @@ async function upload(event: Event) {
 
   if (parsedValues.length) {
     headers.value = [];
-    for (let i = 0; i < parsedValues[0].length; i++) {
+    for (let i = 0; i < (parsedValues[0] ?? []).length; i++) {
       headers.value.push([]);
     }
     csvTable.value = parsedValues;
@@ -286,7 +282,7 @@ function guessDateFormat() {
     const date = row[headerMap.date];
     console.log(date);
     for (const format of knownFormats) {
-      if (knownRegexes[format].test(date)) {
+      if (knownRegexes[format].test(date ?? '')) {
         points.set(format, (points.get(format) ?? 0) + 1);
       }
     }
@@ -302,65 +298,34 @@ function guessDateFormat() {
 
 <template>
   <div>
-    <UButton
-      icon="i-heroicons-document-arrow-down"
-      size="xs"
-      label="Import transactions"
-      class="mt-4 mx-3"
-      @click="isOpen = true"
-    />
-    <UModal v-model="isOpen" fullscreen>
-      <UCard
-        :ui="{
-          base: 'h-full flex flex-col overflow-auto',
-          rounded: '',
-          divide: 'divide-y divide-gray-100 dark:divide-gray-800',
-          body: {
-            base: 'grow',
-          },
-        }"
-      >
-        <template #header>
-          <div class="flex items-center justify-between">
-            <h3
-              class="text-base font-semibold leading-6 text-gray-900 dark:text-white"
-            >
-              Upload transactions to {{ account.name }}
-            </h3>
 
-            <UButton
-              color="gray"
-              variant="ghost"
-              icon="i-heroicons-x-mark-20-solid"
-              class="-my-1"
-              @click="close"
-            />
-          </div>
-        </template>
+
+
+
+
+    <UModal v-model:open="isOpen" fullscreen :title="`Upload transactions to ${account.name}`"
+      description="Upload and parse CSV file to import transactions" :ui="{
+        content: 'h-full flex flex-col',
+        body: 'grow overflow-auto p-4'
+      }">
+      <UButton icon="i-heroicons-document-arrow-down" size="xs" label="Import transactions" class="mt-4 mx-3"
+        @click="isOpen = true" />
+
+      <template #body>
         <div>
           <div v-if="!readyToReview">
-            <UFormGroup label="Encoding" name="encoding">
-              <USelectMenu v-model="encoding" :options="possibleEncodings" />
-            </UFormGroup>
+            <UFormField label="Encoding" name="encoding">
+              <USelectMenu v-model="encoding" :items="possibleEncodings" />
+            </UFormField>
 
-            <FileUploadAreaInput
-              accept=".csv,.json"
-              :signal="signal"
-              @upload="upload"
-            />
+            <FileUploadAreaInput accept=".csv,.json" :signal="signal" @upload="upload" />
           </div>
 
           <div v-if="csvTable.length && !readyToReview">
             <div class="flex">
-              <draggable
-                class="list-group"
-                :list="possibleHeaders"
-                group="people"
-                item-key="name"
-                @change="log"
-              >
+              <draggable class="list-group" :list="possibleHeaders" group="people" item-key="name" @change="log">
                 <template #item="{ element }">
-                  <UBadge color="gray" variant="solid" class="cursor-grab">
+                  <UBadge color="neutral" variant="solid" class="cursor-grab">
                     {{ element.name }}
                   </UBadge>
                 </template>
@@ -369,30 +334,16 @@ function guessDateFormat() {
 
             <Debug>{{ headers }}</Debug>
 
-            <table
-              class="table-fixed text-xs break-all hover:table-fixed border-spacing-2 border-separate"
-            >
+            <table class="table-fixed text-xs break-all hover:table-fixed border-spacing-2 border-separate">
               <thead>
                 <tr>
-                  <th></th>
-                  <th
-                    v-for="(col, colIndex) in csvTable[0]"
-                    :key="colIndex"
-                    class="border border-dashed border-gray-900/10"
-                  >
-                    <draggable
-                      class="list-group"
-                      :list="headers[colIndex]"
-                      group="people"
-                      item-key="name"
-                      @change="log"
-                    >
+                  <th />
+                  <th v-for="(col, colIndex) in csvTable[0]" :key="colIndex"
+                    class="border border-dashed border-gray-900/10">
+                    <draggable class="list-group" :list="headers[colIndex]" group="people" item-key="name"
+                      @change="log">
                       <template #item="{ element }">
-                        <UBadge
-                          color="gray"
-                          variant="solid"
-                          class="cursor-grab"
-                        >
+                        <UBadge color="neutral" variant="solid" class="cursor-grab">
                           {{ element.name }}
                         </UBadge>
                       </template>
@@ -401,13 +352,8 @@ function guessDateFormat() {
                 </tr>
               </thead>
               <tbody>
-                <tr
-                  v-for="(row, rowIndex) in csvTable"
-                  :key="rowIndex"
-                  :class="
-                    isValidRow(row, headers) ? '' : 'bg-gray-100 text-gray-400'
-                  "
-                >
+                <tr v-for="(row, rowIndex) in csvTable" :key="rowIndex" :class="isValidRow(row, headers) ? '' : 'bg-gray-100 text-gray-400'
+                  ">
                   <td>
                     <button @click="removeRow(rowIndex)">x</button>
                   </td>
@@ -423,14 +369,10 @@ function guessDateFormat() {
             <Debug v-if="transactions.length">{{ transactions }}</Debug>
           </div>
 
-          <UploadTransactionAcceptance
-            v-if="readyToReview"
-            :transactions-to-import="transactions"
-            :account="account"
-            @close="close"
-          />
+          <UploadTransactionAcceptance v-if="readyToReview" :transactions-to-import="transactions" :account="account"
+            @close="close" />
         </div>
-      </UCard>
+      </template>
     </UModal>
   </div>
 </template>

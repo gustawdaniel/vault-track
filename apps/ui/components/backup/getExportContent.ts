@@ -1,4 +1,4 @@
-import { QifAccount, QifType, serializeQif } from 'qif-ts';
+import { type QifAccount, QifType, serializeQif } from 'qif-ts';
 
 import { useAccountStore } from '~/store/account';
 import { useTransactionStore } from '~/store/transaction';

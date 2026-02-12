@@ -4,7 +4,8 @@ const hover = ref<number>(-1);
 export interface MenuOption {
   id: string;
   name: string;
-  click: () => void;
+  click?: () => void;
+  to?: string;
 }
 
 defineProps<{ options: MenuOption[] }>();
@@ -20,14 +21,16 @@ defineProps<{ options: MenuOption[] }>();
       @mouseenter="hover = index"
       @mouseleave="hover = -1"
     >
-      <a
+      <NuxtLink
+        :to="item.to"
         :class="[
           hover === index ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
           'block px-4 py-2 text-sm cursor-pointer',
         ]"
-        @click.stop="item.click"
-        >{{ item.name }}</a
+        @click.stop="item.click?.()"
       >
+        {{ item.name }}
+      </NuxtLink>
     </div>
   </div>
 </template>

@@ -1,22 +1,22 @@
 <script lang="ts" setup>
 import { useDialog } from '~/store/dialog';
 
+
 const dialog = useDialog();
 </script>
 
 <template>
-  <UModal
-    v-model="dialog.isDialogOpen"
-    :ui="{
-      container: 'flex min-h-full items-center justify-center text-center',
-    }"
-  >
-    <component
-      :is="dialog.dialogComponent"
-      v-bind="dialog.dialogProps"
-      @close="dialog.closeDialog"
-    />
+  <UModal v-model:open="dialog.isDialogOpen" :title="dialog.title" :description="dialog.description"
+    :ui="{ content: 'sm:max-w-lg' }">
+    <template #body>
+      <component :is="dialog.dialogComponent" v-bind="dialog.dialogProps" @close="dialog.closeDialog" />
+    </template>
   </UModal>
+
+
+  <!-- <UModal v-model="dialog.isDialogOpen">
+
+  </UModal> -->
 </template>
 
 <style>

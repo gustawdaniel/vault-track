@@ -26,7 +26,7 @@ const showHiddenAccounts = ref<boolean>(false);
     >
       <h1 class="text-base font-semibold leading-7">Accounts</h1>
       <div class="flex items-center">
-        <UToggle v-model="showHiddenAccounts" color="primary" />
+        <USwitch v-model="showHiddenAccounts" color="primary" />
         <p class="ml-2 text-gray-500">Show Hidden</p>
       </div>
       <NuxtLink

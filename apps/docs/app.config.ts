@@ -1,39 +1,45 @@
 export default defineAppConfig({
-  docus: {
-    title: 'Docus',
-    description: 'The best place to start your documentation.',
-    image:
-      'https://user-images.githubusercontent.com/904724/185365452-87b7ca7b-6030-4813-a2db-5e65c785bf88.png',
-    socials: {
-      twitter: '_GustawDaniel',
-      github: 'gustawdaniel/open_cash_manager',
-      nuxt: {
-        label: 'App',
-        icon: 'twemoji:pound-banknote',
-        href: 'https://opencash.app/',
-      },
-    },
-    github: {
-      dir: '.starters/default/content',
-      branch: 'main',
-      repo: 'docus',
-      owner: 'nuxt-themes',
-      edit: true,
-    },
-    aside: {
-      level: 0,
-      collapsed: false,
-      exclude: [],
-    },
-    main: {
-      padded: true,
-      fluid: true,
+    seo: {
+        titleTemplate: '%s - VaultTracker',
+        title: 'VaultTracker',
+        description: 'Documentation for VaultTracker - Personal Finance App',
+        ogImage: '/social-card-preview.png',
     },
     header: {
-      logo: true,
-      showLinkIcon: true,
-      exclude: [],
-      fluid: true,
+        title: 'VaultTracker',
+        showLinkIcon: true,
+        exclude: [],
+        fluid: true
     },
-  },
-});
+    socials: {
+        github: 'gustawdaniel/vault-track',
+    },
+    github: {
+        url: 'https://github.com/gustawdaniel/vault-track',
+        branch: 'main',
+        rootDir: 'apps/docs',
+        edit: true,
+        releases: true
+    },
+    toc: {
+        title: 'On this page',
+        bottom: {
+            title: 'Community',
+            links: [{
+                icon: 'i-heroicons-code-bracket',
+                label: 'Source Code',
+                to: 'https://github.com/gustawdaniel/vault-track',
+                target: '_blank'
+            }]
+        }
+    },
+    aside: {
+        level: 0,
+        collapsed: false,
+        exclude: []
+    },
+    main: {
+        padded: true,
+        fluid: true
+    }
+})

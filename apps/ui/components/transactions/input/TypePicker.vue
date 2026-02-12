@@ -16,27 +16,28 @@ const types: Array<{
 const props = defineProps<{
   modelValue: TransferContextType;
 }>();
-const emit = defineEmits(['update:model-value']);
+const emit = defineEmits(['update:modelValue']);
 
-function setType(value: TransferContextType): void {
-  emit('update:model-value', value);
-}
+const selected = computed({
+  get() {
+    return types.find((t) => t.id === props.modelValue);
+  },
+  set(value) {
+    if (value) {
+      emit('update:modelValue', value.id);
+    }
+  },
+});
 </script>
 
 <template>
-  <UFormGroup label="Type" name="type">
-    <USelectMenu
-      :model-value="props.modelValue"
-      :options="types"
-      option-attribute="name"
-      value-attribute="id"
-      @update:model-value="setType"
-    >
-      <template #label>
-        {{ ucFirst(props.modelValue) }}
+  <UFormField label="Type" name="type">
+    <USelectMenu v-model="selected" :items="types" label-key="name" class="w-full">
+      <template #item-label="{ item }">
+        {{ ucFirst(item.name) }}
       </template>
     </USelectMenu>
-  </UFormGroup>
+  </UFormField>
 </template>
 
 <style scoped></style>

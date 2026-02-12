@@ -65,7 +65,7 @@ function goToAccountPage(event?: { transactionId: string }) {
 </script>
 
 <template>
-  <div v-if="transaction">
+  <div v-if="transaction" class="my-6">
     <SingleTransactionEdit
       :reverse-transaction="reverseTransaction"
       :transaction="transaction"

@@ -15,24 +15,24 @@ const accountsStore = useAccountStore();
   <AppContainer class="my-2">
     <div class="justify-between flex">
       <NuxtLink v-if="accountsStore.accounts.length" to="/transaction/new">
-        <UButton color="gray" icon="i-heroicons-plus" />
+        <UButton color="neutral" icon="i-heroicons-plus" />
       </NuxtLink>
       <!--      <NuxtLink to="/budgets">-->
-      <!--        <UButton color="gray" icon="i-heroicons-briefcase" />-->
+      <!--        <UButton color="neutral" icon="i-heroicons-briefcase" />-->
       <!--      </NuxtLink>-->
       <!--      <NuxtLink to="/schedules">-->
-      <!--        <UButton color="gray" icon="i-heroicons-calendar-days" />-->
+      <!--        <UButton color="neutral" icon="i-heroicons-calendar-days" />-->
       <!--      </NuxtLink>-->
       <!--      <UButton-->
-      <!--        color="gray"-->
+      <!--        color="neutral"-->
       <!--        icon="i-heroicons-magnifying-glass"-->
       <!--        @click="toggleSearch"-->
       <!--      />-->
       <!--      <NuxtLink to="/reports">-->
-      <!--        <UButton color="gray" icon="i-heroicons-chart-pie" />-->
+      <!--        <UButton color="neutral" icon="i-heroicons-chart-pie" />-->
       <!--      </NuxtLink>-->
       <SettingsButtonOptionsList>
-        <UButton color="gray" icon="i-heroicons-ellipsis-vertical" />
+        <UButton color="neutral" icon="i-heroicons-ellipsis-vertical" />
       </SettingsButtonOptionsList>
     </div>
   </AppContainer>

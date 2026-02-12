@@ -1,12 +1,12 @@
-import type { Data } from 'qif2json/src/lib/types';
+import type { Data } from 'qif2json';
 import type { QifAccount } from 'qif-ts';
 import { useAccountStore } from '~/store/account';
 import { type Category, useCategoryStore } from '~/store/category';
 import {
   type Transaction,
   TransactionModel,
-  useTransactionStore,
-} from '~/store/transaction';
+} from '~/store/transaction.model';
+import { useTransactionStore } from '~/store/transaction';
 
 export function loadDataToStore(payload: Data): void {
   const storeAccount = useAccountStore();

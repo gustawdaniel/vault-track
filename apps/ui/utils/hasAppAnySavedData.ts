@@ -11,8 +11,8 @@ export function hasAppAnySavedData(): boolean {
 
   return Boolean(
     accountStore.accounts.length +
-      transactionStore.transactions.length +
-      categoryStore.categories.length +
-      projectsStore.projects.length,
+    transactionStore.transactions.length +
+    categoryStore.categories.length +
+    projectsStore.projects.length,
   );
 }

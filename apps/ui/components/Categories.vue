@@ -12,7 +12,7 @@ const categoryStore = useCategoryStore();
         :key="category.category"
         class="flex items-center"
       >
-        <div :style="{ backgroundColor: category.color }" class="h-3 w-3"></div>
+        <div :style="{ backgroundColor: category.color }" class="h-3 w-3"/>
         <span>{{ category }}</span>
       </li>
     </ul>

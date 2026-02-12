@@ -3,7 +3,8 @@ import { defineStore } from 'pinia';
 import { uid } from 'uid';
 import { getRandomColor } from '~/utils/getRandomColor';
 import { useProjectStore } from '~/store/project';
-import type { Transaction } from '~/store/transaction';
+import type { Transaction } from '~/store/transaction.model';
+import { createCategory as syncCreateCategory, updateCategory as syncUpdateCategory, deleteCategory as syncDeleteCategory } from '~/sync/manager';
 
 export interface Category {
   category: string;
@@ -15,6 +16,7 @@ export interface ColoredCategory extends Category {
 
 export interface PersistedCategory extends ColoredCategory {
   id: string;
+  order: number;
 }
 
 interface State {
@@ -29,8 +31,15 @@ class Cat {
       ...payload,
       color: 'color' in payload ? payload.color : getRandomColor(),
       id: 'id' in payload ? payload.id : uid(),
+      order: 'order' in payload ? payload.order : 0,
     };
   }
+  // ... (rest of class)
+
+  // ... (in actions)
+
+
+  // ... (in getters)
 
   get id(): string {
     return this.data.id;
@@ -98,9 +107,10 @@ export function composeRawCategoryFromCategoryAndProject(
   return [categoryName, projectName].filter(Boolean).join('/');
 }
 
+// ... existing code ...
 export type CategoryTree = Array<
   PersistedCategory & {
-    children: Array<PersistedCategory>;
+    children: CategoryTree;
   }
 >;
 
@@ -117,17 +127,54 @@ export const useCategoryStore = defineStore('category', {
       const [categoryName, projectName] = cat.decomposeToCategoryAndProject();
 
       if (categoryName) {
+        // Ensure parent exists
+        if (categoryName.includes(':')) {
+          const parts = categoryName.split(':');
+          // Remove the last part to get the parent path
+          parts.pop();
+          const parentName = parts.join(':');
+
+          if (this.getIndexByName(parentName) === -1) {
+            const { id, ...rest } = cat.json;
+            this.create({ ...rest, category: parentName });
+          }
+        }
+
         const categoryIndex = this.getIndexByName(categoryName);
 
         if (categoryIndex >= 0) {
           const existing = this.$state.categories[categoryIndex];
-          this.$state.categories.splice(
-            categoryIndex,
-            1,
-            Object.assign(existing, cat.pureCategoryWithoutProject),
-          );
+          if (existing) {
+            // Preserve existing order
+            cat.data.order = existing.order || 0;
+            this.$state.categories.splice(
+              categoryIndex,
+              1,
+              Object.assign(existing, cat.pureCategoryWithoutProject),
+            );
+            syncUpdateCategory(existing);
+          }
         } else {
+          // New Item: Assign order = max(siblings.order) + 1
+          const parentPrefix = categoryName.includes(':')
+            ? categoryName.substring(0, categoryName.lastIndexOf(':'))
+            : null;
+
+          let siblings: PersistedCategory[];
+          if (parentPrefix) {
+            siblings = this.categories.filter(c => {
+              return c.category.startsWith(parentPrefix + ':') &&
+                !c.category.substring(parentPrefix.length + 1).includes(':');
+            });
+          } else {
+            siblings = this.categories.filter(c => !c.category.includes(':'));
+          }
+
+          const maxOrder = siblings.reduce((max, c) => Math.max(max, c.order || 0), 0);
+          cat.data.order = maxOrder + 1;
+
           this.$state.categories.push(cat.pureCategoryWithoutProject);
+          syncCreateCategory(cat.pureCategoryWithoutProject);
         }
       }
 
@@ -139,27 +186,58 @@ export const useCategoryStore = defineStore('category', {
         });
       }
     },
+    reorder(newOrder: CategoryTree) {
+      newOrder.forEach((item, index) => {
+        const catIndex = this.getIndexById(item.id);
+        if (catIndex !== -1) {
+          const existing = this.$state.categories[catIndex];
+          if (existing) existing.order = index;
+        }
+
+        if (item.children && item.children.length > 0) {
+          this.reorder(item.children);
+        }
+      });
+    },
     update(id: string, category: ColoredCategory) {
-      const cat = new Cat({ ...category, id });
+      // Find existing to get its order
+      const existingBefore = this.getById(id);
+      const existingOrder = existingBefore ? existingBefore.order : 0;
+
+      const cat = new Cat({ ...category, id, order: existingOrder }); // Pass existingOrder
       const index = this.getIndexById(id);
       if (index !== -1) {
-        if (cat.isRoot) {
-          const categoryBeforeUpdate = this.getById(id);
-          if (!categoryBeforeUpdate) return;
+        const categoryBeforeUpdate = this.getById(id);
+        if (categoryBeforeUpdate) {
+          // Get all descendants
+          const allDescendants = this.getSubCategories(categoryBeforeUpdate.category);
 
-          this.getSubCategories(categoryBeforeUpdate.category).forEach(
-            (sub) => {
-              const index = this.getIndexById(sub.id);
-              if (index === -1) return;
-              this.update(sub.id, {
-                ...cat.pureCategoryWithoutProject,
-                category: `${cat.pureCategoryWithoutProject.category}:${sub.category}`,
-              });
-            },
-          );
+          // Filter for DIRECT children only to avoid double recursion
+          const directChildren = allDescendants.filter(c => {
+            const remainder = c.category.substring(categoryBeforeUpdate.category.length + 1);
+            return !remainder.includes(':');
+          });
+
+          directChildren.forEach((sub) => {
+            const subIndex = this.getIndexById(sub.id);
+            if (subIndex === -1) return;
+
+            // We need to replace the prefix for ALL descendants
+            const oldPrefix = categoryBeforeUpdate.category;
+            const newPrefix = cat.pureCategoryWithoutProject.category;
+
+            const relativePath = sub.category.substring(oldPrefix.length + 1);
+            const newCategoryName = `${newPrefix}:${relativePath}`;
+
+            this.update(sub.id, {
+              ...sub,
+              category: newCategoryName,
+            });
+          });
         }
 
         this.$state.categories.splice(index, 1, cat.pureCategoryWithoutProject);
+        syncUpdateCategory(cat.pureCategoryWithoutProject);
       } else {
         this.create(cat.json);
       }
@@ -170,12 +248,23 @@ export const useCategoryStore = defineStore('category', {
         const category = this.getById(id);
         if (!category) return;
 
-        if (!category.category.includes(':')) {
-          const children = this.getSubCategories(category.category);
-          children.forEach((c) => this.delete(c.id));
-        }
+        // Get all descendants
+        const allDescendants = this.getSubCategories(category.category);
 
-        this.$state.categories.splice(index, 1);
+        // Filter for DIRECT children only to avoid redundant calls (since delete is recursive)
+        const directChildren = allDescendants.filter(c => {
+          const remainder = c.category.substring(category.category.length + 1);
+          return !remainder.includes(':');
+        });
+
+        directChildren.forEach((c) => this.delete(c.id));
+
+        // Check index again
+        const newIndex = this.getIndexById(id);
+        if (newIndex !== -1) {
+          this.$state.categories.splice(newIndex, 1);
+          syncDeleteCategory(id);
+        }
       }
     },
     getIndexById(id: string): number {
@@ -192,6 +281,7 @@ export const useCategoryStore = defineStore('category', {
         id: uid(),
         color: getRandomColor(),
         category: '',
+        order: 0,
       };
     },
     getById(id: string): PersistedCategory | undefined {
@@ -207,15 +297,32 @@ export const useCategoryStore = defineStore('category', {
     getSubCategories(rootCategoryName: string): PersistedCategory[] {
       return this.categories
         .filter((c) => c.category.startsWith(rootCategoryName + ':'))
-        .map((c) => ({
-          ...c,
-          category: c.category.substring(rootCategoryName.length + 1),
-        }));
+        // Do NOT strip the prefix here, return the full object so we can use it properly in recursion
+        // Wait, the original was returning partial objects? 
+        // Original: category: c.category.substring(rootCategoryName.length + 1)
+        // This was returning "relative" category names.
+        // But for update/delete we need real IDs and real full names.
+
+        // Let's modify this to return exact objects from store.
+        // But wait, the original usage might depend on relative names?
+        // update() used it for recursion: ...cat.pureCategoryWithoutProject, ...category: ${cat...}:${sub.category}
+        // It seems it was using relative name.
+
+        // If I change this behaviour I might break things.
+        // But for deep recursion, handling "relative" path is tricky if we don't know depth.
+        // Let's return the FULL category objects.
+        // And we will use full names.
+        .map(c => c);
     },
   },
   getters: {
     rootCategories(): PersistedCategory[] {
-      return this.categories.reduce(
+      const sorted = [...this.categories].sort(
+        (a: PersistedCategory, b: PersistedCategory) =>
+          a.category.length - b.category.length,
+      );
+
+      return sorted.reduce(
         (rootCategories: PersistedCategory[], c: PersistedCategory) => {
           const colonIndex = c.category.indexOf(':');
 
@@ -234,24 +341,36 @@ export const useCategoryStore = defineStore('category', {
       );
     },
     tree(): CategoryTree {
-      const root = this.rootCategories;
+      const buildTree = (roots: PersistedCategory[], prefix: string = ''): CategoryTree => {
+        return roots.map(root => {
+          const fullRootPath = root.category;
 
-      return root
-        .map((r) => {
           const children = this.categories
-            .filter((c) => c.category.startsWith(r.category + ':'))
-            .map((c) => ({
-              ...c,
-              category: c.category.substring(r.category.length + 1),
-            }))
-            .sort((c1, c2) => c1.category.localeCompare(c2.category));
+            .filter(c => c.category.startsWith(fullRootPath + ':'))
+            .filter(c => {
+              const remainder = c.category.substring(fullRootPath.length + 1);
+              return !remainder.includes(':');
+            })
+            .sort((a, b) => (a.order - b.order) || a.id.localeCompare(b.id)); // Use ID as tiebreaker
+
+          const strippedCategory = prefix
+            ? root.category.substring(prefix.length + 1)
+            : root.category;
 
           return {
-            ...r,
-            children,
+            ...root,
+            category: strippedCategory,
+            children: buildTree(children, fullRootPath)
           };
-        })
-        .sort((c1, c2) => c1.category.localeCompare(c2.category));
+        }).sort((a, b) => (a.order - b.order) || a.id.localeCompare(b.id)); // Use ID as tiebreaker
+      };
+
+      // Get actual root items from the store (items with no ':')
+      const roots = this.categories
+        .filter(c => !c.category.includes(':'))
+        .sort((a, b) => (a.order - b.order) || a.id.localeCompare(b.id)); // Use ID as tiebreaker
+
+      return buildTree(roots);
     },
   },
 });

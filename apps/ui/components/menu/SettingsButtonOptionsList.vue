@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { useRouter } from '#imports';
+
 import type { MenuOption } from '~/components/menu/HoveredSelectableOptionsList.vue';
 import HoveredSelectableOptionsList from '~/components/menu/HoveredSelectableOptionsList.vue';
 
@@ -7,26 +7,17 @@ const options: MenuOption[] = [
   {
     id: 'open-account',
     name: 'New Account',
-    click: () => {
-      const router = useRouter();
-      router.push(`/account/new?edit=1`);
-    },
+    to: '/account/new?edit=1'
   },
   {
     id: 'database',
     name: 'Database',
-    click: () => {
-      const router = useRouter();
-      router.push(`/backup`);
-    },
+    to: '/backup'
   },
   {
     id: 'preferences',
     name: 'Preferences',
-    click: () => {
-      const router = useRouter();
-      router.push('/preferences');
-    },
+    to: '/preferences'
   },
 ];
 </script>
@@ -34,7 +25,7 @@ const options: MenuOption[] = [
 <template>
   <UPopover>
     <slot />
-    <template #panel>
+    <template #content>
       <HoveredSelectableOptionsList :options="options" />
     </template>
   </UPopover>

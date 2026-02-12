@@ -1,7 +1,10 @@
 <script lang="ts" setup>
 
 import { useRoute } from '#app';
+import { SpeedInsights } from '@vercel/speed-insights/vue';
 import ExpandableListNavigationButtons from '~/components/expandableList/ExpandableListNavigationButtons.vue';
+import { useDialog } from '~/store/dialog';
+import { useAccountStore } from '~/store/account';
 
 const route = useRoute();
 
@@ -10,7 +13,7 @@ const routeName = computed<string>(() => {
   if (words[words.length - 1] === 'new') {
     words.reverse();
   }
-  return ucFirst(words.join(' ').trim()) || 'Open Cash Manager';
+  return ucFirst(words.join(' ').trim()) || 'VaultTrack';
 });
 
 useHead({
@@ -26,6 +29,9 @@ useHead({
     },
   ],
 });
+
+const dialog = useDialog();
+const accountStore = useAccountStore();
 </script>
 
 <template>
@@ -35,30 +41,31 @@ useHead({
         <div class="flex h-16 justify-between">
           <NuxtLink class="flex" to="/">
             <div class="flex flex-shrink-0 items-center">
-              <img
-                height="10"
-                width="10"
-                alt="Logo"
-                class="h-8 w-auto"
-                src="/icon.png"
-              />
+              <img height="10" width="10" alt="Logo" class="h-8 w-auto" src="/icon.png" />
               <p class="ml-5">{{ routeName }}</p>
             </div>
           </NuxtLink>
 
-          <ExpandableListNavigationButtons
-            v-if="route.path === '/categories'"
-            resource="category"
-          />
-          <ExpandableListNavigationButtons
-            v-if="route.path === '/projects'"
-            resource="project"
-          />
+          <ExpandableListNavigationButtons v-if="route.path === '/categories'" resource="category" />
+          <ExpandableListNavigationButtons v-if="route.path === '/projects'" resource="project" />
+
+          <div v-if="route.path === '/'" class="flex items-center">
+            <UButton :icon="accountStore.showHidden ? 'i-heroicons-eye-20-solid' : 'i-heroicons-eye-slash-20-solid'"
+              color="neutral" variant="ghost" @click="accountStore.toggleShowHidden()" />
+          </div>
+
+          <div class="flex items-center ml-2">
+            <UButton to="/settings/sync" icon="i-heroicons-arrow-path" color="neutral" variant="ghost" />
+          </div>
         </div>
       </div>
 
 
     <slot />
+
+
+
+    <SpeedInsights />
   </div>
 </template>
 

@@ -27,18 +27,14 @@ const dateLabel = computed(() =>
 </script>
 
 <template>
-  <UFormGroup label="Date" name="date">
+  <UFormField label="Date" name="date">
     <UPopover :popper="{ placement: 'bottom-start' }">
-      <UInput
-        :model-value="dateLabel"
-        class="w-full"
-        icon="i-heroicons-calendar-days-20-solid"
-      />
-      <template #panel="{ close }">
+      <UInput :model-value="dateLabel" class="w-full" icon="i-heroicons-calendar-days-20-solid" />
+      <template #content="{ close }">
         <Calendar v-model="date" @close="close" />
       </template>
     </UPopover>
-  </UFormGroup>
+  </UFormField>
 </template>
 
 <style scoped></style>

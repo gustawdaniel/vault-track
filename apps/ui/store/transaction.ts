@@ -1,192 +1,25 @@
 import { type RemovableRef, useLocalStorage } from '@vueuse/core';
-import hash from 'object-hash';
-
 import { defineStore } from 'pinia';
-import { z } from 'zod';
-import { uid } from 'uid';
 import dayjs from 'dayjs';
 import { useAccountStore } from '~/store/account';
-import { getFullCategoryName } from '~/store/category';
-import { getFullProjectName } from '~/store/project';
-import type { ClearedStatus } from '~/store/clearedStatus';
+import {
+  createTransaction as syncCreateTransaction,
+  updateTransaction as syncUpdateTransaction,
+  deleteTransaction as syncDeleteTransaction,
+} from '~/sync/manager';
+import {
+  Trx,
+  type Transaction,
+  type FullTransaction,
+  type PersistedTransaction,
+  type CreateTransactionOptions,
+} from '~/store/transaction.model';
 
-export const TransactionModel = z.object({
-  id: z.string(),
-  account: z.string(),
-  accountId: z.string(),
-  amount: z.number(),
-  category: z.string().optional(),
-  date: z.string(),
-  payee: z.string().optional(),
-  memo: z.string().optional(),
-  clearedStatus: z.enum(['', '*', 'X', '?']).optional(),
-  splitId: z.string().optional(),
-});
-
-export interface Transaction {
-  account: string;
-  accountId: string;
-  amount: number;
-  category?: string;
-  date: string;
-  payee?: string;
-  memo?: string;
-  clearedStatus?: ClearedStatus;
-  splitId?: string;
-}
-
-interface PersistedTransaction extends Transaction {
-  id: string;
-  transferHash?: string;
-}
-
-export interface FullTransaction extends PersistedTransaction {
-  hash: string;
-}
+// Re-export for compatibility
+export * from '~/store/transaction.model';
 
 interface State {
   transactions: RemovableRef<FullTransaction[]>;
-}
-
-export function isTransferByCategory(
-  transaction: Pick<FullTransaction, 'category'>,
-): boolean {
-  const categoryName = getFullCategoryName(transaction);
-
-  return Boolean(
-    categoryName && categoryName.startsWith('[') && categoryName.endsWith(']'),
-  );
-}
-
-// amount is excluded because there can be different currencies
-export interface TransactionInvariant {
-  fromAccount: string;
-  toAccount: string;
-  date: string;
-  payee?: string;
-  project?: string;
-  memo?: string;
-}
-
-export type NormalTransactionContextType = 'expense' | 'income';
-
-export function getTransactionNormalType(
-  transaction: Pick<Transaction, 'amount'>,
-): NormalTransactionContextType {
-  return transaction.amount > 0 ? 'income' : 'expense';
-}
-
-export function getAccountNameFromCategory(
-  transaction: Pick<Transaction, 'category'>,
-): string | undefined {
-  if (isTransferByCategory(transaction)) {
-    const categoryName = getFullCategoryName(transaction);
-    if (!categoryName) return categoryName;
-    return categoryName.substring(1, categoryName.length - 1);
-  }
-}
-
-const TransactionInvariantModel = z.object({
-  fromAccount: z.string(),
-  toAccount: z.string(),
-  date: z.string(),
-  payee: z.string().optional(),
-  project: z.string().optional(),
-  memo: z.string().optional(),
-});
-
-function projectIdAndAccount(
-  tx: FullTransaction,
-): Pick<FullTransaction, 'id' | 'account'> {
-  return {
-    id: tx.id,
-    account: tx.account,
-  };
-}
-
-export function getTransferTransactionOrder(
-  tx1: FullTransaction,
-  tx2: FullTransaction,
-): {
-  from: Pick<FullTransaction, 'id' | 'account'>;
-  to: Pick<FullTransaction, 'id' | 'account'>;
-} {
-  const type = getTransactionNormalType(tx1);
-  return type === 'income'
-    ? { from: projectIdAndAccount(tx2), to: projectIdAndAccount(tx1) }
-    : { from: projectIdAndAccount(tx1), to: projectIdAndAccount(tx2) };
-}
-
-function getTransactionInvariant(
-  transaction: Pick<
-    Transaction,
-    'account' | 'category' | 'payee' | 'date' | 'memo' | 'amount'
-  >,
-): TransactionInvariant {
-  // from Account is account if an amount is negative, but account(category) is an amount is positive
-  const type = getTransactionNormalType(transaction);
-  const [fromAccount, toAccount] =
-    type === 'income'
-      ? [getAccountNameFromCategory(transaction), transaction.account]
-      : [transaction.account, getAccountNameFromCategory(transaction)];
-
-  const validModel = TransactionInvariantModel.safeParse({
-    fromAccount,
-    toAccount,
-    date: transaction.date,
-    payee: transaction.payee,
-    project: getFullProjectName(transaction),
-    memo: transaction.memo,
-  });
-
-  if (!validModel.success) throw validModel.error;
-
-  return validModel.data;
-}
-
-export class Trx {
-  data: PersistedTransaction;
-
-  constructor(transaction: Transaction | PersistedTransaction) {
-    if (isTransferByCategory(transaction) && !('transferHash' in transaction)) {
-      Object.assign(transaction, {
-        transferHash: hash(getTransactionInvariant(transaction)),
-      });
-    }
-
-    this.data = {
-      ...transaction,
-      id: 'id' in transaction ? transaction.id : uid(),
-    };
-  }
-
-  _hash: string | undefined;
-
-  get hash(): string {
-    if (this._hash) {
-      return this._hash;
-    }
-
-    const computedHash = hash(this.data);
-    this._hash = computedHash;
-    return computedHash;
-  }
-
-  get id(): string {
-    return this.data.id;
-  }
-
-  get json(): FullTransaction {
-    return {
-      ...this.data,
-      hash: this.hash,
-    };
-  }
-}
-
-export interface CreateTransactionOptions {
-  allowDuplicates: boolean;
-  updateAccountBalance: boolean;
 }
 
 export const useTransactionStore = defineStore('transaction', {
@@ -209,15 +42,19 @@ export const useTransactionStore = defineStore('transaction', {
         }
 
         this.$state.transactions.push(trx.json);
+        syncCreateTransaction(trx.json);
       } else {
         this.$state.transactions.splice(index, 1, trx.json);
+        syncUpdateTransaction(trx.json);
       }
     },
     update(id: string, transaction: Transaction) {
       const newTrx = new Trx({ ...transaction, id });
       const index = this.getIndexById(newTrx.id);
       if (index !== -1) {
-        const oldTrx = new Trx(this.$state.transactions[index]);
+        const oldTrxData = this.$state.transactions[index];
+        if (!oldTrxData) throw new Error('Transaction not found');
+        const oldTrx = new Trx(oldTrxData);
         const accountStore = useAccountStore();
         if (
           oldTrx.data.accountId !== newTrx.data.accountId ||
@@ -235,6 +72,7 @@ export const useTransactionStore = defineStore('transaction', {
           1,
           Object.assign(oldTrx.json, newTrx.json),
         );
+        syncUpdateTransaction(newTrx.json);
 
         if (oldTrx.data.transferHash && !newTrx.data.transferHash) {
           const reverse = this.getReverseByIdAndHash(
@@ -269,6 +107,7 @@ export const useTransactionStore = defineStore('transaction', {
 
       accountStore.pathBalance(transaction.accountId, -transaction.amount);
       this.$state.transactions.splice(index, 1);
+      syncDeleteTransaction(id);
 
       if (transaction.transferHash) {
         const reverse = this.getReverseByIdAndHash(
@@ -353,6 +192,21 @@ export const useTransactionStore = defineStore('transaction', {
         (t) => t.transferHash === transferHash && t.id !== id,
       );
     },
+    getCategoryByPayee(payee: string): string | undefined {
+      if (!payee) return undefined;
+
+      let latestTransaction: FullTransaction | undefined;
+
+      for (const transaction of this.$state.transactions) {
+        if (transaction.payee === payee && transaction.category) {
+          if (!latestTransaction || transaction.date > latestTransaction.date) {
+            latestTransaction = transaction;
+          }
+        }
+      }
+
+      return latestTransaction?.category;
+    },
     getSiblingsBySplitId(splitId: string): FullTransaction[] {
       return this.$state.transactions.filter((t) => t.splitId === splitId);
     },
@@ -360,14 +214,13 @@ export const useTransactionStore = defineStore('transaction', {
       if (!payee) return undefined;
 
       const payeeTransactions = this.$state.transactions.filter(
-        (t) => t.payee === payee && t.category
+        (t) => t.payee === payee && t.category,
       );
 
       if (payeeTransactions.length === 0) return undefined;
 
       const categoryCounts = new Map<string, number>();
       for (const t of payeeTransactions) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const category = t.category!;
         categoryCounts.set(category, (categoryCounts.get(category) || 0) + 1);
       }

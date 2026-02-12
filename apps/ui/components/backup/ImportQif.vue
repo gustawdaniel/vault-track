@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import type { Data } from 'qif2json/src/lib/types';
 import mitt from 'mitt';
+import type { Data } from 'qif2json/src/lib/types';
 import { parseFileContent } from '~/components/backup/parseFileContent';
 import { loadDataToStore } from '~/components/backup/loadDataToStore';
 import { useAccountStore } from '~/store/account';
@@ -8,9 +8,7 @@ import AppContainer from '~/components/shared/AppContainer.vue';
 import FileUploadAreaInput from '~/components/account/FileUploadAreaInput.vue';
 import { readFileContentFromInputEvent } from '~/utils/readFileContentFromInputEvent';
 
-const signal = mitt<{
-  reset: void;
-}>();
+const signal = mitt();
 
 function reset() {
   signal.emit('reset');
@@ -69,7 +67,7 @@ async function upload(event: Event) {
       });
     }
   } catch (e: unknown) {
-    // eslint-disable-next-line no-console
+
     console.error(e);
     reset();
     return toast.add({
@@ -98,9 +96,7 @@ async function upload(event: Event) {
 <template>
   <AppContainer>
     <div class="mt-5 border-b border-gray-200 bg-white px-4 py-5">
-      <div
-        class="-ml-4 -mt-4 flex flex-wrap items-center justify-between sm:flex-nowrap"
-      >
+      <div class="-ml-4 -mt-4 flex flex-wrap items-center justify-between sm:flex-nowrap">
         <div class="mt-4">
           <h3 class="text-base font-semibold leading-6 text-gray-900">
             Import Database
@@ -112,11 +108,7 @@ async function upload(event: Event) {
         </div>
       </div>
 
-      <FileUploadAreaInput
-        accept=".qif,.json"
-        :signal="signal"
-        @upload="upload"
-      />
+      <FileUploadAreaInput accept=".qif,.json" :signal="signal" @upload="upload" />
     </div>
   </AppContainer>
 </template>
