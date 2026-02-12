@@ -36,10 +36,10 @@ const start = async () => {
 
         // Plugins
         await server.register(cors, {
-            origin: true, // Allow all origins by reflecting request origin
+            origin: ['https://admin.vaulttrack.org', 'https://vaulttrack.org', 'http://localhost:3000', 'http://localhost:4200', 'http://localhost:5000'],
             credentials: true,
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-            allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Access-Control-Allow-Origin'],
+            allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
         });
 
         await server.register(fastifyCookie, {
