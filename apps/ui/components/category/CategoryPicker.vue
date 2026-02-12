@@ -4,7 +4,6 @@ import {
   getFullCategoryName,
   useCategoryStore,
 } from '~/store/category';
-import { getRandomColor } from '~/utils/getRandomColor';
 
 const categoryStore = useCategoryStore();
 const NO_CATEGORY = 'No Category';
@@ -24,7 +23,8 @@ const options = computed<Array<ColoredCategory>>(() => {
 const selected = computed({
   get() {
     if (!props.modelValue) return undefined;
-    if (props.modelValue === NO_CATEGORY) return options.value.find(o => o.category === NO_CATEGORY);
+    if (props.modelValue === NO_CATEGORY)
+      return options.value.find((o) => o.category === NO_CATEGORY);
     return options.value.find((c) => c.category === props.modelValue);
   },
   set(value: string | ColoredCategory | undefined) {
@@ -52,19 +52,34 @@ function onCreate(option: string | ColoredCategory) {
 
 <template>
   <UFormField label="Category" name="category" class="w-full">
-    <USelectMenu v-model="selected" :items="options" by="category" create-item label-key="category" class="w-full"
-      @create="onCreate">
+    <USelectMenu
+      v-model="selected"
+      :items="options"
+      by="category"
+      create-item
+      label-key="category"
+      class="w-full"
+      @create="onCreate"
+    >
       <template #item-label="{ item }">
         <span class="flex items-center -space-x-1 h-5">
-          <span :style="{
-            background: `${item.color || 'transparent'}`,
-          }" class="flex-shrink-0 w-2 h-2 mt-px rounded-full" />
+          <span
+            :style="{
+              background: `${item.color || 'transparent'}`,
+            }"
+            class="flex-shrink-0 w-2 h-2 mt-px rounded-full"
+          />
         </span>
-        <span class="truncate">{{ getFullCategoryName({ category: item.category }) }}</span>
+        <span class="truncate">{{
+          getFullCategoryName({ category: item.category })
+        }}</span>
       </template>
 
       <template #item="{ item }">
-        <span :style="{ background: `${item.color}` }" class="flex-shrink-0 w-2 h-2 mt-px rounded-full" />
+        <span
+          :style="{ background: `${item.color}` }"
+          class="flex-shrink-0 w-2 h-2 mt-px rounded-full"
+        />
         <span class="truncate">{{ item.category }}</span>
       </template>
     </USelectMenu>

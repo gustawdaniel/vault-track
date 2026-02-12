@@ -1,9 +1,5 @@
 <script lang="ts" setup>
-import {
-  type ClearedStatus,
-  clearedStatusMap,
-  getClearedStatusName,
-} from '~/store/clearedStatus';
+import { type ClearedStatus, clearedStatusMap } from '~/store/clearedStatus';
 
 const props = defineProps<{ modelValue: ClearedStatus; label?: string }>();
 const emit = defineEmits(['update:model-value']);
@@ -27,6 +23,12 @@ const selected = computed({
 
 <template>
   <UFormField :label="props.label ?? 'Status'" name="clearedStatus">
-    <USelectMenu v-model="selected" :items="options" label-key="name" placeholder="Select status" by="id" />
+    <USelectMenu
+      v-model="selected"
+      :items="options"
+      label-key="name"
+      placeholder="Select status"
+      by="id"
+    />
   </UFormField>
 </template>
