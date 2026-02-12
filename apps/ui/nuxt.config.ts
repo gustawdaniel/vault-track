@@ -18,6 +18,9 @@ export default defineNuxtConfig({
   runtimeConfig: {
     tursoDatabaseUrl: process.env.TURSO_DATABASE_URL || 'file:./local.db',
     tursoAuthToken: process.env.TURSO_AUTH_TOKEN,
+    public: {
+      backendUrl: process.env.BACKEND_URL || (process.env.NODE_ENV === 'production' ? 'https://api.vaulttrack.org/api' : 'http://localhost:4500/api'),
+    }
   },
 
   css: ['~/assets/css/main.css'],

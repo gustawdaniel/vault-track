@@ -7,8 +7,14 @@ import { sortEvents } from './ordering';
 import { replay } from './reducer';
 
 // Configuration
-const SYNC_API_URL = '/api/sync';
+// const SYNC_API_URL = '/api/sync'; // Removed in favor of runtime config
 const PEER_ID_SERVER = 'server';
+
+// Helper to get backend URL
+function getBackendUrl() {
+  const config = useRuntimeConfig();
+  return config.public.backendUrl;
+}
 
 export interface SyncResponse {
   events: TransportEvent[];
@@ -85,9 +91,10 @@ export async function fetchRemoteEvents(
     const key = await getEncryptionKey();
     if (!key) return []; // Cannot decrypt without key
 
+    const backendUrl = getBackendUrl();
     const waitParam = options?.wait ? '&wait=true' : '';
     const response = await fetch(
-      `${SYNC_API_URL}/pull?since=${sinceTimestamp}${waitParam}`,
+      `${backendUrl}/sync/pull?since=${sinceTimestamp}${waitParam}`,
       {
         headers: {
           'X-Sync-Group-ID': groupId,
@@ -218,7 +225,8 @@ export async function pushLocalEvents(events: AppEvent[]): Promise<boolean> {
       );
     }
 
-    const response = await fetch(`${SYNC_API_URL}/push`, {
+    const backendUrl = getBackendUrl();
+    const response = await fetch(`${backendUrl}/sync/push`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -262,7 +270,8 @@ export async function syncWithServer(
   // We'll await to ensure account exists before sync might need it (e.g. for credits check later)
   try {
     // In production, use env var. Hardcoded for dev/demo as requested.
-    await fetch('http://localhost:4500/api/users/sync-register', {
+    const backendUrl = getBackendUrl();
+    await fetch(`${backendUrl}/users/sync-register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ syncGroupId: groupId }),
