@@ -19,7 +19,7 @@ COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
 RUN pnpm install --prod --frozen-lockfile --filter backend...
 
 WORKDIR /app/apps/backend
-ENV PORT=4000
-EXPOSE 4000
+ENV PORT=4500
+EXPOSE 4500
 
 CMD ["node", "dist/server.js"]
