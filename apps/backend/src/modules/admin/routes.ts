@@ -106,6 +106,18 @@ export async function adminRoutes(fastify: FastifyInstance) {
         }
     );
 
+    // Check Auth Status (Simple loggedIn flag)
+    app.get(
+        '/me',
+        async (req, reply) => {
+            const email = req.cookies.admin_session;
+            if (email === process.env.ADMIN_EMAIL) {
+                return { loggedIn: true, email };
+            }
+            return { loggedIn: false };
+        }
+    );
+
     // Logout
     app.post(
         '/logout',

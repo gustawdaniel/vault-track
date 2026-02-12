@@ -4,11 +4,7 @@ import { useHead } from '#app';
 // vue3-google-login plugin handles script injection.
 
 useHead({
-    title: 'Admin - Open Cash Manager',
-    meta: [
-        { name: 'viewport', content: 'width=device-width, initial-scale=1' }
-    ],
-    script: []
+    // Head config moved to nuxt.config.ts
 })
 </script>
 
