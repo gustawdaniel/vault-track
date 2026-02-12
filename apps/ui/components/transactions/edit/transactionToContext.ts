@@ -5,7 +5,7 @@ import type {
   CommonTransactionContext,
   TransactionContext,
   TransferContext,
-  SplitContext,
+  // SplitContext,
 } from './types';
 import {
   type FullTransaction,
@@ -45,7 +45,7 @@ export function transactionToContext(
       payee: t.payee,
     }));
 
-    const totalAmount = splits.reduce((sum, s) => sum + s.amount, 0);
+    // const totalAmount = splits.reduce((sum, s) => sum + s.amount, 0);
 
     return {
       ...common,

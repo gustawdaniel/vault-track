@@ -1,4 +1,3 @@
-import assert from 'node:assert';
 import { it, expect, describe, beforeEach } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { useCategoryStore } from '~/store/category';
@@ -23,10 +22,10 @@ describe('categories', () => {
     // Let's check my logic in tree getter:
     // .map(c => ({...root, children: buildTree(children)}))
     // I did NOT strip the category name in buildTree. So it should be full name.
-    // Wait, the UI expects stripped names for display? 
+    // Wait, the UI expects stripped names for display?
     // The previous implementation stripped names: category: c.category.substring(r.category.length + 1)
     // My new implementation does NOT strip names. This might break UI display labels.
-    // I should fix this in the store or UI. 
+    // I should fix this in the store or UI.
     // Usually UI wants just the leaf name.
 
     // Let's verify what I implemented:
