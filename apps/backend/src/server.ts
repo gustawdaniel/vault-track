@@ -78,6 +78,10 @@ const start = async () => {
             return { status: 'ok', timestamp: new Date().toISOString() };
         });
 
+        server.get('/', async () => {
+            return { app: 'VaultTrack API', version: '0.1.0' };
+        });
+
         // Modules
         await server.register(currencyRoutes, { prefix: '/api/currency' });
         await server.register(usersRoutes, { prefix: '/api/users' });
