@@ -2,8 +2,12 @@ import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import fastifyCookie from '@fastify/cookie';
 import { jsonSchemaTransform, serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { currencyRoutes } from './modules/currency/routes';
+import { usersRoutes } from './modules/users/routes';
+import { adminRoutes } from './modules/admin/routes';
+import { initDB } from './db/client';
 
 const server: FastifyInstance = Fastify({
     logger: true
@@ -15,9 +19,18 @@ server.setSerializerCompiler(serializerCompiler);
 
 const start = async () => {
     try {
+        // Init DB Schema
+        await initDB();
+
         // Plugins
         await server.register(cors, {
-            origin: '*', // TODO: locking down in production
+            origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:5000'], // Allow Admin UI and App UI
+            credentials: true,
+        });
+
+        await server.register(fastifyCookie, {
+            secret: process.env.COOKIE_SECRET || 'changeme',
+            parseOptions: {}, // options for parsing cookies
         });
 
         await server.register(swagger, {
@@ -41,10 +54,10 @@ const start = async () => {
             return { status: 'ok', timestamp: new Date().toISOString() };
         });
 
-        // Currency
+        // Modules
         await server.register(currencyRoutes, { prefix: '/api/currency' });
-
-        // TODO: Register modules (Auth, LLM)
+        await server.register(usersRoutes, { prefix: '/api/users' });
+        await server.register(adminRoutes, { prefix: '/api/admin' });
 
         const port = parseInt(process.env.PORT || '4000', 10);
         await server.listen({ port, host: '0.0.0.0' });

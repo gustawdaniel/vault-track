@@ -258,6 +258,20 @@ export async function syncWithServer(
   const groupId = await getGroupIdAsync();
   if (!groupId) return null;
 
+  // Register user with backend (fire and forget or await?)
+  // We'll await to ensure account exists before sync might need it (e.g. for credits check later)
+  try {
+    // In production, use env var. Hardcoded for dev/demo as requested.
+    await fetch('http://localhost:4000/api/users/sync-register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ syncGroupId: groupId }),
+    }).catch(err => console.error('[Sync] Backend registration failed', err));
+  } catch (e) {
+    // Ignore backend errors to not block sync
+    console.warn('[Sync] Failed to register user with backend', e);
+  }
+
   console.log('[Sync] syncWithServer called');
 
   // 0. Get current server cursor
