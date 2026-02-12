@@ -36,9 +36,10 @@ const start = async () => {
 
         // Plugins
         await server.register(cors, {
-            origin: true, // Allow all origins
+            origin: true, // Allow all origins by reflecting request origin
             credentials: true,
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+            allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Access-Control-Allow-Origin'],
         });
 
         await server.register(fastifyCookie, {
