@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { updateCategory } from '~/sync/manager';
 import { reactive, toRaw } from 'vue';
-import { PersistedCategory } from '~/store/category';
+import type { PersistedCategory } from '~/store/category';
 
 // Mock dependencies
 vi.mock('~/sync/deviceId', () => ({
