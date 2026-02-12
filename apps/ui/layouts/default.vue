@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { Disclosure } from '@headlessui/vue';
+
 import { useRoute } from '#app';
 import ExpandableListNavigationButtons from '~/components/expandableList/ExpandableListNavigationButtons.vue';
 
@@ -30,7 +30,7 @@ useHead({
 
 <template>
   <div>
-    <Disclosure as="nav" class="bg-white shadow">
+
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex h-16 justify-between">
           <NuxtLink class="flex" to="/">
@@ -56,7 +56,7 @@ useHead({
           />
         </div>
       </div>
-    </Disclosure>
+
 
     <slot />
   </div>
