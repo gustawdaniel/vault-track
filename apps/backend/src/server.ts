@@ -36,7 +36,7 @@ const start = async () => {
 
         // Plugins
         await server.register(cors, {
-            origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:5000'], // Allow Admin UI and App UI
+            origin: true, // Allow all origins
             credentials: true,
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
         });

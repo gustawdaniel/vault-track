@@ -25,6 +25,7 @@ const callback = async (response) => {
         if (res.success) {
             router.push('/');
         } else {
+            console.log(res);
             error.value = 'Login failed';
         }
     } catch (e: any) {
