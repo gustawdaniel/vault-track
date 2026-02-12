@@ -10,7 +10,35 @@ const openai = new OpenAI({
 
 import { db } from '../../db/client';
 
-// ... (existing imports)
+// Type definitions for LLM response
+interface LLMReceiptItem {
+    product_name: string;
+    final_price: number | string;
+    raw_line_text: string;
+    category_guess?: string;
+}
+
+interface LLMReceiptResult {
+    shop_name: string;
+    date: string;
+    receipt_total?: number | string;
+    items?: LLMReceiptItem[];
+}
+
+interface ReceiptSplit {
+    amount: number;
+    memo: string;
+    category: string;
+    payee: string;
+}
+
+interface ReceiptAnalysisResult {
+    payee: string;
+    date: string;
+    splits: ReceiptSplit[];
+    receipt_total?: number;
+    debug?: string;
+}
 
 export async function receiptsRoutes(fastify: FastifyInstance) {
     const app = fastify.withTypeProvider<ZodTypeProvider>();
@@ -119,17 +147,17 @@ Example JSON:
 
                 console.log('LLM Result (Raw):', content);
 
-                const llmResult = JSON.parse(content);
+                const llmResult = JSON.parse(content) as LLMReceiptResult;
 
                 // Map LLM result to App Model
-                const result: any = {
+                const result: ReceiptAnalysisResult = {
                     payee: llmResult.shop_name,
                     date: llmResult.date,
                     splits: []
                 };
 
                 if (llmResult.items && Array.isArray(llmResult.items)) {
-                    result.splits = llmResult.items.map((item: any) => {
+                    result.splits = llmResult.items.map((item: LLMReceiptItem) => {
                         // Handle potential string numbers with commas (e.g. "5,99")
                         const priceStr = String(item.final_price).replace(',', '.');
                         let amount = parseFloat(priceStr);
@@ -155,7 +183,7 @@ Example JSON:
                         };
                     })
                         // Filter out negative amounts (e.g. discounts that weren't applied to items)
-                        .filter((split: any) => split.amount > 0);
+                        .filter((split: ReceiptSplit) => split.amount > 0);
                 }
 
                 if (llmResult.receipt_total) {
@@ -166,10 +194,11 @@ Example JSON:
                 console.log('Processed Result:', JSON.stringify(result, null, 2));
 
                 return { ...result, debug: content };
-            } catch (error: any) {
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Failed to analyze receipt';
                 console.error('Analysis Error:', error);
                 req.log.error(error);
-                return reply.code(500).send({ error: error.message || 'Failed to analyze receipt' });
+                return reply.code(500).send({ error: errorMessage });
             }
         }
     );

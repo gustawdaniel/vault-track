@@ -15,7 +15,10 @@ export async function currencyRoutes(server: FastifyInstance) {
                     200: z.object({
                         base: z.string(),
                         date: z.string(),
-                        rates: z.record(z.number()),
+                        rates: z.record(z.string(), z.number()),
+                    }),
+                    502: z.object({
+                        error: z.string(),
                     }),
                 },
             },
