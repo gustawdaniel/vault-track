@@ -2,11 +2,17 @@
 import { ref, onMounted } from 'vue';
 import { useRuntimeConfig, useRouter } from '#app';
 
-const users = ref([]);
+const users = ref<any[]>([]);
 const loadingUsers = ref(false);
 const usersError = ref('');
 const config = useRuntimeConfig();
 const router = useRouter();
+
+// Edit Modal State
+const isEditModalOpen = ref(false);
+const editingUser = ref<any>(null);
+const editCreditsValue = ref(0);
+const savingCredits = ref(false);
 
 // Query State
 const sqlQuery = ref('SELECT * FROM users LIMIT 10');
@@ -25,7 +31,7 @@ const fetchUsers = async () => {
     loadingUsers.value = true;
     usersError.value = '';
     try {
-        const data = await $fetch(`${config.public.backendUrl}/users`, {
+        const data: any = await $fetch(`${config.public.backendUrl}/users`, {
             credentials: 'include',
         });
         users.value = data;
@@ -40,16 +46,28 @@ const fetchUsers = async () => {
     }
 };
 
-const updateCredits = async (userId: string, newCredits: number) => {
+const openEditModal = (user: any) => {
+    editingUser.value = user;
+    editCreditsValue.value = user.credits;
+    isEditModalOpen.value = true;
+};
+
+const saveCredits = async () => {
+    if (!editingUser.value) return;
+
+    savingCredits.value = true;
     try {
-        await $fetch(`${config.public.backendUrl}/users/${userId}/credits`, {
+        await $fetch(`${config.public.backendUrl}/users/${editingUser.value.id}/credits`, {
             method: 'PUT',
-            body: { credits: newCredits },
+            body: { credits: editCreditsValue.value },
             credentials: 'include',
         });
-        await fetchUsers(); // Refresh
+        isEditModalOpen.value = false;
+        await fetchUsers(); // Refresh list
     } catch (e: any) {
         alert(e.data?.error || 'Failed to update credits');
+    } finally {
+        savingCredits.value = false;
     }
 };
 
@@ -123,33 +141,28 @@ onMounted(() => {
                         { header: 'Created At', accessorKey: 'created_at', key: 'created_at', id: 'created_at' },
                         { header: 'Actions', key: 'actions', id: 'actions' },
                     ]" :data="users">
-                        <template #id-data="{ row }">
-                            <span class="font-mono text-xs" :title="row.id">
-                                {{ row.id.substring(0, 8) }}...{{ row.id.substring(row.id.length - 8) }}
+                        <template #id-cell="{ row }">
+                            <span class="font-mono text-xs" :title="row.original.id">
+                                {{ row.original.id.substring(0, 8) }}...{{
+                                    row.original.id.substring(row.original.id.length - 8) }}
                                 <UButton icon="i-heroicons-clipboard" size="2xs" variant="ghost" color="gray"
-                                    class="ml-1" @click="navigator.clipboard.writeText(row.id)" />
+                                    class="ml-1" @click="navigator.clipboard.writeText(row.original.id)" />
                             </span>
                         </template>
 
-                        <template #credits-data="{ row }">
-                            <span class="font-mono font-bold">{{ row.credits }}</span>
+                        <template #credits-cell="{ row }">
+                            <span
+                                class="font-mono font-bold cursor-pointer hover:text-primary-500 underline decoration-dashed"
+                                @click="openEditModal(row.original)" title="Click to edit">
+                                {{ row.original.credits }}
+                            </span>
                         </template>
 
-                        <template #actions-data="{ row }">
-                            <div class="flex items-center gap-2">
-                                <UInput type="number" v-model.number="row.newCredits" placeholder="Set" class="w-20"
-                                    size="xs" />
-                                <UButton size="xs" color="primary" variant="soft" @click="
-                                    updateCredits(
-                                        row.id,
-                                        row.newCredits !== undefined
-                                            ? row.newCredits
-                                            : row.credits,
-                                    )
-                                    " :disabled="row.newCredits === undefined">
-                                    Save
-                                </UButton>
-                            </div>
+                        <template #actions-cell="{ row }">
+                            <UButton size="xs" color="primary" variant="solid" icon="i-heroicons-pencil-square"
+                                @click="openEditModal(row.original)">
+                                Edit
+                            </UButton>
                         </template>
                     </UTable>
 
@@ -210,5 +223,28 @@ onMounted(() => {
                 </UCard>
             </template>
         </UTabs>
+
+        <!-- Edit Modal moved outside UTabs -->
+        <!-- Edit Modal moved outside UTabs -->
+        <UModal v-model:open="isEditModalOpen" title="Edit Credits"
+            description="Update the credit balance for this user.">
+            <template #body>
+                <div v-if="editingUser" class="space-y-4">
+                    <p class="text-sm text-gray-500">
+                        User ID: <span class="font-mono text-gray-700 dark:text-gray-300">{{ editingUser.id }}</span>
+                    </p>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Credits</label>
+                        <UInput type="number" v-model.number="editCreditsValue" />
+                    </div>
+                </div>
+            </template>
+
+            <template #footer>
+                <UButton color="gray" variant="ghost" @click="isEditModalOpen = false">Cancel</UButton>
+                <UButton color="primary" @click="saveCredits" :loading="savingCredits">Save</UButton>
+            </template>
+        </UModal>
     </div>
 </template>
