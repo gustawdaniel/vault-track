@@ -1,179 +1,152 @@
-# Open Cash Manager
+# VaultTrack
 
-Documentation:
+**Open Source Expense Management Application**
 
-https://docs.opencash.app
+[![Vercel](https://deploy-badge.vercel.app/?app=vault-track)](https://vaulttrack.org)
 
-Production:
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-https://opencash.app
+VaultTrack is a modern, privacy-focused, offline-first personal finance application inspired by tools like YNAB and GNUCash. It helps you track accounts, transactions, and budgets with a seamless multi-device experience.
 
-Beta:
-
-https://gustawdaniel.github.io/open_cash_manager
-
-## Below there are dev notes, real documentation was linked above:
-
-#### About Sync plans
-
-UI (pinia) -> stream of atomic operations
-
-First operation: account creation for unique id. This operation has assigned uuid by server.
-
-Next, if you want to save, then send prev hash
-if it is different then you will get all operations from lash hash that you remember.
-
-then:
-a) revert your operations to this hash
-b) apply operations from server
-c) apply your operations
-
-So any operation should be reversible.
-
-In case of creation, reverse operation is deletion
-In case of deletion, reversing operation should contain all deleted object properties to create is again
-In case of update we need snapshot before update and after update
-
-All resources have:
-a) collection
-b) id
-c) data (general json)
-
-op: c|u|d (create update delete)
-id: uuid|mongoid
-c: collection
-0: initial state (without id)
-1: final state (without id)
+**[Live Demo](https://vaulttrack.org)** | **[Documentation](https://docs.vaulttrack.org)**
 
 ---
 
-You should be able to download all by websocket and http to be updated
+## 🚀 Key Features
 
-Backup of data should be available also, so you generally need data and last snapshot id for pure restore.
-Last id should be attached to any server response.
+*   **Offline-First & Real-Time Sync**: 
+    *   Works completely offline using `IndexedDB`.
+    *   Synchronizes data between devices in near real-time using an Event Sourcing architecture (Long Polling + WebSockets equivalent).
+    *   Conflict-free data merging.
+*   **Multi-Device**: Seamlessly switch between desktop and mobile.
+*   **Privacy Focused**: Your data belongs to you. No third-party tracking.
+*   **Comprehensive Tracking**:
+    *   Manage multiple accounts (Cash, Bank, Investment, etc.).
+    *   Track income, expenses, and transfers.
+    *   Multi-currency support with automatic exchange rate handling.
+    *   Categories and Projects organization.
+*   **Import/Export**:
+    *   Full QIF (Quicken Interchange Format) import support.
+    *   JSON backup and restore.
 
-Steps:
+## 🛠 Tech Stack
 
-- create front
-- create qif import
-- create qif export
-- create backend
-- create account
+*   **Framework**: [Nuxt 3](https://nuxt.com) (Vue 3)
+*   **UI Library**: [Nuxt UI](https://ui.nuxt.com) + [TailwindCSS](https://tailwindcss.com)
+*   **State Management**: [Pinia](https://pinia.vuejs.org) + [VueUse](https://vueuse.org)
+*   **Database (Client)**: `IndexedDB` (via `idb`)
+*   **Sync Engine**: Custom Event Sourcing engine with "Long Polling + Immediate Push".
+*   **Testing**: Vitest
 
+## 📦 Getting Started
 
+### Prerequisites
 
+*   Node.js (v24+)
+*   pnpm (v9+)
 
----
+### Installation
 
-# Debug mode
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/gustawdaniel/vault-track.git
+    cd vault-track
+    ```
 
-Paste in console
+2.  **Install dependencies:**
+    ```bash
+    pnpm install
+    ```
 
-```
-postMessage({debug: false})
-postMessage({debug: true})
+3.  **Start the development server:**
+    ```bash
+    pnpm dev --filter ui
+    ```
+    The app will be available at `http://localhost:3000`.
+
+### Building for Production
+
+```bash
+pnpm build
 ```
 
-Next tasks:
+## 🏗 Architecture
 
-- split
-    - amount
-    - type Expense, Income, Transfer to, Transfer from
-    - category
-    - project
-    - memo
+### Offline Sync Engine
 
-- amountFrom
-- amountTo
-- exchange rate
-- toAccount
+VaultTrack uses a unique **Event Sourcing** approach for synchronization, designed to be robust and conflict-free without requiring complex server-side databases (can run on serverless edge functions):
 
-Next tasks:
-- budgets
-- schedules
-- search
-- reports
-- database
-- preferences
-- exchange rates
+1.  **Local First**: All actions (creating a transaction, updating an account) are strictly local first. They generate an "Event" (e.g., `TRANSACTION_ADDED`, `ACCOUNT_UPDATED`).
+2.  **Event Log**: These events are stored in `IndexedDB`.
+3.  **Synchronization**:
+    *   **Push**: The client debounces local changes and pushes new events to the server.
+    *   **Pull**: The client uses Long Polling to wait for new events from other devices.
+    *   **Merge**: Incoming events are merged into the local event log.
+    *   **Replay**: The application state (Balances, Lists) is rebuilt by replaying the event log (Reducer pattern).
+4.  **Idempotency**: All writes are idempotent, preventing duplicate data issues even with unstable network connections.
 
-Interesting design
-https://tailwindui.com/components/application-ui/feedback/empty-states
+### Directory Structure
 
-- [x] stats view over backup
-- [x] notification on success / fail
-- [x] confirm if remove all data
-- [x] disable backup if no data
+*   `apps/ui`: Main Nuxt 3 application.
+    *   `components`: Vue components.
+    *   `pages`: Application routes.
+    *   `store`: Pinia stores (Account, Transaction, etc.).
+    *   `sync`: Core synchronization logic (`db.ts`, `client.ts`, `manager.ts`, `reducer.ts`).
+    *   `server`: Server-side API routes for sync (`/api/sync/*`).
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1.  Fork the project.
+2.  Create your feature branch (`git checkout -b feature/AmazingFeature`).
+3.  Commit your changes (`git commit -m 'Add some AmazingFeature'`).
+4.  Push to the branch (`git push origin feature/AmazingFeature`).
+5.  Open a Pull Request.
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
-Main page:
+## 🗺️ Long Term Roadmap
 
-- demo
-- add account
-- description
-- wyszukiwanie po transakcjach
+Our development focus is strictly prioritized on the following key pillars:
 
-https://www.goodfirms.co/expense-management-software/blog/the-top-8-free-and-open-source-expense-management-software
+1.  **Full Feature Parity with CashDroid**
+    *   Bring back the complete feature set of the classic 2012 Android application, ensuring robust, proven functionality for personal finance management.
+    *   Includes: Recurring transactions, advanced filtering, and specific report types.
 
-Tax Pal
-https://salient.tailwindui.com/
+2.  **Advanced Visualization & Charts**
+    *   Implement comprehensive graphing capabilities to visualize spending trends, category breakdowns, and net worth evolution over time.
 
-Docs:
+3.  **Backend-Synchronized Exchange Rates**
+    *   Automatic synchronization of relative currency values via the backend.
+    *   Seamless handling of multi-currency portfolios with up-to-date rates.
 
-- https://github.com/nuxt-themes/docus
-- https://docus.dev/api/components
-- https://docus.dev/
-- https://content.nuxt.com/
-- https://nuxt.studio/?utm_source=content-site&utm_medium=section&utm_campaign=home
+4.  **Purchasing Power Analysis Layer (Inflation-Awareness)**
+    *   A unique analytical layer that allows users to view their finances in **Real Terms** vs **Nominal Terms**.
+    *   Analyze spending power relative to external economic metrics (e.g., Average Wage, Inflation/CPI baskets, Big Mac Index) rather than just raw currency numbers.
+    *   "How much of the average national wage did I spend on groceries in 2015 vs today?"
 
-- Screenshots on landing
-- Setup Page
-- Guides
+Sqlite
 
-Charts:
+```
+# Open the database
+sqlite3 apps/ui/local.db
 
-https://flowbite.com/docs/plugins/charts/
+# List tables to verify
+.tables
+# Output should be: events
 
-add videos with instructions:
+# See data
+SELECT * FROM events;
+# (or nicer formatting)
+.mode column
+.headers on
+SELECT * FROM events LIMIT 5;
 
-Vidyard
-https://secure.vidyard.com/organizations/3506184/library
-
-Next tasks:
-
-- Guide
-- Screenshot on landing
-- Redesign for full screen
-- Import transaction from json files
-
-For publication, we need:
-
-- redesign
-- screenshot
-- guide
-
-Docs edition:
-
-https://nuxt.studio/@gustawdaniel/open-cash-manager/studio/content?valueId=0.index.md&refId=main
-
-
-Next task:
-- replace tailwind icon by our logo
-
-
-
-I have implemented the Split Transaction feature.
-
-Key Changes:
-
-Data Model: Added splitId to transaction interfaces and store.
-UI: Implemented a split editor in SingleTransactionEdit.vue with validation and category suggestions.
-Display: Updated the transaction list to group split transactions into a single entry.
-You can now test the feature in the running application. I've created a walkthrough.md with detailed testing instructions.
-
-Walkthrough
-Open
-Walkthrough of the new Split Transaction feature, explaining how to use it and the changes made to the codebase.
-Good
-Bad
+# Exit
+.quit
+```

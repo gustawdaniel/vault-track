@@ -1,44 +1,10 @@
 <script lang="ts" setup>
-import { uid } from 'uid';
 import { useDialog } from '~/store/dialog';
+import { useCategoryStore } from '~/store/category';
 import ConfirmDelete from '~/components/dialog/ConfirmDelete.vue';
-import HoveredSelectableOptionsList, {
-  type MenuOption,
-} from '~/components/menu/HoveredSelectableOptionsList.vue';
-import { useContextMenuStore } from '~/store/contextMenu';
+// import { useContextMenuStore } from '~/store/contextMenu';
 
-const contextMenuStore = useContextMenuStore();
-
-const virtualElement = ref({ getBoundingClientRect: () => ({}) });
-
-const contextMenuId = ref<string>(uid());
-
-function onContextMenu() {
-  const { x, y } = useMouse();
-  const { y: windowY } = useWindowScroll();
-
-  const top = unref(y) - unref(windowY);
-  const left = unref(x);
-  virtualElement.value.getBoundingClientRect = () => ({
-    width: 0,
-    height: 0,
-    top,
-    left,
-  });
-
-  contextMenuStore.setId(contextMenuId.value);
-}
-
-const isOpen = computed<boolean>(() => {
-  return contextMenuStore.id === contextMenuId.value;
-});
-
-// ok
-function setId(isOpen: boolean) {
-  if (!isOpen) {
-    contextMenuStore.close();
-  }
-}
+// const contextMenuStore = useContextMenuStore();
 
 export type ContextualResource =
   | 'account'
@@ -51,148 +17,117 @@ const props = defineProps<{
   id: string;
 }>();
 
-const options = computed<MenuOption[]>(() => {
+// const router = useRouter(); // Hoist router
+const dialog = useDialog(); // Hoist dialog controller
+
+// Helper to capitalize first letter
+function ucFirst(str: string) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+const options = computed(() => {
+  const opts = [];
   switch (props.resource) {
     case 'project':
-      return [
+      opts.push(
         {
-          id: 'edit',
-          name: 'Edit project',
-          click: () => {
-            contextMenuStore.close();
-            const router = useRouter();
-            router.push(`/project/${props.id}`);
-          },
+          label: 'Edit project',
+          to: `/project/${props.id}`,
         },
         {
-          id: 'delete',
-          name: 'Delete project',
-          click: () => {
-            const dialog = useDialog();
+          label: 'Delete project',
+          onSelect: () => {
             dialog.openDialog(ConfirmDelete, {
               resource: props.resource,
               id: props.id,
+            }, {
+              title: 'Delete Project',
+              description: 'Are you sure you want to delete this project?'
             });
+          },
+        }
+      );
+      break;
+    case 'category': {
+      const categoryStore = useCategoryStore();
+      const category = categoryStore.getById(props.id);
 
-            contextMenuStore.close();
-          },
-        },
-      ];
-    case 'category':
-      return [
+      opts.push(
         {
-          id: 'edit',
-          name: 'Edit category',
-          click: () => {
-            contextMenuStore.close();
-            const router = useRouter();
-            router.push(`/category/${props.id}`);
-          },
+          label: 'Edit category',
+          to: `/category/${props.id}`,
         },
         {
-          id: 'delete',
-          name: 'Delete account',
-          click: () => {
-            const dialog = useDialog();
+          label: 'Add subcategory',
+          to: `/category/new?parent=${category?.id}`,
+          disabled: !category,
+        },
+        {
+          label: 'Delete category',
+          onSelect: () => {
             dialog.openDialog(ConfirmDelete, {
               resource: props.resource,
               id: props.id,
+            }, {
+              title: 'Delete Category',
+              description: 'Are you sure you want to delete this category?'
             });
-
-            contextMenuStore.close();
           },
-        },
-      ];
+        }
+      );
+      break;
+    }
     case 'account':
-      return [
+      opts.push(
         {
-          id: 'edit',
-          name: 'Edit account',
-          click: () => {
-            contextMenuStore.close();
-            const router = useRouter();
-            router.push(`/account/${props.id}?edit=1`);
-          },
+          label: 'Edit account',
+          to: `/account/${props.id}?edit=1`,
         },
         {
-          id: 'delete',
-          name: 'Delete account',
-          click: () => {
-            const dialog = useDialog();
+          label: 'Delete account',
+          onSelect: () => {
             dialog.openDialog(ConfirmDelete, {
               resource: props.resource,
               id: props.id,
+            }, {
+              title: 'Delete Account',
+              description: 'Are you sure you want to delete this account?'
             });
-
-            contextMenuStore.close();
           },
-        },
-        // TODO: add Show closed/hidden
-        // {
-        //   id: 'show-hide',
-        //   name: 'Show closed/hidden',
-        //   click: () => {
-        //                 contextMenuStore.close();
-        //   },
-        // },
-      ];
+        }
+      );
+      break;
     case 'transaction':
-      return [
-        // TODO: add edit
-        // {
-        //   id: 'edit',
-        //   name: 'Edit transaction',
-        //   click: () => {
-        //                 contextMenuStore.close();
-        //   },
-        // },
+      opts.push(
         {
-          id: 'delete',
-          name: 'Delete transaction',
-          click: () => {
-            const dialog = useDialog();
+          label: 'Delete transaction',
+          onSelect: () => {
             dialog.openDialog(ConfirmDelete, {
               resource: props.resource,
               id: props.id,
+            }, {
+              title: 'Delete Transaction',
+              description: 'Are you sure you want to delete this transaction?'
             });
-
-            contextMenuStore.close();
           },
         },
         {
-          id: 'copy',
-          name: 'Copy transaction',
-          click: () => {
-            contextMenuStore.close();
-            const router = useRouter();
-            router.push(`/transaction/new?copy=${props.id}`);
-          },
-        },
-        //   TODO: add schedule
-        // {
-        //   id: 'schedule',
-        //   name: 'Create schedule',
-        //   click: () => {
-        //                 contextMenuStore.close();
-        //   },
-        // },
-      ];
+          label: 'Copy transaction',
+          to: `/transaction/new?copy=${props.id}`,
+        }
+      );
+      break;
   }
+  return [opts];
 });
 </script>
 
 <template>
-  <div @contextmenu.prevent="onContextMenu">
-    <UContextMenu
-      :model-value="isOpen"
-      :virtual-element="virtualElement"
-      @update:model-value="setId"
-    >
-      <HoveredSelectableOptionsList :options="options" />
-    </UContextMenu>
-
+  <UContextMenu :items="options" :ui="{
+    content: 'min-w-48 bg-white dark:bg-gray-900 shadow-xl ring-1 ring-gray-200 dark:ring-gray-800 rounded-lg overflow-hidden'
+  }">
     <slot />
-  </div>
+  </UContextMenu>
 </template>
 
 <style scoped></style>

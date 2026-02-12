@@ -7,10 +7,23 @@ const NEW_CATEGORY_ID = 'new';
 const route = useRoute();
 const categoryId: string = String(route.params.id);
 const categoryStore = useCategoryStore();
-const category =
-  categoryId === NEW_CATEGORY_ID
-    ? categoryStore.getNew()
-    : categoryStore.getById(categoryId);
+
+const getInitialCategory = () => {
+  if (categoryId === NEW_CATEGORY_ID) {
+    const parentId = route.query.parent as string | undefined;
+    const newCat = categoryStore.getNew();
+    if (parentId) {
+      const parentCategory = categoryStore.getById(parentId);
+      if (parentCategory) {
+        newCat.category = `${parentCategory.category}:`;
+      }
+    }
+    return newCat;
+  }
+  return categoryStore.getById(categoryId);
+};
+
+const category = getInitialCategory();
 </script>
 
 <template>

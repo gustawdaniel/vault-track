@@ -1,19 +1,18 @@
 <script lang="ts" setup>
-import { ref, computed } from 'vue';
-import type { FormError, FormSubmitEvent } from '#ui/types';
+import { ref } from 'vue';
+import type { FormError, FormSubmitEvent } from '@nuxt/ui';
 import type {
   ComputedNormalAccount,
   ComputedTransferAccounts,
   TransactionContext,
   SplitContext,
 } from './edit/types';
-import {
-  type FullTransaction,
-  type NormalTransactionContextType,
-  useTransactionStore,
-} from '~/store/transaction';
+import type {
+  FullTransaction,
+  NormalTransactionContextType,
+} from '~/store/transaction.model';
+import { useTransactionStore } from '~/store/transaction';
 import { useAccountStore } from '~/store/account';
-import { useCategoryStore } from '~/store/category';
 import CategoryPicker from '~/components/category/CategoryPicker.vue';
 import AmountInput from '~/components/transactions/input/AmountInput.vue';
 import AccountPicker from '~/components/transactions/input/AccountPicker.vue';
@@ -83,9 +82,11 @@ function submit(event: FormSubmitEvent<TransactionContext>) {
 
   // Handle deletions for split transactions
   if (props.transaction.splitId) {
-    const siblings = transactionStore.getSiblingsBySplitId(props.transaction.splitId);
+    const siblings = transactionStore.getSiblingsBySplitId(
+      props.transaction.splitId,
+    );
     const updatedIds = Array.from(updates.keys());
-    
+
     for (const sibling of siblings) {
       if (!updatedIds.includes(sibling.id)) {
         transactionStore.delete(sibling.id);
@@ -113,19 +114,25 @@ function setType(newType: NormalTransactionContextType | 'transfer' | 'split') {
   if (state.value.type === newType) return;
 
   if (newType === 'split') {
-     Object.assign(state.value, transformNormalToSplit(state.value));
+    Object.assign(state.value, transformNormalToSplit(state.value));
   } else if (state.value.type === 'split') {
-     // Converting from split to something else
-     const normalState = transformSplitToNormal(state.value);
-     if (newType === 'transfer') {
-         Object.assign(state.value, transformNormalStateToTransfer(normalState as any)); 
-         // Need to verify if normalState is compatible. Yes, it returns NormalTransactionContext props.
-         // But transformNormalStateToTransfer expects TransactionContext.
-         const tempState = { ...state.value, ...normalState, type: 'expense' }; // Assume expense base
-         Object.assign(state.value, transformNormalStateToTransfer(tempState as any));
-     } else {
-         Object.assign(state.value, normalState);
-     }
+    // Converting from split to something else
+    const normalState = transformSplitToNormal(state.value);
+    if (newType === 'transfer') {
+      Object.assign(
+        state.value,
+        transformNormalStateToTransfer(normalState as any),
+      );
+      // Need to verify if normalState is compatible. Yes, it returns NormalTransactionContext props.
+      // But transformNormalStateToTransfer expects TransactionContext.
+      const tempState = { ...state.value, ...normalState, type: 'expense' }; // Assume expense base
+      Object.assign(
+        state.value,
+        transformNormalStateToTransfer(tempState as any),
+      );
+    } else {
+      Object.assign(state.value, normalState);
+    }
   } else if (
     (state.value.type === 'expense' || state.value.type === 'income') &&
     newType === 'transfer'
@@ -140,20 +147,53 @@ function setType(newType: NormalTransactionContextType | 'transfer' | 'split') {
   state.value.type = newType;
 }
 
+// function setType(newType: NormalTransactionContextType | 'transfer') {
+//   if (
+//     (state.value.type === 'expense' || state.value.type === 'income') &&
+//     newType === 'transfer'
+//   ) {
+//     Object.assign(state.value, transformNormalStateToTransfer(state.value));
+//   } else if (
+//     state.value.type === 'transfer' &&
+//     (newType === 'expense' || newType === 'income')
+//   ) {
+//     Object.assign(state.value, transformTransferStateToNormal(state.value));
+//   }
+//   state.value.type = newType;
+// }
+
+const transactionStore = useTransactionStore();
+
+const autoCategorize = useDebounceFn((payee: string) => {
+  if (!payee) return;
+
+  const category = transactionStore.getCategoryByPayee(payee);
+  if (category && 'categoryName' in state.value) {
+    state.value.categoryName = category;
+  }
+}, 150);
+
+watch(
+  () => state.value.payee,
+  (newPayee) => {
+    if (newPayee) autoCategorize(newPayee);
+  },
+);
+
 // Split Transaction Computed Properties
 const splitTotal = computed(() => {
   if (state.value.type !== 'split') return 0;
   return state.value.splits.reduce((sum, s) => sum + s.amount, 0);
 });
 
-// We need a master amount for Split. 
-// In existing Cash Droid logic: "Transaction... dividing... into multiple...". 
+// We need a master amount for Split.
+// In existing Cash Droid logic: "Transaction... dividing... into multiple...".
 // Usually you enter Total Amount first, then split it.
 // So we need a "Total Amount" field in Split mode.
 // We can store it in `state.value`? `SplitContext` doesn't have `totalAmount`.
 // I should add it to `SplitContext` or manage it locally if it's UI only.
 // If I add it to `SplitContext`, I need to update `types.ts`.
-// For now, let's derive it from the FIRST split amount or just add a local ref? 
+// For now, let's derive it from the FIRST split amount or just add a local ref?
 // No, local ref is bad when switching types.
 // I'll add `totalAmount` to local state for Split mode?
 // Or assume `splitTotal` MUST equal some target?
@@ -178,68 +218,80 @@ const splitTotal = computed(() => {
 // So we MUST have a `masterAmount`.
 
 // Let's use `state` extension or just add it to types?
-// I will adding `masterAmount` to `SplitContext` is cleanest. 
+// I will adding `masterAmount` to `SplitContext` is cleanest.
 // I will duplicate `state` for now to avoid type errors in this view until I fix types.
 // Actually, I can casts.
 // `(state.value as any).masterAmount`
 
 const splitMasterAmount = ref(0); // Sync this when entering split mode
 
-watch(() => state.value.type, (newType, oldType) => {
+watch(
+  () => state.value.type,
+  (newType, oldType) => {
     if (newType === 'split') {
-        if (oldType === 'income' || oldType === 'expense') {
-             splitMasterAmount.value = (state.value as any).absoluteAmount || 0;
-        } else if (oldType === 'transfer') {
-             splitMasterAmount.value = (state.value as any).fromAbsoluteAmount || 0;
-        } else {
-             // Already split or init?
-             const s = state.value as SplitContext;
-             splitMasterAmount.value = s.splits.reduce((sum, sp) => sum + sp.amount, 0);
-        }
+      if (oldType === 'income' || oldType === 'expense') {
+        splitMasterAmount.value = (state.value as any).absoluteAmount || 0;
+      } else if (oldType === 'transfer') {
+        splitMasterAmount.value = (state.value as any).fromAbsoluteAmount || 0;
+      } else {
+        // Already split or init?
+        const s = state.value as SplitContext;
+        splitMasterAmount.value = s.splits.reduce(
+          (sum, sp) => sum + sp.amount,
+          0,
+        );
+      }
     }
-}, { immediate: true });
+  },
+  { immediate: true },
+);
 
 const splitRemaining = computed(() => {
-    if (state.value.type !== 'split') return 0;
-    return splitMasterAmount.value - splitTotal.value;
+  if (state.value.type !== 'split') return 0;
+  return splitMasterAmount.value - splitTotal.value;
 });
 
 const isSplitValid = computed(() => {
-    if (state.value.type !== 'split') return true;
-    return Math.abs(splitRemaining.value) < 0.01 && state.value.splits.every(s => s.amount > 0 && s.category);
+  if (state.value.type !== 'split') return true;
+  return (
+    Math.abs(splitRemaining.value) < 0.01 &&
+    state.value.splits.every((s) => s.amount > 0 && s.category)
+  );
 });
 
 function addSplit() {
-    if (state.value.type !== 'split') return;
-    state.value.splits.push({
-        id: uid(),
-        amount: splitRemaining.value > 0 ? splitRemaining.value : 0,
-        category: undefined,
-        memo: '',
-        payee: ''
-    });
+  if (state.value.type !== 'split') return;
+  state.value.splits.push({
+    id: uid(),
+    amount: splitRemaining.value > 0 ? splitRemaining.value : 0,
+    category: undefined,
+    memo: '',
+    payee: '',
+  });
 }
 
 function removeSplit(index: number) {
-    if (state.value.type !== 'split') return;
-    state.value.splits.splice(index, 1);
+  if (state.value.type !== 'split') return;
+  state.value.splits.splice(index, 1);
 }
 
 function suggestCategory(splitIndex: number) {
-    if (state.value.type !== 'split') return;
-    const split = state.value.splits[splitIndex];
-    // If split has no payee, maybe fall back to master payee? 
-    // User said master payee might just be splitId.
-    // So let's rely on split payee.
-    const payee = split.payee || state.value.payee; 
-    
-    if (!payee) return;
-    
-    const transactionStore = useTransactionStore();
-    const suggestion = transactionStore.getSuggestedCategory(payee);
-    if (suggestion) {
-        state.value.splits[splitIndex].category = suggestion;
-    }
+  if (state.value.type !== 'split') return;
+  const split = state.value.splits[splitIndex];
+  // If split has no payee, maybe fall back to master payee?
+  // User said master payee might just be splitId.
+  // So let's rely on split payee.
+  if (!split) return;
+
+  const payee = split.payee || state.value.payee;
+
+  if (!payee) return;
+
+  const transactionStore = useTransactionStore();
+  const suggestion = transactionStore.getSuggestedCategory(payee);
+  if (suggestion) {
+    state.value.splits[splitIndex].category = suggestion;
+  }
 }
 </script>
 
@@ -251,21 +303,31 @@ function suggestCategory(splitIndex: number) {
   </div>
 
   <AppContainer>
-    <UCard :ui="{ base: '' }">
+    <UCard>
       <UForm :state="state" :validate="validate" @submit="submit">
-        <UFormGroup :label="state.type === 'split' ? 'Group Name' : 'Payee/Item'" name="payee">
-          <UInput v-model="state.payee" :placeholder="state.type === 'split' ? 'Optional group name' : ''" /> 
+        <UFormGroup
+          :label="state.type === 'split' ? 'Group Name' : 'Payee/Item'"
+          name="payee"
+        >
+          <UInput
+            v-model="state.payee"
+            :placeholder="state.type === 'split' ? 'Optional group name' : ''"
+          />
         </UFormGroup>
         <!-- Hide Master Payee in split mode, or keep as 'Group Name'? -->
         <!-- User said 'master payee can be just splitId'. implies we don't need to show it? -->
         <!-- But currently 'transactionToContext' puts something there. -->
         <!-- I will hide it or rename it? -->
         <!-- Let's hide it for now as per "master payee can be just splitId" -->
-        
+
         <div class="grid gap-6 grid-cols-2">
-            <!-- Account Picker (Shared) -->
-           <AccountPicker
-            v-if="state.type === 'income' || state.type === 'expense' || state.type === 'split'"
+          <!-- Account Picker (Shared) -->
+          <AccountPicker
+            v-if="
+              state.type === 'income' ||
+              state.type === 'expense' ||
+              state.type === 'split'
+            "
             v-model="state.accountId"
             :name="currentNormalAccount?.name"
           />
@@ -281,13 +343,13 @@ function suggestCategory(splitIndex: number) {
         </div>
 
         <div class="grid gap-6 grid-cols-2">
-            <!-- Amount Input -->
+          <!-- Amount Input -->
           <AmountInput
             v-if="state.type === 'income' || state.type === 'expense'"
             v-model="state.absoluteAmount"
             :currency="currentNormalAccount?.currency"
           />
-          
+
           <AmountInput
             v-else-if="state.type === 'split'"
             v-model="splitMasterAmount"
@@ -305,23 +367,24 @@ function suggestCategory(splitIndex: number) {
         </div>
 
         <!-- Normal Mode Inputs -->
-        <div class="grid gap-6 grid-cols-2" v-if="state.type === 'income' || state.type === 'expense'">
-          <CategoryPicker
-            v-model="state.categoryName"
-          />
-           <ProjectPicker v-model="state.projectName" />
+        <div
+          v-if="state.type === 'income' || state.type === 'expense'"
+          class="grid gap-6 grid-cols-2"
+        >
+          <CategoryPicker v-model="state.categoryName" />
+          <ProjectPicker v-model="state.projectName" />
         </div>
 
         <!-- Transfer Mode Inputs -->
-         <div class="grid gap-6 grid-cols-2" v-if="state.type === 'transfer'">
-           <AccountPicker
+        <div v-if="state.type === 'transfer'" class="grid gap-6 grid-cols-2">
+          <AccountPicker
             v-model="state.toAccountId"
             :name="transferAccount.to?.name"
             label="To Account"
           />
-           <ProjectPicker v-model="state.projectName" />
+          <ProjectPicker v-model="state.projectName" />
         </div>
-        
+
         <!-- Cleared Status for Normal -->
         <div
           v-if="state.type === 'income' || state.type === 'expense'"
@@ -331,39 +394,67 @@ function suggestCategory(splitIndex: number) {
         </div>
 
         <!-- Split Editor -->
-        <div v-if="state.type === 'split'" class="mt-4 border-t pt-4">
-             <div class="flex justify-between items-center mb-2">
-                <h3 class="font-bold">Splits</h3>
-                <div class="text-sm">
-                    <span :class="{'text-red-500': Math.abs(splitRemaining) > 0.01, 'text-green-500': Math.abs(splitRemaining) <= 0.01}">
-                        Remaining: {{ formatAmount(splitRemaining) }} {{ currentNormalAccount?.currency }}
-                    </span>
-                </div>
+        <div v-if="state.type === 'split'" class="my-4 border-t pt-4">
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="font-bold">Splits</h3>
+            <div class="text-sm">
+              <span
+                :class="{
+                  'text-red-500': Math.abs(splitRemaining) > 0.01,
+                  'text-green-500': Math.abs(splitRemaining) <= 0.01,
+                }"
+              >
+                Remaining: {{ formatAmount(splitRemaining) }}
+                {{ currentNormalAccount?.currency }}
+              </span>
             </div>
-            
-            <div v-for="(split, index) in state.splits" :key="split.id" class="grid grid-cols-1 md:grid-cols-12 gap-2 items-end mb-4 border-b pb-2">
-                 <UFormGroup label="Payee" class="md:col-span-3">
-                     <UInput v-model="split.payee" placeholder="Payee" @blur="suggestCategory(index)" />
-                 </UFormGroup>
+          </div>
 
-                 <CategoryPicker v-model="split.category" placeholder="Category" class="md:col-span-3" /> 
-                 
-                 <div class="md:col-span-2">
-                      <AmountInput v-model="split.amount" :currency="currentNormalAccount?.currency" />
-                 </div>
-                 
-                 <UFormGroup label="Memo" class="md:col-span-3">
-                     <UInput v-model="split.memo" placeholder="Memo" />
-                 </UFormGroup>
-                 
-                 <div class="md:col-span-1 flex justify-end">
-                    <UButton icon="i-heroicons-trash" color="red" variant="ghost" class="mb-0.5" @click="removeSplit(index)" />
-                 </div>
+          <div
+            v-for="(split, index) in state.splits"
+            :key="split.id"
+            class="grid grid-cols-1 md:grid-cols-12 gap-2 items-end mb-4 border-b border-gray-200 pb-2"
+          >
+            <UFormGroup label="Payee" class="md:col-span-3">
+              <UInput
+                v-model="split.payee"
+                placeholder="Payee"
+                @blur="suggestCategory(index)"
+              />
+            </UFormGroup>
+
+            <CategoryPicker
+              v-model="split.category"
+              placeholder="Category"
+              class="md:col-span-3"
+            />
+
+            <div class="md:col-span-2">
+              <AmountInput
+                v-model="split.amount"
+                :currency="currentNormalAccount?.currency"
+              />
             </div>
-            
-            <UButton icon="i-heroicons-plus" variant="soft" @click="addSplit">Add Split</UButton>
+
+            <UFormGroup label="Memo" class="md:col-span-3">
+              <UInput v-model="split.memo" placeholder="Memo" />
+            </UFormGroup>
+
+            <div class="md:col-span-1 flex justify-end">
+              <UButton
+                icon="i-heroicons-trash"
+                color="red"
+                variant="ghost"
+                class="mb-0.5"
+                @click="removeSplit(index)"
+              />
+            </div>
+          </div>
+
+          <UButton icon="i-heroicons-plus" variant="soft" @click="addSplit"
+            >Add Split</UButton
+          >
         </div>
-
 
         <!-- Transfer Exchange Rate & Status -->
         <div
@@ -400,13 +491,20 @@ function suggestCategory(splitIndex: number) {
           />
         </div>
 
-        <UFormGroup label="Memo" name="memo" v-if="state.type !== 'split'">
+        <UFormGroup v-if="state.type !== 'split'" label="Memo" name="memo">
           <UInput v-model="state.memo" />
         </UFormGroup>
-        
+
         <!-- Global memo for split? Or just hide it? Requirement says opcjonalny memo per split. Global memo might be useful for grouping ID derivation if we used it, but we use splitId. -->
-         <UFormGroup label="Group Memo" name="memo" v-if="state.type === 'split'">
-          <UInput v-model="state.memo" placeholder="Optional group description" />
+        <UFormGroup
+          v-if="state.type === 'split'"
+          label="Group Memo"
+          name="memo"
+        >
+          <UInput
+            v-model="state.memo"
+            placeholder="Optional group description"
+          />
         </UFormGroup>
 
         <div class="mt-2">

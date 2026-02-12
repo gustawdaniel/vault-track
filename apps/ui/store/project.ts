@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia';
 import { type RemovableRef, useLocalStorage } from '@vueuse/core/index';
 import { uid } from 'uid';
-import type { Transaction } from '~/store/transaction';
+import type { Transaction } from '~/store/transaction.model';
+import { createProject as syncCreateProject, updateProject as syncUpdateProject, deleteProject as syncDeleteProject } from '~/sync/manager';
 
 export interface Project {
   project: string;
@@ -56,6 +57,21 @@ export const useProjectStore = defineStore('project', {
     create(project: Project) {
       const pro = new Pro(project);
 
+      // Ensure parent project exists
+      if (pro.json.project.includes(':')) {
+        const parts = pro.json.project.split(':');
+        parts.pop();
+        const parentName = parts.join(':');
+
+        const parentIndex = this.$state.projects.findIndex(
+          (p) => p.project === parentName,
+        );
+        if (parentIndex === -1) {
+          const { id, ...rest } = pro.json;
+          this.create({ ...rest, project: parentName });
+        }
+      }
+
       const projectIndex = this.$state.projects.findIndex(
         (a) => a.project === project.project,
       );
@@ -67,8 +83,10 @@ export const useProjectStore = defineStore('project', {
           1,
           Object.assign(existing, project),
         );
+        syncUpdateProject(existing);
       } else {
         this.$state.projects.push(pro.json);
+        syncCreateProject(pro.json);
       }
     },
     update(id: string, project: Project) {
@@ -86,6 +104,7 @@ export const useProjectStore = defineStore('project', {
           });
         }
         this.$state.projects.splice(index, 1, pro.json);
+        syncUpdateProject(pro.json);
       } else {
         this.create(pro.json);
       }
@@ -102,6 +121,7 @@ export const useProjectStore = defineStore('project', {
         }
 
         this.$state.projects.splice(index, 1);
+        syncDeleteProject(id);
       }
     },
     getNew(): PersistedProject {
@@ -127,7 +147,12 @@ export const useProjectStore = defineStore('project', {
   },
   getters: {
     rootProjects(): PersistedProject[] {
-      return this.projects.reduce(
+      const sorted = [...this.projects].sort(
+        (a: PersistedProject, b: PersistedProject) =>
+          a.project.length - b.project.length,
+      );
+
+      return sorted.reduce(
         (rootProjects: PersistedProject[], p: PersistedProject) => {
           const colonIndex = p.project.indexOf(':');
 

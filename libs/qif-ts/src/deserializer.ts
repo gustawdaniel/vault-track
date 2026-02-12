@@ -1,11 +1,11 @@
 import {
   QIF_TYPE_STRINGS_MAP,
-  QifAccount,
-  QifAccountType,
-  QifData,
+  type QifAccount,
+  type QifAccountType,
+  type QifData,
   QifParserError,
-  QifSplit,
-  QifTransaction,
+  type QifSplit,
+  type QifTransaction,
   QifType,
 } from './types';
 

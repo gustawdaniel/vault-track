@@ -5,6 +5,7 @@ import { uid } from 'uid';
 import { z } from 'zod';
 import { useTransactionStore } from '~/store/transaction';
 import { type Currency, sumArray, getCurrency, sum } from '~/store/currency';
+import { createAccount as syncCreateAccount, updateAccount as syncUpdateAccount, deleteAccount as syncDeleteAccount, reorderAccounts as syncReorderAccounts } from '~/sync/manager';
 
 export type QifAccountType = 'Cash' | 'Bank' | 'CCard';
 
@@ -33,6 +34,7 @@ export interface Account extends Omit<QifAccount, 'type' | 'currency'> {
   type: AccountType;
   currency: Currency;
   id: string;
+  order?: number;
 }
 
 export interface ComputedAccount extends Account {
@@ -41,13 +43,18 @@ export interface ComputedAccount extends Account {
 
 interface State {
   accounts: RemovableRef<ComputedAccount[]>;
+  showHidden: RemovableRef<boolean>;
 }
 
 export const useAccountStore = defineStore('account', {
   state: (): State => ({
     accounts: useLocalStorage<ComputedAccount[]>('account', []),
+    showHidden: useLocalStorage<boolean>('account-show-hidden', false),
   }),
   actions: {
+    toggleShowHidden() {
+      this.showHidden = !this.showHidden;
+    },
     create(account: Omit<Account, 'id'>) {
       const index = this.$state.accounts.findIndex(
         (a) => a.name === account.name,
@@ -58,25 +65,34 @@ export const useAccountStore = defineStore('account', {
           ...account,
           balance: 0,
           currency: getCurrency(account.currency),
+          order: this.$state.accounts.length,
         };
 
         const p = AccountModel.safeParse(accountToSave);
-        if (p.success) this.$state.accounts.push(accountToSave);
+        if (p.success) {
+          this.$state.accounts.push(accountToSave);
+          syncCreateAccount(accountToSave);
+        }
         else {
           throw p.error;
         }
       } else {
-        this.$state.accounts.splice(
-          index,
-          1,
-          Object.assign(this.$state.accounts[index], account),
-        );
+        const existing = this.$state.accounts[index];
+        if (existing) {
+          const updated: ComputedAccount = {
+            ...existing,
+            ...account,
+          };
+          this.$state.accounts.splice(index, 1, updated);
+          syncUpdateAccount(updated);
+        }
       }
     },
     update(accountId: string, accountData: Omit<Account, 'id'>) {
       const index = this.getIndexById(accountId);
       if (index !== -1) {
         const foundAccount = this.$state.accounts[index];
+        if (!foundAccount) return;
 
         if (accountData.name !== foundAccount.name) {
           const transactionStore = useTransactionStore();
@@ -88,11 +104,17 @@ export const useAccountStore = defineStore('account', {
           });
         }
 
+        const updated: ComputedAccount = {
+          ...foundAccount,
+          ...accountData,
+        };
+
         this.$state.accounts.splice(
           index,
           1,
-          Object.assign(foundAccount, accountData),
+          updated,
         );
+        syncUpdateAccount(updated);
       } else {
         this.create(accountData);
       }
@@ -106,7 +128,14 @@ export const useAccountStore = defineStore('account', {
     delete(id: string): void {
       const index = this.getIndexById(id);
       if (index === -1) return;
+
+      // Cascade delete transactions
+      const transactionStore = useTransactionStore();
+      const transactions = transactionStore.getAllByAccountId(id);
+      transactions.forEach(tx => transactionStore.delete(tx.id));
+
       this.$state.accounts.splice(index, 1);
+      syncDeleteAccount(id);
     },
     getNew(): ComputedAccount {
       return {
@@ -153,7 +182,8 @@ export const useAccountStore = defineStore('account', {
     getFirstAccountIdToTransferFromName(accountName: string): string {
       if (!this.$state.accounts.length)
         throw new Error(`Cant find any account`);
-      if (this.$state.accounts.length === 1) return this.$state.accounts[0].id;
+      const firstAccount = this.$state.accounts[0];
+      if (this.$state.accounts.length === 1 && firstAccount) return firstAccount.id;
       const acc = this.$state.accounts.find((a) => a.name !== accountName);
       if (!acc) throw new Error(`Cant find reverse account to ${accountName}`);
       return acc.id;
@@ -162,6 +192,42 @@ export const useAccountStore = defineStore('account', {
       const acc = this.$state.accounts.find((a) => a.id !== id);
       if (!acc) throw new Error(`Account not found`);
       return acc.id;
+    },
+    reorder(reorderedAccounts: Account[]) {
+      // Get the current order values of the visible accounts and sort them
+      const currentOrders = reorderedAccounts
+        .map((a) => this.getById(a.id)?.order ?? 0)
+        .sort((a, b) => a - b);
+
+      // If we don't have orders (e.g. all 0), generate sequence relative to min or 0
+      if (currentOrders.every(o => o === 0) && reorderedAccounts.length > 0) {
+        reorderedAccounts.forEach((account, index) => {
+          const acc = this.getById(account.id);
+          if (acc) acc.order = index;
+        });
+        return;
+      }
+
+      // Re-assign these sorted order values to the accounts in their new sequence
+      reorderedAccounts.forEach((account, index) => {
+        const acc = this.getById(account.id);
+        if (acc) {
+          acc.order = currentOrders[index] !== undefined ? currentOrders[index] : index;
+        }
+      });
+
+      syncReorderAccounts(reorderedAccounts.map((a, i) => {
+        // Careful: we want to send the new order for each account ID.
+        // The local logic above already mutated the store.
+        // The event payload expects { accountId, order }.
+        const acc = this.getById(a.id);
+        return { accountId: a.id, order: acc?.order ?? i };
+      }));
+    },
+  },
+  getters: {
+    sortedAccounts: (state): ComputedAccount[] => {
+      return [...state.accounts].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     },
   },
 });

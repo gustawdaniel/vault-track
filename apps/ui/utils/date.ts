@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 
-export function toFullDate(short: string): string {
+export function toFullDate(short: string | Date): string {
   return dayjs(short).format('YYYY-MM-DDT00:00:00');
 }
 

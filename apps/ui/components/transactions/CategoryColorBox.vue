@@ -4,7 +4,7 @@ const props = defineProps<{ color: string; extended: boolean }>();
 
 <template>
   <div
-    :class="{ 'h-16': props.extended, 'h-12': !props.extended }"
+    :class="{ 'h-10': props.extended, 'h-8': !props.extended }"
     :style="{ backgroundColor: props.color }"
     class="w-2 border"
   />

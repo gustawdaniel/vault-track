@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { uid } from 'uid';
 import type { ComputedAccount } from '~/store/account';
-import type { FullTransaction, Transaction } from '~/store/transaction';
+import type { FullTransaction, Transaction } from '~/store/transaction.model';
 import { useTransactionStore } from '~/store/transaction';
 import { toShortDate } from '~/utils/date';
 import { formatAmount } from '~/utils/formatAmount';
@@ -49,6 +49,7 @@ function setupTransactionTimeline(): void {
       const exisingIndex = transactionsInThisGroup.findIndex(
         (t) =>
           t.amount === transaction.amount &&
+          'hash' in transaction &&
           Boolean(transaction.hash) !== Boolean(t.hash) &&
           !t.excluded,
       );
@@ -63,7 +64,9 @@ function setupTransactionTimeline(): void {
       };
 
       if (exisingIndex >= 0) {
-        transactionsInThisGroup[exisingIndex].excluded = true;
+        if(transactionsInThisGroup[exisingIndex]) {
+          transactionsInThisGroup[exisingIndex].excluded = true;
+        }
         transactionWithExclusionMark.excluded = true;
       }
 
@@ -124,43 +127,30 @@ function importTransactions() {
 
 <template>
   <div>
-    <UFormGroup label="Show/Hide excluded">
-      <UToggle v-model="showExcluded" color="primary" />
-    </UFormGroup>
+    <UFormField label="Show/Hide excluded">
+      <USwitch v-model="showExcluded" color="primary" />
+    </UFormField>
 
     <div class="grid grid-cols-2 gap-2">
       <div class="text-center font-bold">Existing transactions</div>
       <div class="text-center font-bold">Transactions to import</div>
     </div>
 
-    <div
-      v-for="[day, transactionsOfDay] of [...transactionTimeline.entries()]
-        .filter(
-          ([, transactions]) =>
-            showExcluded || transactions.some((t) => !t.excluded),
-        )
-        .sort((a, b) => b[0].localeCompare(a[0]))"
-      :key="day"
-      class="grid grid-cols-2 gap-2"
-    >
+    <div v-for="[day, transactionsOfDay] of [...transactionTimeline.entries()]
+      .filter(
+        ([, transactions]) =>
+          showExcluded || transactions.some((t) => !t.excluded),
+      )
+      .sort((a, b) => b[0].localeCompare(a[0]))" :key="day" class="grid grid-cols-2 gap-2">
       <div class="col-span-2 text-center text-gray-500 text-xs">
         {{ day }}
       </div>
       <div>
-        <div
-          v-for="(transaction, index) of transactionsOfDay
-            .filter((t) => 'hash' in t && (showExcluded || !t.excluded))
-            .sort((a, b) => a.amount - b.amount)"
-          :key="index"
-        >
-          <div
-            class="flex justify-between"
-            :class="transaction.excluded ? 'bg-gray-100' : ''"
-          >
-            <div
-              class="text-xs"
-              :class="transaction.excluded ? 'text-gray-400' : 'text-gray-600'"
-            >
+        <div v-for="(transaction, index) of transactionsOfDay
+          .filter((t) => 'hash' in t && (showExcluded || !t.excluded))
+          .sort((a, b) => a.amount - b.amount)" :key="index">
+          <div class="flex justify-between" :class="transaction.excluded ? 'bg-gray-100' : ''">
+            <div class="text-xs" :class="transaction.excluded ? 'text-gray-400' : 'text-gray-600'">
               <div>
                 {{ transaction.payee }}
                 <span v-if="transaction.memo" class="text-gray-400">/</span>
@@ -168,26 +158,14 @@ function importTransactions() {
               </div>
               <div>{{ transaction.category }}</div>
             </div>
-            <div
-              :style="
-                transaction.excluded
-                  ? `filter: brightness(150%) grayscale(80%)`
-                  : ''
-              "
-              class="whitespace-nowrap font-bold"
-              :class="textColorByAmount(transaction.amount)"
-            >
+            <div :style="transaction.excluded
+                ? `filter: brightness(150%) grayscale(80%)`
+                : ''
+              " class="whitespace-nowrap font-bold" :class="textColorByAmount(transaction.amount)">
               {{ formatAmount(transaction.amount ?? 0) }} {{ account.currency }}
-              <UButton
-                label="x"
-                title="Exclude / Include"
-                color="gray"
-                size="xs"
-                class="m-0 px-1 py-0"
-                @click="
-                  toggleExclusion(toShortDate(transaction.date), transaction.id)
-                "
-              />
+              <UButton label="x" title="Exclude / Include" color="neutral" size="xs" class="m-0 px-1 py-0" @click="
+                toggleExclusion(toShortDate(transaction.date), transaction.id)
+                " />
             </div>
           </div>
 
@@ -195,20 +173,11 @@ function importTransactions() {
         </div>
       </div>
       <div>
-        <div
-          v-for="(transaction, index) of transactionsOfDay
-            .filter((t) => !('hash' in t) && (showExcluded || !t.excluded))
-            .sort((a, b) => a.amount - b.amount)"
-          :key="index"
-        >
-          <div
-            class="flex justify-between"
-            :class="transaction.excluded ? 'bg-gray-100' : ''"
-          >
-            <div
-              class="text-xs"
-              :class="transaction.excluded ? 'text-gray-400' : 'text-gray-600'"
-            >
+        <div v-for="(transaction, index) of transactionsOfDay
+          .filter((t) => !('hash' in t) && (showExcluded || !t.excluded))
+          .sort((a, b) => a.amount - b.amount)" :key="index">
+          <div class="flex justify-between" :class="transaction.excluded ? 'bg-gray-100' : ''">
+            <div class="text-xs" :class="transaction.excluded ? 'text-gray-400' : 'text-gray-600'">
               <div>
                 {{ transaction.payee }}
                 <span v-if="transaction.memo" class="text-gray-400">/</span>
@@ -216,26 +185,14 @@ function importTransactions() {
               </div>
               <div>{{ transaction.category }}</div>
             </div>
-            <div
-              :style="
-                transaction.excluded
-                  ? `filter: brightness(150%) grayscale(80%)`
-                  : ''
-              "
-              class="whitespace-nowrap font-bold"
-              :class="textColorByAmount(transaction.amount)"
-            >
+            <div :style="transaction.excluded
+                ? `filter: brightness(150%) grayscale(80%)`
+                : ''
+              " class="whitespace-nowrap font-bold" :class="textColorByAmount(transaction.amount)">
               {{ formatAmount(transaction.amount ?? 0) }} {{ account.currency }}
-              <UButton
-                label="x"
-                title="Exclude / Include"
-                color="gray"
-                size="xs"
-                class="m-0 px-1 py-0"
-                @click="
-                  toggleExclusion(toShortDate(transaction.date), transaction.id)
-                "
-              />
+              <UButton label="x" title="Exclude / Include" color="neutral" size="xs" class="m-0 px-1 py-0" @click="
+                toggleExclusion(toShortDate(transaction.date), transaction.id)
+                " />
             </div>
           </div>
 

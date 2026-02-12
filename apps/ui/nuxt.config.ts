@@ -1,17 +1,58 @@
+import tailwindcss from '@tailwindcss/vite';
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
+
 export default defineNuxtConfig({
   ssr: false,
   compatibilityDate: '2025-02-02',
   devtools: { enabled: false },
-  modules: ['@nuxt/ui', '@pinia/nuxt', '@vueuse/nuxt', '@nuxtjs/robots'],
-  buildModules: ['@nuxtjs/pwa'],
+  modules: ['@nuxt/ui', '@pinia/nuxt', '@vueuse/nuxt', '@nuxtjs/robots', '@nuxt/eslint'],
+  sourcemap: {
+    client: true,
+    server: false
+  },
+
   colorMode: {
     preference: 'light',
   },
-  pwa: {
-    manifest: {
-      name: 'Open Cash App',
-      lang: 'en',
-      useWebmanifestExtension: false,
+
+  runtimeConfig: {
+    tursoDatabaseUrl: process.env.TURSO_DATABASE_URL || 'file:./local.db',
+    tursoAuthToken: process.env.TURSO_AUTH_TOKEN,
+  },
+
+  css: ['~/assets/css/main.css'],
+
+  vite: {
+    plugins: [
+      tailwindcss(),
+      nodePolyfills({
+        include: ['buffer', 'stream', 'util'],
+        globals: {
+          Buffer: true,
+        },
+      }),
+    ],
+    optimizeDeps: {
+      include: ['legacy-encoding', 'bip39'],
     },
   },
+
+  nitro: {
+    prerender: {
+      routes: ['/robots.txt'],
+    },
+    storage: {
+      sync: process.env.REDIS_URL
+        ? {
+          driver: 'redis',
+          url: process.env.REDIS_URL
+        }
+        : {
+          driver: 'fs',
+          base: '.data/sync'
+        }
+    }
+
+  },
+  compatibilityDate: '2026-01-02',
 });

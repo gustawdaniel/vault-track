@@ -25,6 +25,7 @@ sw.*
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+!.vscode/css-data.json
 
 # misc
 /.sass-cache
@@ -44,3 +45,7 @@ libs/csv-to-json
 libs/csv-to-json-rs
 *.csv
 .vercel
+.turbo
+local
+
+SECRET.md

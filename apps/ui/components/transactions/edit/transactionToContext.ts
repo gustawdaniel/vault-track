@@ -1,7 +1,6 @@
 import { uid } from 'uid';
 import { decodeSplitId } from '~/utils/splitIdParams';
 
-
 import type {
   CommonTransactionContext,
   TransactionContext,
@@ -13,12 +12,13 @@ import {
   getTransactionNormalType,
   getTransferTransactionOrder,
   isTransferByCategory,
-  useTransactionStore,
-} from '~/store/transaction';
+} from '~/store/transaction.model';
+
 import { getFullProjectName } from '~/store/project';
 import { getClearedStatusFromString } from '~/store/clearedStatus';
 import { getFullCategoryName } from '~/store/category';
 import { useAccountStore } from '~/store/account';
+import { useTransactionStore } from '~/store/transaction';
 
 export function transactionToContext(
   transaction: FullTransaction,
@@ -37,7 +37,7 @@ export function transactionToContext(
     const siblings = transactionStore.getSiblingsBySplitId(transaction.splitId);
     // ensure current transaction is in siblings (it should be)
 
-    const splits = siblings.map(t => ({
+    const splits = siblings.map((t) => ({
       id: t.id,
       amount: Math.abs(t.amount),
       category: getFullCategoryName(t),

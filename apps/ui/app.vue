@@ -1,27 +1,26 @@
 <template>
-  <div>
+  <UApp>
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
 
     <dialog-root />
-    <UNotifications />
-  </div>
+  </UApp>
 </template>
 
 <script lang="ts" setup>
 import { useDebugStore } from '~/store/debug';
 
 function notOurDomain(origin: string): boolean {
-  return !['http://localhost:3000', 'https://gustawdaniel.github.io'].includes(
+  return !['http://localhost:3000', 'http://localhost:3001', 'https://gustawdaniel.github.io'].includes(
     origin,
   );
 }
 
 // remove dark mode
-definePageMeta({
-  colorMode: 'light',
-});
+// definePageMeta({
+//   colorMode: 'light',
+// });
 
 // https://color-mode.nuxtjs.org/
 const mode = useLocalStorage('nuxt-color-mode', 'light');
@@ -38,6 +37,7 @@ window.addEventListener(
     if ('debug' in event.data && typeof event.data.debug === 'boolean') {
       const debugStore = useDebugStore();
       debugStore.active = event.data.debug;
+      Object.assign(window, {debug: debugStore.active});
     }
   },
   false,

@@ -20,10 +20,11 @@ const debugTransactions = computed(() =>
   transactionStore.getAllByAccountId(accountId)
 );
 
-const account =
+const account = computed(() =>
   accountId === NEW_ACCOUNT_ID
     ? accountStore.getNew()
-    : accountStore.getById(accountId);
+    : accountStore.getById(accountId)
+);
 
 const mode = ref<'show' | 'edit'>(route.query.edit === '1' ? 'edit' : 'show');
 
@@ -42,16 +43,8 @@ function onAccountEditOrCreate(id?: string) {
 
 <template>
   <div v-if="account">
-    <SingleAccountSummary
-      v-if="mode === 'show'"
-      :account="account"
-      @edit="mode = 'edit'"
-    />
-    <SingleAccountEdit
-      v-if="mode === 'edit'"
-      :account="account"
-      @submit="onAccountEditOrCreate"
-    />
+    <SingleAccountSummary v-if="mode === 'show'" :account="account" @edit="mode = 'edit'" />
+    <SingleAccountEdit v-if="mode === 'edit'" :account="account" @submit="onAccountEditOrCreate" />
 
     <TransactionsList :filter="{ accountId }" />
     

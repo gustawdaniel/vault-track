@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
-import type { FormError, FormSubmitEvent } from '@nuxt/ui/dist/runtime/types';
+import type { FormError, FormSubmitEvent } from '@nuxt/ui';
 import {
   type Account,
   type AccountType,
@@ -41,33 +41,33 @@ const accountTypes: AccountType[] = ['Bank', 'Cash', 'CCard', 'Invst'];
   <AppContainer>
     <UCard class="mt-8">
       <UForm :state="state" :validate="validate" @submit="submit">
-        <UFormGroup label="Account Name" name="email">
+        <UFormField label="Account Name" name="email">
           <UInput v-model="state.name" />
-        </UFormGroup>
+        </UFormField>
 
         <div class="grid gap-6 grid-cols-2">
-          <UFormGroup label="Type" name="password">
-            <USelectMenu v-model="state.type" :options="accountTypes" />
-          </UFormGroup>
+          <UFormField label="Type" name="password">
+            <USelectMenu v-model="state.type" :items="accountTypes" />
+          </UFormField>
 
-          <UFormGroup label="Currency" name="currency">
-            <USelectMenu v-model="state.currency" :options="currencies" />
-          </UFormGroup>
+          <UFormField label="Currency" name="currency">
+            <USelectMenu v-model="state.currency" :items="currencies" />
+          </UFormField>
         </div>
 
-        <UFormGroup label="Description" name="description">
+        <UFormField label="Description" name="description">
           <UInput v-model="state.description" />
-        </UFormGroup>
+        </UFormField>
 
-        <UFormGroup label="Account Closed/Hidden" name="hidden">
-          <UToggle v-model="state.hidden" />
-        </UFormGroup>
+        <UFormField label="Account Closed/Hidden" name="hidden">
+          <USwitch v-model="state.hidden" />
+        </UFormField>
 
-        <UFormGroup label="Position Order" name="order">
+        <UFormField label="Position Order" name="order">
           <UInput v-model.number="state.order" />
-        </UFormGroup>
+        </UFormField>
 
-        <UButton class="mt-3 mr-3" color="gray" @click="emit('submit')"
+        <UButton class="mt-3 mr-3" color="neutral" @click="emit('submit')"
           >Cancel
         </UButton>
         <UButton class="mt-3" type="submit">Submit</UButton>
