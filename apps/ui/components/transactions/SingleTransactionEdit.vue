@@ -31,6 +31,7 @@ import {
 import AppContainer from '~/components/shared/AppContainer.vue';
 import { uid } from 'uid';
 import { formatAmount } from '~/utils/formatAmount';
+import { getGroupIdAsync } from '~/sync/client';
 
 const props = defineProps<{
   transaction: FullTransaction;
@@ -293,6 +294,98 @@ function suggestCategory(splitIndex: number) {
     state.value.splits[splitIndex].category = suggestion;
   }
 }
+
+const fileInput = ref<HTMLInputElement | null>(null);
+const isAnalyzing = ref(false);
+const llmResult = ref<any>(null);
+
+const onScanClick = () => {
+  fileInput.value?.click();
+};
+
+const uploadReceipt = async (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  if (!target.files || target.files.length === 0) return;
+
+  const file = target.files[0];
+  if (!file) return;
+
+  isAnalyzing.value = true;
+  llmResult.value = null;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const syncGroupId = await getGroupIdAsync();
+
+  try {
+    // Use backend URL from env or localhost for dev
+    const response = await fetch('http://localhost:4000/api/receipts/analyze', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-Sync-Group-ID': syncGroupId || '',
+      },
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || 'Failed to analyze receipt');
+    }
+
+    const result = await response.json();
+    llmResult.value = result;
+
+    // Apply result to state
+    if (result.payee) state.value.payee = result.payee;
+    if (result.date) state.value.date = result.date.split('T')[0];
+
+    // Splits
+    if (result.splits && Array.isArray(result.splits)) {
+      // Force type transition to split
+      state.value.type = 'split';
+
+      // Initialize splits array for the new type structure
+      // We cast to any/SplitContext because TS doesn't instantly narrow ref value after property set
+      const splitState = state.value as unknown as SplitContext;
+      splitState.splits = [];
+
+      let total = 0;
+
+      for (const item of result.splits) {
+        const splitAmount = item.amount;
+        total += splitAmount;
+
+        splitState.splits.push({
+          id: uid(),
+          amount: splitAmount,
+          memo: item.memo,
+          payee: item.payee || state.value.payee,
+          category: item.category // Use LLM suggestion
+        });
+      }
+
+      // Update master amount
+      // Prefer the explicit receipt_total from LLM if available, otherwise sum of splits
+      const masterTotal = (typeof result.receipt_total === 'number' && result.receipt_total > 0)
+        ? result.receipt_total
+        : total;
+
+      // Since we use splitMasterAmount ref in component
+      splitMasterAmount.value = masterTotal;
+
+      // Also update absoluteAmount
+      (state.value as any).absoluteAmount = masterTotal;
+    }
+
+  } catch (e: any) {
+    console.error(e);
+    alert(e.message || 'Failed to analyze receipt');
+  } finally {
+    isAnalyzing.value = false;
+    if (target) target.value = '';
+  }
+};
 </script>
 
 <template>
@@ -300,19 +393,20 @@ function suggestCategory(splitIndex: number) {
     <Debug>{{ props.transaction }}</Debug>
     <Debug>{{ props.reverseTransaction }}</Debug>
     <Debug>{{ state }}</Debug>
+    <Debug title="LLM Result">{{ llmResult }}</Debug>
   </div>
 
   <AppContainer>
     <UCard>
       <UForm :state="state" :validate="validate" @submit="submit">
-        <UFormField
-          :label="state.type === 'split' ? 'Group Name' : 'Payee/Item'"
-          name="payee"
-        >
-          <UInput
-            v-model="state.payee"
-            :placeholder="state.type === 'split' ? 'Optional group name' : ''"
-          />
+        <div class="mb-4 flex gap-2">
+          <UButton icon="i-heroicons-camera" @click="onScanClick" :loading="isAnalyzing" variant="soft">Scan Receipt
+          </UButton>
+          <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="uploadReceipt">
+        </div>
+
+        <UFormField :label="state.type === 'split' ? 'Group Name' : 'Payee/Item'" name="payee">
+          <UInput v-model="state.payee" :placeholder="state.type === 'split' ? 'Optional group name' : ''" />
         </UFormField>
         <!-- Hide Master Payee in split mode, or keep as 'Group Name'? -->
         <!-- User said 'master payee can be just splitId'. implies we don't need to show it? -->
@@ -322,74 +416,46 @@ function suggestCategory(splitIndex: number) {
 
         <div class="grid gap-6 grid-cols-2">
           <!-- Account Picker (Shared) -->
-          <AccountPicker
-            v-if="
-              state.type === 'income' ||
-              state.type === 'expense' ||
-              state.type === 'split'
-            "
-            v-model="state.accountId"
-            :name="currentNormalAccount?.name"
-          />
+          <AccountPicker v-if="
+            state.type === 'income' ||
+            state.type === 'expense' ||
+            state.type === 'split'
+          " v-model="state.accountId" :name="currentNormalAccount?.name" />
 
-          <AccountPicker
-            v-else-if="state.type === 'transfer'"
-            v-model="state.fromAccountId"
-            :name="transferAccount.from?.name"
-            label="From Account"
-          />
+          <AccountPicker v-else-if="state.type === 'transfer'" v-model="state.fromAccountId"
+            :name="transferAccount.from?.name" label="From Account" />
 
           <DatePicker v-model="state.date" />
         </div>
 
         <div class="grid gap-6 grid-cols-2">
           <!-- Amount Input -->
-          <AmountInput
-            v-if="state.type === 'income' || state.type === 'expense'"
-            v-model="state.absoluteAmount"
-            :currency="currentNormalAccount?.currency"
-          />
+          <AmountInput v-if="state.type === 'income' || state.type === 'expense'" v-model="state.absoluteAmount"
+            :currency="currentNormalAccount?.currency" />
 
-          <AmountInput
-            v-else-if="state.type === 'split'"
-            v-model="splitMasterAmount"
-            :currency="currentNormalAccount?.currency"
-            label="Total Amount"
-          />
+          <AmountInput v-else-if="state.type === 'split'" v-model="splitMasterAmount"
+            :currency="currentNormalAccount?.currency" label="Total Amount" />
 
-          <AmountInput
-            v-else-if="state.type === 'transfer'"
-            v-model="state.fromAbsoluteAmount"
-            :currency="transferAccount.from?.currency"
-          />
+          <AmountInput v-else-if="state.type === 'transfer'" v-model="state.fromAbsoluteAmount"
+            :currency="transferAccount.from?.currency" />
 
           <TypePicker :model-value="state.type" @update:model-value="setType" />
         </div>
 
         <!-- Normal Mode Inputs -->
-        <div
-          v-if="state.type === 'income' || state.type === 'expense'"
-          class="grid gap-6 grid-cols-2"
-        >
+        <div v-if="state.type === 'income' || state.type === 'expense'" class="grid gap-6 grid-cols-2">
           <CategoryPicker v-model="state.categoryName" />
           <ProjectPicker v-model="state.projectName" />
         </div>
 
         <!-- Transfer Mode Inputs -->
         <div v-if="state.type === 'transfer'" class="grid gap-6 grid-cols-2">
-          <AccountPicker
-            v-model="state.toAccountId"
-            :name="transferAccount.to?.name"
-            label="To Account"
-          />
+          <AccountPicker v-model="state.toAccountId" :name="transferAccount.to?.name" label="To Account" />
           <ProjectPicker v-model="state.projectName" />
         </div>
 
         <!-- Cleared Status for Normal -->
-        <div
-          v-if="state.type === 'income' || state.type === 'expense'"
-          class="grid gap-6 grid-cols-2"
-        >
+        <div v-if="state.type === 'income' || state.type === 'expense'" class="grid gap-6 grid-cols-2">
           <ClearedStatusPicker v-model="state.clearedStatus" />
         </div>
 
@@ -398,42 +464,26 @@ function suggestCategory(splitIndex: number) {
           <div class="flex justify-between items-center mb-2">
             <h3 class="font-bold">Splits</h3>
             <div class="text-sm">
-              <span
-                :class="{
-                  'text-red-500': Math.abs(splitRemaining) > 0.01,
-                  'text-green-500': Math.abs(splitRemaining) <= 0.01,
-                }"
-              >
+              <span :class="{
+                'text-red-500': Math.abs(splitRemaining) > 0.01,
+                'text-green-500': Math.abs(splitRemaining) <= 0.01,
+              }">
                 Remaining: {{ formatAmount(splitRemaining) }}
                 {{ currentNormalAccount?.currency }}
               </span>
             </div>
           </div>
 
-          <div
-            v-for="(split, index) in state.splits"
-            :key="split.id"
-            class="grid grid-cols-1 md:grid-cols-12 gap-2 items-end mb-4 border-b border-gray-200 pb-2"
-          >
+          <div v-for="(split, index) in state.splits" :key="split.id"
+            class="grid grid-cols-1 md:grid-cols-12 gap-2 items-end mb-4 border-b border-gray-200 pb-2">
             <UFormField label="Payee" class="md:col-span-3">
-              <UInput
-                v-model="split.payee"
-                placeholder="Payee"
-                @blur="suggestCategory(index)"
-              />
+              <UInput v-model="split.payee" placeholder="Payee" @blur="suggestCategory(index)" />
             </UFormField>
 
-            <CategoryPicker
-              v-model="split.category"
-              placeholder="Category"
-              class="md:col-span-3"
-            />
+            <CategoryPicker v-model="split.category" placeholder="Category" class="md:col-span-3" />
 
             <div class="md:col-span-2">
-              <AmountInput
-                v-model="split.amount"
-                :currency="currentNormalAccount?.currency"
-              />
+              <AmountInput v-model="split.amount" :currency="currentNormalAccount?.currency" />
             </div>
 
             <UFormField label="Memo" class="md:col-span-3">
@@ -441,54 +491,31 @@ function suggestCategory(splitIndex: number) {
             </UFormField>
 
             <div class="md:col-span-1 flex justify-end">
-              <UButton
-                icon="i-heroicons-trash"
-                color="red"
-                variant="ghost"
-                class="mb-0.5"
-                @click="removeSplit(index)"
-              />
+              <UButton icon="i-heroicons-trash" color="red" variant="ghost" class="mb-0.5"
+                @click="removeSplit(index)" />
             </div>
           </div>
 
-          <UButton icon="i-heroicons-plus" variant="soft" @click="addSplit"
-            >Add Split</UButton
-          >
+          <UButton icon="i-heroicons-plus" variant="soft" @click="addSplit">Add Split</UButton>
         </div>
 
         <!-- Transfer Exchange Rate & Status -->
-        <div
-          v-if="
-            state.type === 'transfer' &&
-            transferAccount.from?.currency &&
-            transferAccount.to?.currency &&
-            transferAccount.from?.currency !== transferAccount.to?.currency
-          "
-          class="grid gap-6 grid-cols-2"
-        >
-          <AmountInput
-            v-model="state.toAbsoluteAmount"
-            :currency="transferAccount.to?.currency"
-          />
+        <div v-if="
+          state.type === 'transfer' &&
+          transferAccount.from?.currency &&
+          transferAccount.to?.currency &&
+          transferAccount.from?.currency !== transferAccount.to?.currency
+        " class="grid gap-6 grid-cols-2">
+          <AmountInput v-model="state.toAbsoluteAmount" :currency="transferAccount.to?.currency" />
 
-          <ExchangeRate
-            :from-amount="state.fromAbsoluteAmount"
-            :from-currency="transferAccount.from?.currency"
-            :to-amount="state.toAbsoluteAmount"
-            :to-currency="transferAccount.to?.currency"
-          />
+          <ExchangeRate :from-amount="state.fromAbsoluteAmount" :from-currency="transferAccount.from?.currency"
+            :to-amount="state.toAbsoluteAmount" :to-currency="transferAccount.to?.currency" />
         </div>
 
         <div v-if="state.type === 'transfer'" class="grid gap-6 grid-cols-2">
-          <ClearedStatusPicker
-            v-model="state.fromClearedStatus"
-            label="Status (From)"
-          />
+          <ClearedStatusPicker v-model="state.fromClearedStatus" label="Status (From)" />
 
-          <ClearedStatusPicker
-            v-model="state.toClearedStatus"
-            label="Status (To)"
-          />
+          <ClearedStatusPicker v-model="state.toClearedStatus" label="Status (To)" />
         </div>
 
         <UFormField v-if="state.type !== 'split'" label="Memo" name="memo">
@@ -496,15 +523,8 @@ function suggestCategory(splitIndex: number) {
         </UFormField>
 
         <!-- Global memo for split? Or just hide it? Requirement says opcjonalny memo per split. Global memo might be useful for grouping ID derivation if we used it, but we use splitId. -->
-        <UFormField
-          v-if="state.type === 'split'"
-          label="Group Memo"
-          name="memo"
-        >
-          <UInput
-            v-model="state.memo"
-            placeholder="Optional group description"
-          />
+        <UFormField v-if="state.type === 'split'" label="Group Memo" name="memo">
+          <UInput v-model="state.memo" placeholder="Optional group description" />
         </UFormField>
 
         <div class="mt-2">

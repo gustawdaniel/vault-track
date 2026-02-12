@@ -21,7 +21,7 @@ export interface SyncOptions {
 
 // Initialize Group ID (simplified: get from localStorage or default)
 // In a real app, this would be injected or managed by a store.
-async function getGroupIdAsync(): Promise<string | null> {
+export async function getGroupIdAsync(): Promise<string | null> {
   if (typeof localStorage === 'undefined') return null;
 
   let gid = localStorage.getItem('ocm-sync-group-id');

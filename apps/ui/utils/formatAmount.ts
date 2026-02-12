@@ -1,4 +1,9 @@
 export function formatAmount(num: number = 0): string {
-  const [int, fra] = num.toString().split('.');
-  return Number(int).toLocaleString() + '.' + (fra ?? '').padEnd(2, '0');
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    useGrouping: true,
+  })
+    .format(num)
+    .replace(/,/g, ' ');
 }
