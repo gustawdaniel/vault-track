@@ -11,7 +11,6 @@ export default defineNuxtConfig({
             dedupe: ['vue']
         }
     },
-    compatibilityDate: '2026-02-12',
     runtimeConfig: {
         public: {
             googleClientId: process.env.GOOGLE_CLIENT_ID || '244384199602-sqhor9mc08tkl3gkd71k9c46rq38msdd.apps.googleusercontent.com',
@@ -19,5 +18,6 @@ export default defineNuxtConfig({
         }
     },
     ssr: false, // SPA is fine for internal admin
-    devtools: { enabled: true }
+    devtools: { enabled: true },
+    compatibilityDate: '2026-01-02',
 })
