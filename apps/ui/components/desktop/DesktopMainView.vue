@@ -1,12 +1,6 @@
 <script lang="ts" setup>
 import { PlusSmallIcon } from '@heroicons/vue/20/solid';
 import SettingsButtonOptionsList from '~/components/menu/SettingsButtonOptionsList.vue';
-
-const selectedAccountId = ref<string | undefined>();
-
-function setSelectedAccountId(id: string) {
-  selectedAccountId.value = id;
-}
 </script>
 
 <template>
@@ -15,6 +9,11 @@ function setSelectedAccountId(id: string) {
       <div class="flex flex-1 items-center gap-x-6" />
       <nav class="items-center hidden md:flex md:gap-x-11 md:text-sm md:font-semibold md:leading-6 md:text-gray-700">
         <!--        TODO: place for search bar -->
+
+        <NuxtLink class="hover:text-gray-600 flex items-center gap-x-1" to="/reports">
+           <UIcon name="i-heroicons-chart-bar" />
+           Reports
+        </NuxtLink>
 
         <a class="hover:text-gray-600" href="https://docs.VaultTrack.org">
           Documentation
@@ -36,7 +35,5 @@ function setSelectedAccountId(id: string) {
 
   <hr />
 
-  <DesktopAccoutsList @select-account-id="setSelectedAccountId" />
-  <!-- Activity feed -->
-  <DesktopTransactionsList :filter="{ accountId: selectedAccountId }" />
+  <DesktopAccoutsList />
 </template>
