@@ -9,6 +9,7 @@ import { currencyRoutes } from './modules/currency/routes';
 import { usersRoutes } from './modules/users/routes';
 import { adminRoutes } from './modules/admin/routes';
 import { receiptsRoutes } from './modules/receipts/routes';
+import { syncRoutes } from './modules/sync/routes';
 import { initDB } from './db/client';
 
 const server: FastifyInstance = Fastify({
@@ -102,6 +103,7 @@ const start = async () => {
         await server.register(usersRoutes, { prefix: '/api/users' });
         await server.register(adminRoutes, { prefix: '/api/admin' });
         await server.register(receiptsRoutes, { prefix: '/api/receipts' });
+        await server.register(syncRoutes, { prefix: '/api/sync' });
 
         const port = parseInt(process.env.PORT || '4500', 10);
         await server.listen({ port, host: '0.0.0.0' });
