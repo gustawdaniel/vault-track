@@ -63,6 +63,7 @@
     "qif-ts": "workspace:*",
     "qif2json": "workspace:*",
     "qrcode": "^1.5.4",
+    "read-excel-file": "^6.0.3",
     "typescript": "^5.9.3",
     "uid": "^2.0.2",
     "v-calendar": "^3.1.2",
