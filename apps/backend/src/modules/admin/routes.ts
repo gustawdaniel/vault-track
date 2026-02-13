@@ -25,7 +25,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
             },
         },
         async (req, reply) => {
-            const { token } = req.body;
+            const { token } = req.body as { token: string };
 
             try {
                 const ticket = await client.verifyIdToken({
@@ -81,7 +81,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
             },
         },
         async (req, reply) => {
-            const { query } = req.body;
+            const { query } = req.body as { query: string };
             try {
                 const result = await db.execute(query);
                 return {
