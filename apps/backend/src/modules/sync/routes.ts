@@ -66,7 +66,7 @@ export async function syncRoutes(fastify: FastifyInstance) {
                 return reply.code(400).send({ error: 'Missing X-Sync-Group-ID header' });
             }
 
-            const { since, wait } = req.query;
+            const { since, wait } = req.query as { since: number; wait?: boolean };
             const startTime = Date.now();
             const TIMEOUT = 5000; // 5s long polling
 
@@ -133,7 +133,7 @@ export async function syncRoutes(fastify: FastifyInstance) {
                 return reply.code(400).send({ error: 'Missing X-Sync-Group-ID header' });
             }
 
-            const { events } = req.body;
+            const { events } = req.body as { events: any[] };
             if (events.length === 0) {
                 return { success: true, count: 0 };
             }
@@ -141,7 +141,7 @@ export async function syncRoutes(fastify: FastifyInstance) {
             try {
                 // Batch insert using txn if possible, or simple loop/batch
                 // LibSQL/Turso client supports batch
-                const statements = events.map((e) => ({
+                const statements = events.map((e: any) => ({
                     sql: `INSERT INTO events (group_id, event_id, device_id, counter, timestamp, payload) 
                           VALUES (?, ?, ?, ?, ?, ?)
                           ON CONFLICT(group_id, event_id) DO NOTHING`,
