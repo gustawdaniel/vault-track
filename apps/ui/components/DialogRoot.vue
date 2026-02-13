@@ -12,11 +12,6 @@ const dialog = useDialog();
       <component :is="dialog.dialogComponent" v-bind="dialog.dialogProps" @close="dialog.closeDialog" />
     </template>
   </UModal>
-
-
-  <!-- <UModal v-model="dialog.isDialogOpen">
-
-  </UModal> -->
 </template>
 
 <style>

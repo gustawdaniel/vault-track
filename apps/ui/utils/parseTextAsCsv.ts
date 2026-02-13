@@ -1,9 +1,11 @@
-export type CsvDominantDelimiter = ',' | ';';
+export type CsvDominantDelimiter = ',' | ';' | '\t';
 
 export function getDominantDelimiter(text: string): CsvDominantDelimiter {
   const comaCount = text.length - text.replaceAll(',', '').length;
   const semicolonCount = text.length - text.replaceAll(';', '').length;
+  const tabCount = text.length - text.replaceAll('\t', '').length;
 
+  if (tabCount > comaCount && tabCount > semicolonCount) return '\t';
   return comaCount >= semicolonCount ? ',' : ';';
 }
 
@@ -12,9 +14,18 @@ export function parseTextAsCsv(text: string): string[][] {
   switch (delimiter) {
     case ';':
       return parseTextAsCsvBySemicolon(text);
+    case '\t':
+      return parseTextAsCsvByTab(text);
     default:
       return parseTextAsCsvByComa(text);
   }
+}
+
+export function parseTextAsCsvByTab(text: string): string[][] {
+  return text
+    .split(/\r?\n/)
+    .filter((line: string): boolean => Boolean(line))
+    .map((row) => row.split('\t').map(stripQuotations));
 }
 
 export function dropNotFullColumns(payload: string[][]): string[][] {
@@ -53,7 +64,7 @@ export function parseTextAsCsvByComa(text: string): string[][] {
       s = !s;
     } else if (l === ',' && s) l = row[++i] = '';
     else if (l === '\n' && s) {
-      if (p === '\r') row[i] = row[i].slice(0, -1);
+      if (p === '\r') row[i] = (row[i] ?? '').slice(0, -1);
       row = ret[++r] = [(l = '')];
       i = 0;
     } else row[i] += l;

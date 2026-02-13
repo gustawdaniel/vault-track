@@ -18,7 +18,7 @@
     "prettier": "prettier --write --list-different ."
   },
   "devDependencies": {
-    "@nuxt/devtools": "latest",
+    "@nuxt/devtools": "^3.2.1",
     "@nuxt/eslint": "^1.12.1",
     "@nuxtjs/pwa": "^3.3.5",
     "@tailwindcss/vite": "^4.1.18",
@@ -34,7 +34,7 @@
     "tailwindcss": "^4.1.18",
     "typescript-eslint": "^8.50.1",
     "unstorage": "^1.17.3",
-    "vite-plugin-node-polyfills": "^0.24.0",
+    "vite-plugin-node-polyfills": "^0.25.0",
     "vue": "^3.5.26",
     "vue-router": "^4.6.4"
   },
@@ -63,6 +63,7 @@
     "qif-ts": "workspace:*",
     "qif2json": "workspace:*",
     "qrcode": "^1.5.4",
+    "read-excel-file": "^6.0.3",
     "typescript": "^5.9.3",
     "uid": "^2.0.2",
     "v-calendar": "^3.1.2",

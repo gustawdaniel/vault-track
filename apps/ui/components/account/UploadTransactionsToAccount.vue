@@ -95,10 +95,10 @@ function csvToJson(): void {
       date: dayjs(row[headerMap.date], dateFormat.value).format('YYYY-MM-DD'),
       category: row[headerMap.category],
       amount:
-        parseAmount(row[headerMap.in] || row[headerMap.amount]) ||
+        parseAmount(row[headerMap.in] ?? row[headerMap.amount] ?? '') ||
         -parseAmount(
-          row[headerMap.out] ||
-            row[Math.min(headerMap.amount + 1, row.length - 1)],
+          row[headerMap.out] ??
+          row[Math.min(headerMap.amount + 1, row.length - 1)] ?? '',
         ),
       memo: row[headerMap.memo],
       payee: row[headerMap.payee],
@@ -224,7 +224,7 @@ async function upload(event: Event) {
     encoding.value,
   );
 
-  if (type !== 'csv') throw new Error(`Only csv is allowed here`);
+  if (type !== 'csv' && type !== 'xlsx') throw new Error(`Only csv and xlsx are allowed here`);
 
   const parsedValues = dropNotFullColumns(parseTextAsCsv(text));
 
@@ -255,11 +255,11 @@ function isValidRow(
     return false;
 
   return (
-    isCorrect(row[headerMap.date], 'date', dateFormat.value) &&
-    (isCorrect(row[headerMap.amount], 'amount') ||
-      isCorrect(row[headerMap.in], 'amount') ||
-      isCorrect(row[headerMap.out], 'amount')) &&
-    isCorrect(row[headerMap.state], 'state')
+    isCorrect(row[headerMap.date] ?? '', 'date', dateFormat.value) &&
+    (isCorrect(row[headerMap.amount] ?? '', 'amount') ||
+      isCorrect(row[headerMap.in] ?? '', 'amount') ||
+      isCorrect(row[headerMap.out] ?? '', 'amount')) &&
+    isCorrect(row[headerMap.state] ?? '', 'state')
   );
 }
 
@@ -304,7 +304,7 @@ function guessDateFormat() {
 
 
     <UModal v-model:open="isOpen" fullscreen :title="`Upload transactions to ${account.name}`"
-      description="Upload and parse CSV file to import transactions" :ui="{
+      description="Upload and parse CSV or XLSX file to import transactions" :ui="{
         content: 'h-full flex flex-col',
         body: 'grow overflow-auto p-4'
       }">
@@ -318,7 +318,7 @@ function guessDateFormat() {
               <USelectMenu v-model="encoding" :items="possibleEncodings" />
             </UFormField>
 
-            <FileUploadAreaInput accept=".csv,.json" :signal="signal" @upload="upload" />
+            <FileUploadAreaInput accept=".csv,.json,.xlsx,.tsv" :signal="signal" @upload="upload" />
           </div>
 
           <div v-if="csvTable.length && !readyToReview">

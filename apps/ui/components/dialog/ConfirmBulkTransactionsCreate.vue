@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Transaction } from '~/store/transaction.model';
 import type { Account } from '~/store/account';
-import { useDialog } from '~/store/dialog';
+
 import { useTransactionStore } from '~/store/transaction';
 import { useAccountStore } from '~/store/account';
 import { formatAmount } from '~/utils/formatAmount';
@@ -12,10 +12,10 @@ const props = defineProps<{
   account: Account;
 }>();
 
-const dialog = useDialog();
+const emit = defineEmits(['close', 'confirm']);
 
 function cancel() {
-  dialog.closeDialog();
+  emit('close');
 }
 
 function confirm() {
@@ -27,10 +27,12 @@ function confirm() {
   const accountStore = useAccountStore();
   accountStore.computeBalanceById(props.account.id);
 
-  dialog.closeDialog();
+  emit('confirm');
+  emit('close');
+
   const toast = useToast();
   toast.add({
-    title: `All transactions was created`,
+    title: `All transactions were created`,
   });
 }
 </script>
