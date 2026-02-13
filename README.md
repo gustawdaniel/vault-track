@@ -14,15 +14,19 @@ VaultTrack is a modern, privacy-focused, offline-first personal finance applicat
 
 ## 🚀 Key Features
 
+*   **Artificial Intelligence**:
+    *   **Receipt Scanning**: Instantly extract data from receipts using Google Gemini AI.
+    *   **Smart Categorization**: Automatically suggests categories based on payee and items.
 *   **Offline-First & Real-Time Sync**: 
     *   Works completely offline using `IndexedDB`.
-    *   Synchronizes data between devices in near real-time using an Event Sourcing architecture (Long Polling + WebSockets equivalent).
-    *   Conflict-free data merging.
+    *   Synchronizes data between devices in near real-time.
+    *   Conflict-free data merging using CRDT-inspired Event Sourcing.
 *   **Multi-Device**: Seamlessly switch between desktop and mobile.
 *   **Privacy Focused**: Your data belongs to you. No third-party tracking.
 *   **Comprehensive Tracking**:
     *   Manage multiple accounts (Cash, Bank, Investment, etc.).
     *   Track income, expenses, and transfers.
+    *   **Split Transactions**: Divide a single transaction into multiple categories.
     *   Multi-currency support with automatic exchange rate handling.
     *   Categories and Projects organization.
 *   **Import/Export**:
@@ -31,11 +35,14 @@ VaultTrack is a modern, privacy-focused, offline-first personal finance applicat
 
 ## 🛠 Tech Stack
 
-*   **Framework**: [Nuxt 3](https://nuxt.com) (Vue 3)
-*   **UI Library**: [Nuxt UI](https://ui.nuxt.com) + [TailwindCSS](https://tailwindcss.com)
-*   **State Management**: [Pinia](https://pinia.vuejs.org) + [VueUse](https://vueuse.org)
-*   **Database (Client)**: `IndexedDB` (via `idb`)
-*   **Sync Engine**: Custom Event Sourcing engine with "Long Polling + Immediate Push".
+*   **Frontend**: [Nuxt 3](https://nuxt.com) (Vue 3) + [Nuxt UI](https://ui.nuxt.com)
+*   **Backend**: [Fastify](https://fastify.io/) (Node.js)
+*   **Database**: 
+    *   **Local**: `IndexedDB` (via `idb`)
+    *   **Cloud**: [Turso](https://turso.tech) (LibSQL)
+*   **AI Engine**: [Google Gemini](https://deepmind.google/technologies/gemini/) (Generative AI)
+*   **State Management**: [Pinia](https://pinia.vuejs.org)
+*   **Sync Engine**: Custom Event Sourcing with Long Polling.
 *   **Testing**: Vitest
 
 ## 📦 Getting Started
