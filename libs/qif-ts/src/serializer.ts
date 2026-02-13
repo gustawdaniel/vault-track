@@ -107,7 +107,7 @@ function investmentTransactionToString(transaction: QifTransaction): string[] {
   const output: string[] = [];
 
   if (transaction.date) {
-    output.push('D' + transaction.date);
+    output.push('D' + usaDateFormat(transaction.date));
   }
 
   if (transaction.investmentAction) {
@@ -139,7 +139,7 @@ function investmentTransactionToString(transaction: QifTransaction): string[] {
   }
 
   if (transaction.memo) {
-    output.push('M' + transaction.memo);
+    output.push('M' + transaction.memo.replace(/[\r\n]+/g, ' '));
   }
 
   if (transaction.investmentComission) {
@@ -184,7 +184,7 @@ function nonInvestmentTransactionToString(
   }
 
   if (transaction.memo) {
-    output.push('M' + transaction.memo);
+    output.push('M' + transaction.memo.replace(/[\r\n]+/g, ' '));
   }
 
   if (
@@ -215,7 +215,7 @@ function nonInvestmentTransactionToString(
       }
 
       if (split.memo) {
-        output.push('E' + split.memo);
+        output.push('E' + split.memo.replace(/[\r\n]+/g, ' '));
       }
 
       if (typeof split.amount === 'number' && Number.isFinite(split.amount)) {
