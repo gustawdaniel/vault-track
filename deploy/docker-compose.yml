@@ -15,5 +15,7 @@ services:
       - COOKIE_SECRET=${COOKIE_SECRET}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL}
     extra_hosts:
       - "host.docker.internal:host-gateway"

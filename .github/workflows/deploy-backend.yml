@@ -83,12 +83,14 @@ jobs:
           COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
           IMAGE_NAME: ghcr.io/${{ env.REPO }}/backend:latest
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_KEY }}
-          envs: OPENAI_API_KEY,TURSO_DATABASE_URL,TURSO_AUTH_TOKEN,ADMIN_EMAIL,COOKIE_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,IMAGE_NAME
+          envs: OPENAI_API_KEY,TURSO_DATABASE_URL,TURSO_AUTH_TOKEN,ADMIN_EMAIL,COOKIE_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GOOGLE_API_KEY,GEMINI_MODEL,IMAGE_NAME
           script: |
             cd ~/api.vaulttrack.org
             
@@ -105,6 +107,8 @@ jobs:
             echo "COOKIE_SECRET=$COOKIE_SECRET" >> .env
             echo "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" >> .env
             echo "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" >> .env
+            echo "GOOGLE_API_KEY=$GOOGLE_API_KEY" >> .env
+            echo "GEMINI_MODEL=$GEMINI_MODEL" >> .env
             
             # Pull and restart
             docker compose pull
