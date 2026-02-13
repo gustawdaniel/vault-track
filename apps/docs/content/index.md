@@ -6,10 +6,10 @@ seo:
 
 ::u-page-hero
 #title
-Track your finances with [VaultTracker]{.text-primary}.
+AI-Powered Finances with [VaultTracker]{.text-primary}.
 
 #description
-Private, offline-first, and open-source. :br Manage your accounts, transactions, and categories with a modern UI.
+Private, offline-first, and smart. :br Scan receipts, automate transactions, and own your data.
 
 #links
   :::u-button
@@ -57,6 +57,30 @@ Private, offline-first, and open-source. :br Manage your accounts, transactions,
 
     #description
     Built with **Nuxt 4** and **Nuxt UI**, VaultTracker provides a stunning, responsive interface with built-in dark mode. It's designed to make managing your finances a pleasant experience, not a chore.
+    ::::
+
+    ::::u-page-card
+    ---
+    spotlight: true
+    class: col-span-2 lg:col-span-1
+    target: _blank
+    to: /introduction/3.transaction#receipt-scanning
+    ---
+      :::::u-color-mode-image
+      ---
+      height: 320
+      alt: Smart Automation powered by AI
+      class: w-full h-80 object-cover rounded-lg
+      dark: /images/receipt.png
+      light: /images/receipt.png
+      ---
+      :::::
+
+    #title
+    Smart [Automation]{.text-primary}
+
+    #description
+    **Scan receipts** and let AI extract details automatically. Smart categorization learns from your habits to save you time.
     ::::
 
     ::::u-page-card

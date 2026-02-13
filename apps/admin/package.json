@@ -1,0 +1,22 @@
+{
+    "name": "admin",
+    "private": true,
+    "scripts": {
+        "dev": "nuxt dev --port 5000",
+        "build": "nuxt build",
+        "generate": "nuxt generate",
+        "preview": "nuxt preview"
+    },
+    "devDependencies": {
+        "@nuxt/ui": "^4.3.0",
+        "@tailwindcss/vite": "^4.1.18",
+        "@types/node": "^20.12.7",
+        "nuxt": "^4.2.2",
+        "tailwindcss": "^4.1.18",
+        "vue": "^3.5.28",
+        "vue-router": "^4.6.4"
+    },
+    "dependencies": {
+        "vue3-google-login": "^2.0.26"
+    }
+}

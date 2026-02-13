@@ -40,13 +40,13 @@
   "homepage": "https://gitlab.com/cluskii/qif-ts#readme",
   "devDependencies": {
     "@eslint/js": "^9.39.2",
-    "@swc/core": "^1.15.7",
+    "@swc/core": "^1.15.11",
     "@swc/jest": "^0.2.39",
     "eslint": "^9.39.2",
     "jest": "^30.2.0",
     "ts-node": "^10.9.2",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.50.1"
+    "typescript-eslint": "^8.55.0"
   }
 }

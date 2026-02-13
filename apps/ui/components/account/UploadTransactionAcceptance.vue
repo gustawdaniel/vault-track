@@ -7,7 +7,7 @@ import { toShortDate } from '~/utils/date';
 import { formatAmount } from '~/utils/formatAmount';
 import { textColorByAmount } from '~/utils/textColorByAmount';
 import ConfirmBulkTransactionsCreate from '~/components/dialog/ConfirmBulkTransactionsCreate.vue';
-import { useDialog } from '~/store/dialog';
+
 
 const props = defineProps<{
   account: ComputedAccount;
@@ -64,7 +64,7 @@ function setupTransactionTimeline(): void {
       };
 
       if (exisingIndex >= 0) {
-        if(transactionsInThisGroup[exisingIndex]) {
+        if (transactionsInThisGroup[exisingIndex]) {
           transactionsInThisGroup[exisingIndex].excluded = true;
         }
         transactionWithExclusionMark.excluded = true;
@@ -112,21 +112,30 @@ function importTransactions() {
 
   console.log(transactions);
 
-  function onConfirm() {
-    emit('close');
-  }
 
-  const dialog = useDialog();
-  dialog.openDialog(ConfirmBulkTransactionsCreate, {
-    transactions,
-    account: props.account,
-    onConfirm,
-  });
+
+  transactionsToCreate.value = transactions;
+  showConfirmModal.value = true;
+}
+
+const showConfirmModal = ref(false);
+const transactionsToCreate = ref<Transaction[]>([]);
+
+function onConfirmed() {
+  emit('close');
 }
 </script>
 
 <template>
   <div>
+    <UModal v-model:open="showConfirmModal" title="Confirm Import"
+      description="Are you sure you want to import these transactions?">
+      <template #body>
+        <ConfirmBulkTransactionsCreate v-if="showConfirmModal" :transactions="transactionsToCreate" :account="account"
+          @close="showConfirmModal = false" @confirm="onConfirmed" />
+      </template>
+    </UModal>
+
     <UFormField label="Show/Hide excluded">
       <USwitch v-model="showExcluded" color="primary" />
     </UFormField>
@@ -159,8 +168,8 @@ function importTransactions() {
               <div>{{ transaction.category }}</div>
             </div>
             <div :style="transaction.excluded
-                ? `filter: brightness(150%) grayscale(80%)`
-                : ''
+              ? `filter: brightness(150%) grayscale(80%)`
+              : ''
               " class="whitespace-nowrap font-bold" :class="textColorByAmount(transaction.amount)">
               {{ formatAmount(transaction.amount ?? 0) }} {{ account.currency }}
               <UButton label="x" title="Exclude / Include" color="neutral" size="xs" class="m-0 px-1 py-0" @click="
@@ -186,8 +195,8 @@ function importTransactions() {
               <div>{{ transaction.category }}</div>
             </div>
             <div :style="transaction.excluded
-                ? `filter: brightness(150%) grayscale(80%)`
-                : ''
+              ? `filter: brightness(150%) grayscale(80%)`
+              : ''
               " class="whitespace-nowrap font-bold" :class="textColorByAmount(transaction.amount)">
               {{ formatAmount(transaction.amount ?? 0) }} {{ account.currency }}
               <UButton label="x" title="Exclude / Include" color="neutral" size="xs" class="m-0 px-1 py-0" @click="

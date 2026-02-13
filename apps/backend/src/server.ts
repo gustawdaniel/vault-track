@@ -2,11 +2,28 @@ import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import fastifyCookie from '@fastify/cookie';
+import fastifyMultipart from '@fastify/multipart';
 import { jsonSchemaTransform, serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { currencyRoutes } from './modules/currency/routes';
+import { usersRoutes } from './modules/users/routes';
+import { adminRoutes } from './modules/admin/routes';
+import { receiptsRoutes } from './modules/receipts/routes';
+import { syncRoutes } from './modules/sync/routes';
+import { initDB } from './db/client';
 
 const server: FastifyInstance = Fastify({
-    logger: true
+    logger: {
+        level: 'warn',
+        transport: {
+            target: 'pino-pretty',
+            options: {
+                translateTime: 'HH:MM:ss Z',
+                ignore: 'pid,hostname',
+            },
+        },
+    },
+    bodyLimit: 10485760, // 10MB
 });
 
 // Zod validation setup
@@ -15,9 +32,45 @@ server.setSerializerCompiler(serializerCompiler);
 
 const start = async () => {
     try {
+        // Init DB Schema
+        await initDB();
+
         // Plugins
         await server.register(cors, {
-            origin: '*', // TODO: locking down in production
+            origin: [
+                'https://admin.vaulttrack.org',
+                'https://www.vaulttrack.org',
+                'https://vaulttrack.org',
+                'http://localhost:3000',
+                'http://localhost:4200',
+                'http://localhost:5000'
+            ],
+            credentials: true,
+            methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+            allowedHeaders: [
+                'Content-Type',
+                'Authorization',
+                'X-Requested-With',
+                'Accept',
+                'Origin',
+                'x-sync-group-id'
+            ],
+        });
+
+        await server.register(fastifyCookie, {
+            secret: process.env.COOKIE_SECRET || 'changeme',
+            parseOptions: {}, // options for parsing cookies
+        });
+
+        await server.register(fastifyMultipart, {
+            limits: {
+                fieldNameSize: 100, // Max field name size in bytes
+                fieldSize: 100, // Max field value size in bytes
+                fields: 10, // Max number of non-file fields
+                fileSize: 10000000, // For multipart forms, the max file size in bytes
+                files: 1, // Max number of file fields
+                headerPairs: 2000, // Max number of header key=>value pairs
+            },
         });
 
         await server.register(swagger, {
@@ -41,12 +94,18 @@ const start = async () => {
             return { status: 'ok', timestamp: new Date().toISOString() };
         });
 
-        // Currency
+        server.get('/', async () => {
+            return { app: 'VaultTrack API', version: '0.1.0' };
+        });
+
+        // Modules
         await server.register(currencyRoutes, { prefix: '/api/currency' });
+        await server.register(usersRoutes, { prefix: '/api/users' });
+        await server.register(adminRoutes, { prefix: '/api/admin' });
+        await server.register(receiptsRoutes, { prefix: '/api/receipts' });
+        await server.register(syncRoutes, { prefix: '/api/sync' });
 
-        // TODO: Register modules (Auth, LLM)
-
-        const port = parseInt(process.env.PORT || '4000', 10);
+        const port = parseInt(process.env.PORT || '4500', 10);
         await server.listen({ port, host: '0.0.0.0' });
         console.log(`Server listening on http://localhost:${port}`);
         console.log(`Documentation available at http://localhost:${port}/documentation`);
