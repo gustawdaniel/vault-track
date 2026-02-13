@@ -290,7 +290,7 @@ function suggestCategory(splitIndex: number) {
 
   const transactionStore = useTransactionStore();
   const suggestion = transactionStore.getSuggestedCategory(payee);
-  if (suggestion) {
+  if (suggestion && state.value.type === 'split' && state.value.splits[splitIndex]) {
     state.value.splits[splitIndex].category = suggestion;
   }
 }
@@ -493,7 +493,7 @@ const uploadReceipt = async (event: Event) => {
             </UFormField>
 
             <div class="md:col-span-1 flex justify-end">
-              <UButton icon="i-heroicons-trash" color="red" variant="ghost" class="mb-0.5"
+              <UButton icon="i-heroicons-trash" color="error" variant="ghost" class="mb-0.5"
                 @click="removeSplit(index)" />
             </div>
           </div>
@@ -530,7 +530,7 @@ const uploadReceipt = async (event: Event) => {
         </UFormField>
 
         <div class="mt-2">
-          <UButton class="mr-2" color="gray" @click="cancel">Cancel</UButton>
+          <UButton class="mr-2" color="neutral" @click="cancel">Cancel</UButton>
           <!-- TODO: save & new button -->
           <UButton type="submit" :disabled="!isSplitValid">Save</UButton>
         </div>
