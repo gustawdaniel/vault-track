@@ -9,7 +9,7 @@
         "build": "tsc",
         "start": "node dist/server.js",
         "lint": "eslint . --fix",
-        "test": "vitest",
+        "test": "vitest run",
         "query": "tsx query.ts"
     },
     "dependencies": {
