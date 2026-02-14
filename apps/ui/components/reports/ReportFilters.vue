@@ -46,7 +46,13 @@ const categoryOptions = computed(() => categoryStore.categories.map(c => ({
   color: c.color
 })));
 
-const projectOptions = computed(() => projectStore.projects.map(p => ({
+const transactionTypeOptions = [
+  { label: 'All', value: 'all' },
+  { label: 'Expense', value: 'expense' },
+  { label: 'Income', value: 'income' },
+];
+
+const projectOptions = computed(() => projectStore.projects.map((p: any) => ({
   label: p.project,
   value: p.project
 })));
@@ -60,7 +66,9 @@ const filters = ref({
   accounts: [] as string[], // IDs
   categories: [] as string[], // Names
   projects: [] as string[], // Names
-  currency: 'USD' as any 
+  currency: 'USD' as any,
+  type: 'expense' as 'all' | 'income' | 'expense',
+  excludeTransfers: false
 });
 
 // Watchers / Logic
@@ -100,84 +108,63 @@ function onGenerate() {
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <!-- Report Type -->
       <UFormGroup label="Report Type">
-        <USelect
-          v-model="filters.reportType"
-          :items="reportTypes"
-          class="w-full"
-        />
+        <USelect v-model="filters.reportType" :items="reportTypes" class="w-full" />
       </UFormGroup>
 
       <!-- Date Range Preset -->
       <UFormGroup label="Date Range">
-        <USelect
-          v-model="filters.dateRange"
-          :items="dateRangeOptions"
-          class="w-full"
-        />
+        <USelect v-model="filters.dateRange" :items="dateRangeOptions" class="w-full" />
       </UFormGroup>
 
       <!-- Custom Date Inputs -->
       <template v-if="filters.dateRange === 'custom'">
         <UFormGroup label="Start Date">
-          <UInput type="date" v-model="filters.startDate" class="w-full" />
+          <UInput v-model="filters.startDate" type="date" class="w-full" />
         </UFormGroup>
         <UFormGroup label="End Date">
-          <UInput type="date" v-model="filters.endDate" class="w-full" />
+          <UInput v-model="filters.endDate" type="date" class="w-full" />
         </UFormGroup>
       </template>
 
       <!-- Accounts -->
       <UFormGroup label="Accounts">
         <USelect
-          v-model="filters.accounts"
-          :items="accountOptions"
-          multiple
-          placeholder="All Accounts"
-          class="w-full"
-        />
+v-model="filters.accounts" :items="accountOptions" multiple placeholder="All Accounts"
+          class="w-full" />
       </UFormGroup>
 
       <!-- Categories -->
       <UFormGroup label="Categories">
         <USelect
-          v-model="filters.categories"
-          :items="categoryOptions"
-          multiple
-          placeholder="All Categories"
-          class="w-full"
-        />
+v-model="filters.categories" :items="categoryOptions" multiple placeholder="All Categories"
+          class="w-full" />
       </UFormGroup>
-      
-       <!-- Projects -->
+
+      <!-- Projects -->
       <UFormGroup label="Projects">
         <USelect
-          v-model="filters.projects"
-          :items="projectOptions"
-          multiple
-          placeholder="All Projects"
-          class="w-full"
-        />
+v-model="filters.projects" :items="projectOptions" multiple placeholder="All Projects"
+          class="w-full" />
       </UFormGroup>
 
       <!-- Currency -->
       <UFormGroup label="Currency">
-        <USelect
-          v-model="filters.currency"
-          :items="currencies"
-          class="w-full"
-        />
+        <USelect v-model="filters.currency" :items="currencies" class="w-full" />
+      </UFormGroup>
+
+      <!-- Transaction Type -->
+      <UFormGroup label="Transaction Type">
+        <USelect v-model="filters.type" :items="transactionTypeOptions" class="w-full" />
+      </UFormGroup>
+
+      <!-- Exclude Transfers -->
+      <UFormGroup label="Transfers">
+        <UCheckbox v-model="filters.excludeTransfers" label="Exclude Transfers" class="mt-2" />
       </UFormGroup>
     </div>
 
     <template #footer>
-      <UButton
-        block
-        color="primary"
-        variant="solid"
-        label="Generate Report"
-        :loading="loading"
-        @click="onGenerate"
-      />
+      <UButton block color="primary" variant="solid" label="Generate Report" :loading="loading" @click="onGenerate" />
     </template>
   </UCard>
 </template>

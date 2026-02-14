@@ -40,7 +40,8 @@ props.signal.on('reset', reset);
               class="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-500"
               for="file-upload">
               <span>Upload a file</span>
-              <input id="file-upload" :accept="accept" class="sr-only" name="file-upload" type="file"
+              <input
+id="file-upload" :accept="accept" class="sr-only" name="file-upload" type="file"
                 @change="upload" />
             </label>
           </form>

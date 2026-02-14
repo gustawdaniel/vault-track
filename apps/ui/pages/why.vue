@@ -8,9 +8,11 @@ import {
 
 <template>
   <div class="relative isolate overflow-hidden bg-white py-24 sm:py-32">
-    <div aria-hidden="true"
+    <div
+aria-hidden="true"
       class="absolute -top-80 left-[max(6rem,33%)] -z-10 transform-gpu blur-3xl sm:left-1/2 md:top-20 lg:ml-20 xl:top-3 xl:ml-56">
-      <div class="aspect-[801/1036] w-[50.0625rem] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30" style="
+      <div
+class="aspect-[801/1036] w-[50.0625rem] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30" style="
           clip-path: polygon(
             63.1% 29.6%,
             100% 17.2%,
@@ -50,7 +52,8 @@ import {
       <div
         class="mx-auto mt-16 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-16 lg:mx-0 lg:mt-10 lg:max-w-none lg:grid-cols-12">
         <div class="relative lg:order-last lg:col-span-5">
-          <svg aria-hidden="true"
+          <svg
+aria-hidden="true"
             class="absolute -top-[40rem] left-1 -z-10 h-[64rem] w-[175.5rem] -translate-x-1/2 stroke-gray-900/10 [mask-image:radial-gradient(64rem_64rem_at_111.5rem_0%,white,transparent)]">
             <defs>
               <pattern id="e87443c8-56e4-4c20-9111-55b82fa704e3" height="200" patternUnits="userSpaceOnUse" width="200">
@@ -68,7 +71,8 @@ import {
               </p>
             </blockquote>
             <figcaption class="mt-8 flex gap-x-4">
-              <img alt="" class="mt-1 h-10 w-10 flex-none rounded-full bg-gray-50"
+              <img
+alt="" class="mt-1 h-10 w-10 flex-none rounded-full bg-gray-50"
                 src="../assets/benjamin-franklin.png" />
               <div class="text-sm leading-6">
                 <div class="font-semibold text-gray-900">Benjamin Franklin</div>
@@ -166,7 +170,8 @@ import {
           <p class="mx-auto mt-6 max-w-xl text-lg leading-8 text-gray-700">
             You can start creating accounts and adding transactions manually or
             import your data. If you have custom data format create
-            <a class="text-indigo-700 hover:text-indigo-800"
+            <a
+class="text-indigo-700 hover:text-indigo-800"
               href="https://github.com/gustawdaniel/vault-track/issues">Github Issue</a>
             with anonymized content.
           </p>
@@ -179,7 +184,8 @@ import {
               Learn more <span aria-hidden="true">→</span>
             </a>
           </div>
-          <svg aria-hidden="true"
+          <svg
+aria-hidden="true"
             class="absolute left top-1/2 -z-10 h-[64rem] w-[64rem] -translate-x-1/2 [mask-image:radial-gradient(closest-side,white,transparent)]"
             viewBox="0 0 1024 1024">
             <circle cx="512" cy="512" fill="url(#827591b1-ce8c-4110-b064-7cb85a0b1217)" fill-opacity="0.7" r="512" />

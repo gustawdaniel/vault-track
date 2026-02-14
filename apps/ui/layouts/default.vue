@@ -50,7 +50,8 @@ const accountStore = useAccountStore();
           <ExpandableListNavigationButtons v-if="route.path === '/projects'" resource="project" />
 
           <div v-if="route.path === '/'" class="flex items-center">
-            <UButton :icon="accountStore.showHidden ? 'i-heroicons-eye-20-solid' : 'i-heroicons-eye-slash-20-solid'"
+            <UButton
+:icon="accountStore.showHidden ? 'i-heroicons-eye-20-solid' : 'i-heroicons-eye-slash-20-solid'"
               color="neutral" variant="ghost" @click="accountStore.toggleShowHidden()" />
           </div>
 

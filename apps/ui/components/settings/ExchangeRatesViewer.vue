@@ -108,7 +108,7 @@ const debugData = computed(() => JSON.stringify(exchangeRateStore.ratesData, nul
         </template>
     </UCard>
     <template #fallback>
-        <div class="h-32 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
+        <div class="h-32 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"/>
     </template>
   </ClientOnly>
 </template>

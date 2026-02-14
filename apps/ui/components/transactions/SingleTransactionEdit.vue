@@ -402,9 +402,9 @@ const uploadReceipt = async (event: Event) => {
     <UCard>
       <UForm :state="state" :validate="validate" @submit="submit">
         <div class="mb-4 flex gap-2">
-          <UButton icon="i-heroicons-camera" @click="onScanClick" :loading="isAnalyzing" variant="soft">Scan Receipt
+          <UButton icon="i-heroicons-camera" :loading="isAnalyzing" variant="soft" @click="onScanClick">Scan Receipt
           </UButton>
-          <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="uploadReceipt">
+          <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="uploadReceipt"/>
         </div>
 
         <UFormField :label="state.type === 'split' ? 'Group Name' : 'Payee/Item'" name="payee">
@@ -418,13 +418,15 @@ const uploadReceipt = async (event: Event) => {
 
         <div class="grid gap-6 grid-cols-2">
           <!-- Account Picker (Shared) -->
-          <AccountPicker v-if="
+          <AccountPicker
+v-if="
             state.type === 'income' ||
             state.type === 'expense' ||
             state.type === 'split'
           " v-model="state.accountId" :name="currentNormalAccount?.name" />
 
-          <AccountPicker v-else-if="state.type === 'transfer'" v-model="state.fromAccountId"
+          <AccountPicker
+v-else-if="state.type === 'transfer'" v-model="state.fromAccountId"
             :name="transferAccount.from?.name" label="From Account" />
 
           <DatePicker v-model="state.date" />
@@ -432,13 +434,16 @@ const uploadReceipt = async (event: Event) => {
 
         <div class="grid gap-6 grid-cols-2">
           <!-- Amount Input -->
-          <AmountInput v-if="state.type === 'income' || state.type === 'expense'" v-model="state.absoluteAmount"
+          <AmountInput
+v-if="state.type === 'income' || state.type === 'expense'" v-model="state.absoluteAmount"
             :currency="currentNormalAccount?.currency" />
 
-          <AmountInput v-else-if="state.type === 'split'" v-model="splitMasterAmount"
+          <AmountInput
+v-else-if="state.type === 'split'" v-model="splitMasterAmount"
             :currency="currentNormalAccount?.currency" label="Total Amount" />
 
-          <AmountInput v-else-if="state.type === 'transfer'" v-model="state.fromAbsoluteAmount"
+          <AmountInput
+v-else-if="state.type === 'transfer'" v-model="state.fromAbsoluteAmount"
             :currency="transferAccount.from?.currency" />
 
           <TypePicker :model-value="state.type" @update:model-value="setType" />
@@ -466,7 +471,8 @@ const uploadReceipt = async (event: Event) => {
           <div class="flex justify-between items-center mb-2">
             <h3 class="font-bold">Splits</h3>
             <div class="text-sm">
-              <span :class="{
+              <span
+:class="{
                 'text-red-500': Math.abs(splitRemaining) > 0.01,
                 'text-green-500': Math.abs(splitRemaining) <= 0.01,
               }">
@@ -476,7 +482,8 @@ const uploadReceipt = async (event: Event) => {
             </div>
           </div>
 
-          <div v-for="(split, index) in state.splits" :key="split.id"
+          <div
+v-for="(split, index) in state.splits" :key="split.id"
             class="grid grid-cols-1 md:grid-cols-12 gap-2 items-end mb-4 border-b border-gray-200 pb-2">
             <UFormField label="Payee" class="md:col-span-3">
               <UInput v-model="split.payee" placeholder="Payee" @blur="suggestCategory(index)" />
@@ -493,7 +500,8 @@ const uploadReceipt = async (event: Event) => {
             </UFormField>
 
             <div class="md:col-span-1 flex justify-end">
-              <UButton icon="i-heroicons-trash" color="error" variant="ghost" class="mb-0.5"
+              <UButton
+icon="i-heroicons-trash" color="error" variant="ghost" class="mb-0.5"
                 @click="removeSplit(index)" />
             </div>
           </div>
@@ -502,7 +510,8 @@ const uploadReceipt = async (event: Event) => {
         </div>
 
         <!-- Transfer Exchange Rate & Status -->
-        <div v-if="
+        <div
+v-if="
           state.type === 'transfer' &&
           transferAccount.from?.currency &&
           transferAccount.to?.currency &&
@@ -510,7 +519,8 @@ const uploadReceipt = async (event: Event) => {
         " class="grid gap-6 grid-cols-2">
           <AmountInput v-model="state.toAbsoluteAmount" :currency="transferAccount.to?.currency" />
 
-          <ExchangeRate :from-amount="state.fromAbsoluteAmount" :from-currency="transferAccount.from?.currency"
+          <ExchangeRate
+:from-amount="state.fromAbsoluteAmount" :from-currency="transferAccount.from?.currency"
             :to-amount="state.toAbsoluteAmount" :to-currency="transferAccount.to?.currency" />
         </div>
 

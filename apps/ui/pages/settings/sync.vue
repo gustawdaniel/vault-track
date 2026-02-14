@@ -22,7 +22,8 @@
                     <div class="flex gap-2">
                         <UInput v-model="groupId" type="text" class="flex-1" placeholder="e.g. my-secret-vault-123" />
                         <UTooltip text="Scan QR Code">
-                            <UButton color="neutral" variant="ghost" icon="i-heroicons-qr-code"
+                            <UButton
+color="neutral" variant="ghost" icon="i-heroicons-qr-code"
                                 @click="showScanner = true" />
                         </UTooltip>
                     </div>
@@ -30,7 +31,7 @@
                         <UButton size="xs" color="primary" variant="link" class="p-0" @click="generateRandomCode">
                             Generate Random Code
                         </UButton>
-                        <UButton @click="saveGroupId" color="primary" :disabled="!groupId">
+                        <UButton color="primary" :disabled="!groupId" @click="saveGroupId">
                             Save & Connect
                         </UButton>
                     </div>
@@ -41,7 +42,8 @@
                     <!-- QR Code Display -->
                     <div v-if="qrCodeUrl" class="mt-4 text-center">
                         <p class="text-xs text-gray-500 mb-2">Scan to connect another device</p>
-                        <img :src="qrCodeUrl" alt="Pairing Code QR"
+                        <img
+:src="qrCodeUrl" alt="Pairing Code QR"
                             class="mx-auto border p-2 bg-white rounded shadow-sm w-48 h-48" />
                     </div>
                 </div>
@@ -124,11 +126,13 @@
                     <label class="block text-sm font-medium text-gray-700">My Device ID</label>
                     <div class="mt-1 flex items-center gap-2">
                         <code class="bg-gray-100 px-2 py-1 rounded text-sm select-all">{{ deviceId }}</code>
-                        <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-clipboard-document"
+                        <UButton
+size="xs" color="neutral" variant="ghost" icon="i-heroicons-clipboard-document"
                             @click="copyDeviceId" />
                     </div>
                     <div class="mt-2">
-                        <UButton size="xs" variant="link" class="p-0 text-primary-600" icon="i-heroicons-qr-code"
+                        <UButton
+size="xs" variant="link" class="p-0 text-primary-600" icon="i-heroicons-qr-code"
                             @click="showPairingCode = true">
                             Show Pairing Code & QR
                         </UButton>
@@ -138,7 +142,8 @@
 
                 <!-- Pairing Code Modal -->
                 <!-- Pairing Code Modal -->
-                <UModal v-model:open="showPairingCode" title="Pairing Code"
+                <UModal
+v-model:open="showPairingCode" title="Pairing Code"
                     description="Use this code to connect other devices to your sync group."
                     :ui="{ content: 'max-w-sm' }">
                     <template #body>
@@ -148,7 +153,8 @@
                                 {{ savedGroupId }}
                             </div>
                             <div v-if="qrCodeUrl" class="flex justify-center">
-                                <img :src="qrCodeUrl" alt="Pairing Code QR"
+                                <img
+:src="qrCodeUrl" alt="Pairing Code QR"
                                     class="border p-2 bg-white rounded shadow-sm w-48 h-48" />
                             </div>
                         </div>
@@ -163,15 +169,16 @@
                     <div class="flex gap-4">
                         <UTooltip
                             text="Uploads your local events to the server and downloads new changes from other devices.">
-                            <UButton :loading="isSyncing" @click="handleSync" icon="i-heroicons-arrow-path">
+                            <UButton :loading="isSyncing" icon="i-heroicons-arrow-path" @click="handleSync">
                                 Sync Now
                             </UButton>
                         </UTooltip>
 
                         <UTooltip
                             text="Converts your current local data (Accounts & Transactions) into Sync Events and uploads them. Use this ONLY ONCE on the first device.">
-                            <UButton :loading="isMigrating" color="primary" variant="outline" @click="handleMigration"
-                                icon="i-heroicons-circle-stack">
+                            <UButton
+:loading="isMigrating" color="primary" variant="outline" icon="i-heroicons-circle-stack"
+                                @click="handleMigration">
                                 Migrate Local Data
                             </UButton>
                         </UTooltip>
@@ -179,9 +186,11 @@
 
                     <div class="mt-4 border-t pt-4">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Emergency Restore</label>
-                        <input type="file" ref="fileInput" class="hidden" accept=".json"
+                        <input
+ref="fileInput" type="file" class="hidden" accept=".json"
                             @change="handleRestoreBackup" />
-                        <UButton color="neutral" icon="i-heroicons-arrow-up-tray"
+                        <UButton
+color="neutral" icon="i-heroicons-arrow-up-tray"
                             @click="(fileInput as HTMLInputElement)?.click()">
                             Restore from JSON Backup
                         </UButton>

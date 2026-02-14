@@ -303,12 +303,14 @@ function guessDateFormat() {
 
 
 
-    <UModal v-model:open="isOpen" fullscreen :title="`Upload transactions to ${account.name}`"
+    <UModal
+v-model:open="isOpen" fullscreen :title="`Upload transactions to ${account.name}`"
       description="Upload and parse CSV or XLSX file to import transactions" :ui="{
         content: 'h-full flex flex-col',
         body: 'grow overflow-auto p-4'
       }">
-      <UButton icon="i-heroicons-document-arrow-down" size="xs" label="Import transactions" class="mt-4 mx-3"
+      <UButton
+icon="i-heroicons-document-arrow-down" size="xs" label="Import transactions" class="mt-4 mx-3"
         @click="isOpen = true" />
 
       <template #body>
@@ -338,9 +340,11 @@ function guessDateFormat() {
               <thead>
                 <tr>
                   <th />
-                  <th v-for="(col, colIndex) in csvTable[0]" :key="colIndex"
+                  <th
+v-for="(col, colIndex) in csvTable[0]" :key="colIndex"
                     class="border border-dashed border-gray-900/10">
-                    <draggable class="list-group" :list="headers[colIndex]" group="people" item-key="name"
+                    <draggable
+class="list-group" :list="headers[colIndex]" group="people" item-key="name"
                       @change="log">
                       <template #item="{ element }">
                         <UBadge color="neutral" variant="solid" class="cursor-grab">
@@ -352,7 +356,8 @@ function guessDateFormat() {
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(row, rowIndex) in csvTable" :key="rowIndex" :class="isValidRow(row, headers) ? '' : 'bg-gray-100 text-gray-400'
+                <tr
+v-for="(row, rowIndex) in csvTable" :key="rowIndex" :class="isValidRow(row, headers) ? '' : 'bg-gray-100 text-gray-400'
                   ">
                   <td>
                     <button @click="removeRow(rowIndex)">x</button>
@@ -369,7 +374,8 @@ function guessDateFormat() {
             <Debug v-if="transactions.length">{{ transactions }}</Debug>
           </div>
 
-          <UploadTransactionAcceptance v-if="readyToReview" :transactions-to-import="transactions" :account="account"
+          <UploadTransactionAcceptance
+v-if="readyToReview" :transactions-to-import="transactions" :account="account"
             @close="close" />
         </div>
       </template>

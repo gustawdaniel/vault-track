@@ -128,10 +128,12 @@ function onConfirmed() {
 
 <template>
   <div>
-    <UModal v-model:open="showConfirmModal" title="Confirm Import"
+    <UModal
+v-model:open="showConfirmModal" title="Confirm Import"
       description="Are you sure you want to import these transactions?">
       <template #body>
-        <ConfirmBulkTransactionsCreate v-if="showConfirmModal" :transactions="transactionsToCreate" :account="account"
+        <ConfirmBulkTransactionsCreate
+v-if="showConfirmModal" :transactions="transactionsToCreate" :account="account"
           @close="showConfirmModal = false" @confirm="onConfirmed" />
       </template>
     </UModal>
@@ -145,7 +147,8 @@ function onConfirmed() {
       <div class="text-center font-bold">Transactions to import</div>
     </div>
 
-    <div v-for="[day, transactionsOfDay] of [...transactionTimeline.entries()]
+    <div
+v-for="[day, transactionsOfDay] of [...transactionTimeline.entries()]
       .filter(
         ([, transactions]) =>
           showExcluded || transactions.some((t) => !t.excluded),
@@ -155,7 +158,8 @@ function onConfirmed() {
         {{ day }}
       </div>
       <div>
-        <div v-for="(transaction, index) of transactionsOfDay
+        <div
+v-for="(transaction, index) of transactionsOfDay
           .filter((t) => 'hash' in t && (showExcluded || !t.excluded))
           .sort((a, b) => a.amount - b.amount)" :key="index">
           <div class="flex justify-between" :class="transaction.excluded ? 'bg-gray-100' : ''">
@@ -167,12 +171,14 @@ function onConfirmed() {
               </div>
               <div>{{ transaction.category }}</div>
             </div>
-            <div :style="transaction.excluded
+            <div
+:style="transaction.excluded
               ? `filter: brightness(150%) grayscale(80%)`
               : ''
               " class="whitespace-nowrap font-bold" :class="textColorByAmount(transaction.amount)">
               {{ formatAmount(transaction.amount ?? 0) }} {{ account.currency }}
-              <UButton label="x" title="Exclude / Include" color="neutral" size="xs" class="m-0 px-1 py-0" @click="
+              <UButton
+label="x" title="Exclude / Include" color="neutral" size="xs" class="m-0 px-1 py-0" @click="
                 toggleExclusion(toShortDate(transaction.date), transaction.id)
                 " />
             </div>
@@ -182,7 +188,8 @@ function onConfirmed() {
         </div>
       </div>
       <div>
-        <div v-for="(transaction, index) of transactionsOfDay
+        <div
+v-for="(transaction, index) of transactionsOfDay
           .filter((t) => !('hash' in t) && (showExcluded || !t.excluded))
           .sort((a, b) => a.amount - b.amount)" :key="index">
           <div class="flex justify-between" :class="transaction.excluded ? 'bg-gray-100' : ''">
@@ -194,12 +201,14 @@ function onConfirmed() {
               </div>
               <div>{{ transaction.category }}</div>
             </div>
-            <div :style="transaction.excluded
+            <div
+:style="transaction.excluded
               ? `filter: brightness(150%) grayscale(80%)`
               : ''
               " class="whitespace-nowrap font-bold" :class="textColorByAmount(transaction.amount)">
               {{ formatAmount(transaction.amount ?? 0) }} {{ account.currency }}
-              <UButton label="x" title="Exclude / Include" color="neutral" size="xs" class="m-0 px-1 py-0" @click="
+              <UButton
+label="x" title="Exclude / Include" color="neutral" size="xs" class="m-0 px-1 py-0" @click="
                 toggleExclusion(toShortDate(transaction.date), transaction.id)
                 " />
             </div>
