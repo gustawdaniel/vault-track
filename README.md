@@ -29,6 +29,12 @@ VaultTrack is a modern, privacy-focused, offline-first personal finance applicat
     *   **Split Transactions**: Divide a single transaction into multiple categories.
     *   Multi-currency support with automatic exchange rate handling.
     *   Categories and Projects organization.
+*   **Advanced Reporting & Visualization**:
+    *   **Interactive Charts**: Analyze monthly spending, cash flow forecasts, and category breakdowns.
+    *   **Cash Flow Forecasting**: Project future balances based on recurring trends.
+    *   **Currency Exchange Rates**: 
+        *   Backend-synchronized daily exchange rates (Fiat & Crypto).
+        *   View reports in any currency (USD, EUR, PLN, BTC, DOGE, etc.) with real-time conversion.
 *   **Import/Export**:
     *   Full QIF (Quicken Interchange Format) import support.
     *   JSON backup and restore.
@@ -125,14 +131,7 @@ Our development focus is strictly prioritized on the following key pillars:
     *   Bring back the complete feature set of the classic 2012 Android application, ensuring robust, proven functionality for personal finance management.
     *   Includes: Recurring transactions, advanced filtering, and specific report types.
 
-2.  **Advanced Visualization & Charts**
-    *   Implement comprehensive graphing capabilities to visualize spending trends, category breakdowns, and net worth evolution over time.
-
-3.  **Backend-Synchronized Exchange Rates**
-    *   Automatic synchronization of relative currency values via the backend.
-    *   Seamless handling of multi-currency portfolios with up-to-date rates.
-
-4.  **Purchasing Power Analysis Layer (Inflation-Awareness)**
+2.  **Purchasing Power Analysis Layer (Inflation-Awareness)**
     *   A unique analytical layer that allows users to view their finances in **Real Terms** vs **Nominal Terms**.
     *   Analyze spending power relative to external economic metrics (e.g., Average Wage, Inflation/CPI baskets, Big Mac Index) rather than just raw currency numbers.
     *   "How much of the average national wage did I spend on groceries in 2015 vs today?"

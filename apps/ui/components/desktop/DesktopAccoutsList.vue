@@ -12,7 +12,7 @@ function classForAccountBalance(balance: number): string {
     : 'text-rose-400 bg-rose-400/10';
 }
 
-const emit = defineEmits(['selectAccountId']);
+
 
 const accountStore = useAccountStore();
 
@@ -20,7 +20,7 @@ const showHiddenAccounts = ref<boolean>(false);
 </script>
 
 <template>
-  <main class="lg:pr-96">
+  <main class="mx-auto max-w-7xl">
     <header
       class="flex items-center justify-between border-b border-white/5 px-4 py-4 sm:px-6 sm:py-6 lg:px-8"
     >
@@ -43,7 +43,6 @@ const showHiddenAccounts = ref<boolean>(false);
           showHiddenAccounts ? true : !acc.hidden,
         )"
         :key="account.id"
-        @mouseenter="emit('selectAccountId', account.id)"
       >
         <ContextMenu :id="account.id" resource="account">
           <NuxtLink

@@ -24,7 +24,7 @@ export async function usersRoutes(fastify: FastifyInstance) {
             },
         },
         async (req, reply) => {
-            const { syncGroupId } = req.body;
+            const { syncGroupId } = req.body as { syncGroupId: string };
 
             // Check if user exists
             const result = await db.execute({
@@ -102,8 +102,8 @@ export async function usersRoutes(fastify: FastifyInstance) {
             },
         },
         async (req, reply) => {
-            const { id } = req.params;
-            const { credits } = req.body;
+            const { id } = req.params as { id: string };
+            const { credits } = req.body as { credits: number };
 
             await db.execute({
                 sql: 'UPDATE users SET credits = ? WHERE id = ?',

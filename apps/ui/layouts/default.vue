@@ -54,7 +54,14 @@ const accountStore = useAccountStore();
               color="neutral" variant="ghost" @click="accountStore.toggleShowHidden()" />
           </div>
 
-          <div class="flex items-center ml-2">
+          <div class="flex items-center ml-auto gap-2">
+            <UButton
+              to="/reports"
+              icon="i-heroicons-chart-bar"
+              color="neutral"
+              variant="ghost"
+              aria-label="Reports"
+            />
             <UButton to="/settings/sync" icon="i-heroicons-arrow-path" color="neutral" variant="ghost" />
           </div>
         </div>
