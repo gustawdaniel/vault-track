@@ -4,14 +4,12 @@ import { z } from 'zod';
 
 dotenv.config();
 
-const url = process.env.TURSO_DATABASE_URL;
+const url = process.env.TURSO_DATABASE_URL || 'file:local.db';
 const authToken = process.env.TURSO_AUTH_TOKEN;
-
-if (!url) throw new Error('TURSO_DATABASE_URL is not set');
 
 export const db = createClient({
     url,
-    authToken,
+    authToken: url.startsWith('file:') ? undefined : authToken,
 });
 
 // Schema helper
@@ -24,6 +22,16 @@ export async function initDB() {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
     `);
+
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS exchange_rates (
+            date TEXT NOT NULL,
+            currency TEXT NOT NULL,
+            rate REAL NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (date, currency)
+        );
+    `);
 }
 
 export const UserSchema = z.object({
@@ -33,4 +41,12 @@ export const UserSchema = z.object({
     created_at: z.string().optional(),
 });
 
+export const ExchangeRateSchema = z.object({
+    date: z.string(),
+    currency: z.string(),
+    rate: z.number(),
+    created_at: z.string().optional(),
+});
+
 export type User = z.infer<typeof UserSchema>;
+export type ExchangeRate = z.infer<typeof ExchangeRateSchema>;
