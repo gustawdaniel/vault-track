@@ -29,6 +29,11 @@ VaultTrack is a modern, privacy-focused, offline-first personal finance applicat
     *   **Split Transactions**: Divide a single transaction into multiple categories.
     *   Multi-currency support with automatic exchange rate handling.
     *   Categories and Projects organization.
+*   **Balance Assertions**:
+    *   Set verification checkpoints (Asserts) for your account balances at specific dates.
+    *   **Proactive Integrity**: Verify that your recorded balance matches your actual bank statement.
+    *   **Visual Diff**: Instantly see discrepancies (Red/Green indicators) in the transaction list.
+    *   **Reconciliation Widget**: Dashboard widget to identify and fix all broken assertions across all accounts in one click.
 *   **Advanced Reporting & Visualization**:
     *   **Interactive Charts**: Analyze monthly spending, cash flow forecasts, and category breakdowns.
     *   **Cash Flow Forecasting**: Project future balances based on recurring trends.

@@ -3,11 +3,12 @@ import type { Transaction } from '~/store/transaction.model';
 import type { Account } from '~/store/account';
 import type { PersistedCategory } from '~/store/category';
 import type { PersistedProject } from '~/store/project';
+import type { Assert } from '~/store/assert.model';
 import { createBaseEvent, reserveCounters, getDeviceId } from './deviceId';
 import { addEvent, addEvents, getAllEvents } from './db';
 import { sortEvents } from './ordering';
 import { replay } from './reducer';
-import type { AppEvent, AppState, TransactionAdded, TransactionUpdated, TransactionDeleted, AccountCreated, AccountUpdated, AccountDeleted, AccountReordered, CategoryCreated, CategoryUpdated, CategoryDeleted, ProjectCreated, ProjectUpdated, ProjectDeleted } from './types';
+import type { AppEvent, AppState, TransactionAdded, TransactionUpdated, TransactionDeleted, AccountCreated, AccountUpdated, AccountDeleted, AccountReordered, CategoryCreated, CategoryUpdated, CategoryDeleted, ProjectCreated, ProjectUpdated, ProjectDeleted, AssertCreated, AssertUpdated, AssertDeleted } from './types';
 import { useDebounceFn } from '@vueuse/core';
 import { hashEntityId } from './crypto';
 import { toRaw } from 'vue';
@@ -197,13 +198,52 @@ export async function deleteProject(id: string): Promise<AppState> {
     return getAppState();
 }
 
+// --- Asserts ---
+
+export async function createAssert(payload: Assert): Promise<AppState> {
+    const base = await createBaseEvent();
+    const event: AssertCreated = {
+        ...base,
+        type: 'ASSERT_CREATED',
+        payload: toRaw(payload)
+    };
+    await addEvent(event);
+    triggerSync();
+    return getAppState();
+}
+
+export async function updateAssert(payload: Assert): Promise<AppState> {
+    const base = await createBaseEvent();
+    const event: AssertUpdated = {
+        ...base,
+        type: 'ASSERT_UPDATED',
+        payload: toRaw(payload)
+    };
+    await addEvent(event);
+    triggerSync();
+    return getAppState();
+}
+
+export async function deleteAssert(id: string): Promise<AppState> {
+    const base = await createBaseEvent();
+    const event: AssertDeleted = {
+        ...base,
+        type: 'ASSERT_DELETED',
+        payload: { id }
+    };
+    await addEvent(event);
+    triggerSync();
+    return getAppState();
+}
+
 export async function importLocalData(data: {
     accounts: Account[],
     transactions: (Transaction & { id: string })[],
     categories: PersistedCategory[],
-    projects: PersistedProject[]
+    projects: PersistedProject[],
+    asserts?: Assert[]
 }): Promise<AppState> {
-    const totalEvents = data.accounts.length + data.transactions.length + data.categories.length + data.projects.length;
+    const totalEvents = data.accounts.length + data.transactions.length + data.categories.length + data.projects.length + (data.asserts?.length ?? 0);
     if (totalEvents === 0) return getAppState();
 
     const deviceId = await getDeviceId();
@@ -271,6 +311,23 @@ export async function importLocalData(data: {
             type: 'PROJECT_CREATED',
             payload: item
         });
+    }
+
+    // Asserts
+    if (data.asserts) {
+        for (const item of data.asserts) {
+            const hashedId = await hashEntityId(item.id);
+            const eventId = `${deviceId}:migration:${hashedId}`;
+            console.log(`[Migration] Creating assert event: ${eventId}`);
+            events.push({
+                eventId,
+                deviceId,
+                counter: counter++,
+                timestamp,
+                type: 'ASSERT_CREATED',
+                payload: item
+            });
+        }
     }
 
     console.log(`[Migration] Generated ${events.length} events, attempting to add to local DB...`);
