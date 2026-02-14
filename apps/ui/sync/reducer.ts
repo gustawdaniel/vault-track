@@ -5,6 +5,7 @@ export const initialAppState: AppState = {
     accounts: {},
     categories: {},
     projects: {},
+    asserts: {},
 };
 
 export function reduceEvent(state: AppState, event: AppEvent): AppState {
@@ -15,6 +16,7 @@ export function reduceEvent(state: AppState, event: AppEvent): AppState {
         accounts: { ...state.accounts },
         categories: { ...state.categories },
         projects: { ...state.projects },
+        asserts: { ...state.asserts },
     };
 
     switch (event.type) {
@@ -64,6 +66,15 @@ export function reduceEvent(state: AppState, event: AppEvent): AppState {
 
         case 'PROJECT_DELETED':
             delete nextState.projects[event.payload.id];
+            break;
+
+        case 'ASSERT_CREATED':
+        case 'ASSERT_UPDATED':
+            nextState.asserts[event.payload.id] = event.payload;
+            break;
+
+        case 'ASSERT_DELETED':
+            delete nextState.asserts[event.payload.id];
             break;
 
         default:

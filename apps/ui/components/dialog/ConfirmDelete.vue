@@ -4,6 +4,7 @@ import { useTransactionStore } from '~/store/transaction';
 import { useAccountStore } from '~/store/account';
 import { useCategoryStore } from '~/store/category';
 import { useProjectStore } from '~/store/project';
+import { useAssertStore } from '~/store/assert';
 import { clearLocalStorage } from '~/components/backup/clearLocalStorage';
 
 const dialog = useDialog();
@@ -17,6 +18,7 @@ export type RemovableResource =
   | 'transaction'
   | 'category'
   | 'project'
+  | 'assert'
   | 'all-application-data';
 
 const props = defineProps<{
@@ -43,6 +45,9 @@ function confirm() {
   } else if (props.resource === 'project') {
     const projectStore = useProjectStore();
     projectStore.delete(props.id);
+  } else if (props.resource === 'assert') {
+    const assertStore = useAssertStore();
+    assertStore.delete(props.id);
   } else if (props.resource === 'all-application-data') {
     clearLocalStorage();
   }

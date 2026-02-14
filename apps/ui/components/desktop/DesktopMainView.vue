@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { PlusSmallIcon } from '@heroicons/vue/20/solid';
 import SettingsButtonOptionsList from '~/components/menu/SettingsButtonOptionsList.vue';
+import ReconciliationWidget from '~/components/dashboard/ReconciliationWidget.vue';
 </script>
 
 <template>
@@ -11,8 +12,8 @@ import SettingsButtonOptionsList from '~/components/menu/SettingsButtonOptionsLi
         <!--        TODO: place for search bar -->
 
         <NuxtLink class="hover:text-gray-600 flex items-center gap-x-1" to="/reports">
-           <UIcon name="i-heroicons-chart-bar" />
-           Reports
+          <UIcon name="i-heroicons-chart-bar" />
+          Reports
         </NuxtLink>
 
         <a class="hover:text-gray-600" href="https://docs.VaultTrack.org">
@@ -34,6 +35,8 @@ import SettingsButtonOptionsList from '~/components/menu/SettingsButtonOptionsLi
   </header>
 
   <hr />
+
+  <ReconciliationWidget />
 
   <DesktopAccoutsList />
 </template>

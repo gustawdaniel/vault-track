@@ -120,7 +120,11 @@ export function prepareTransactionsToDisplay(
 
   let subBalance = 0;
 
-  extendedTransactions.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  extendedTransactions.sort((a, b) => {
+    const dateCompare = (a.date || '').localeCompare(b.date || '');
+    if (dateCompare !== 0) return dateCompare;
+    return a.id.localeCompare(b.id);
+  });
 
   for (const transaction of extendedTransactions) {
     subBalance = sum(subBalance, transaction.amount, transaction.currency);

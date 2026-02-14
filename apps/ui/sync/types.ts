@@ -2,6 +2,7 @@ import type { Transaction } from '~/store/transaction.model';
 import type { Account } from '~/store/account';
 import type { PersistedCategory } from '~/store/category';
 import type { PersistedProject } from '~/store/project';
+import type { Assert } from '~/store/assert.model';
 
 export interface BaseEvent {
     eventId: string;
@@ -83,6 +84,22 @@ export interface ProjectDeleted extends BaseEvent {
     payload: { id: string };
 }
 
+// --- Assert Events ---
+
+export interface AssertCreated extends BaseEvent {
+    type: 'ASSERT_CREATED';
+    payload: Assert;
+}
+
+export interface AssertUpdated extends BaseEvent {
+    type: 'ASSERT_UPDATED';
+    payload: Assert;
+}
+
+export interface AssertDeleted extends BaseEvent {
+    type: 'ASSERT_DELETED';
+    payload: { id: string };
+}
 
 export type AppEvent =
     | TransactionAdded
@@ -91,14 +108,16 @@ export type AppEvent =
     | AccountCreated
     | AccountUpdated
     | AccountDeleted
-    | AccountDeleted
     | AccountReordered
     | CategoryCreated
     | CategoryUpdated
     | CategoryDeleted
     | ProjectCreated
     | ProjectUpdated
-    | ProjectDeleted;
+    | ProjectDeleted
+    | AssertCreated
+    | AssertUpdated
+    | AssertDeleted;
 
 export type EventPayload = AppEvent['payload'];
 
@@ -107,6 +126,7 @@ export interface AppState {
     accounts: Record<string, Account>;
     categories: Record<string, PersistedCategory>;
     projects: Record<string, PersistedProject>;
+    asserts: Record<string, Assert>;
 }
 
 export interface TransportEvent extends BaseEvent {

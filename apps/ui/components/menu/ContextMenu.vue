@@ -2,6 +2,8 @@
 import { useDialog } from '~/store/dialog';
 import { useCategoryStore } from '~/store/category';
 import ConfirmDelete from '~/components/dialog/ConfirmDelete.vue';
+import { useTransactionStore } from '~/store/transaction';
+import AssertEditDialog from '~/components/dialog/AssertEditDialog.vue';
 // import { useContextMenuStore } from '~/store/contextMenu';
 
 // const contextMenuStore = useContextMenuStore();
@@ -19,6 +21,7 @@ const props = defineProps<{
 
 // const router = useRouter(); // Hoist router
 const dialog = useDialog(); // Hoist dialog controller
+const transactionStore = useTransactionStore(); // Initialize
 
 // Helper to capitalize first letter
 function ucFirst(str: string) {
@@ -100,15 +103,34 @@ const options = computed(() => {
     case 'transaction':
       opts.push(
         {
+          label: 'Add Assert',
+          icon: 'i-heroicons-chart-bar',
+          onSelect: () => {
+            const tx = transactionStore.getById(props.id);
+            if (!tx) return;
+            dialog.openDialog(AssertEditDialog, {
+              initialData: {
+                accountId: tx.accountId,
+                date: tx.date.split('T')[0],
+                value: 0,
+              },
+            });
+          },
+        },
+        {
           label: 'Delete transaction',
           onSelect: () => {
-            dialog.openDialog(ConfirmDelete, {
-              resource: props.resource,
-              id: props.id,
-            }, {
-              title: 'Delete Transaction',
-              description: 'Are you sure you want to delete this transaction?'
-            });
+            dialog.openDialog(
+              ConfirmDelete,
+              {
+                resource: props.resource,
+                id: props.id,
+              },
+              {
+                title: 'Delete Transaction',
+                description: 'Are you sure you want to delete this transaction?',
+              },
+            );
           },
         },
         {
@@ -123,8 +145,7 @@ const options = computed(() => {
 </script>
 
 <template>
-  <UContextMenu
-:items="options" :ui="{
+  <UContextMenu :items="options" :ui="{
     content: 'min-w-48 bg-white dark:bg-gray-900 shadow-xl ring-1 ring-gray-200 dark:ring-gray-800 rounded-lg overflow-hidden'
   }">
     <slot />

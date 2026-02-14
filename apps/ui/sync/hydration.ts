@@ -2,6 +2,7 @@ import { useAccountStore } from '~/store/account';
 import { useTransactionStore } from '~/store/transaction';
 import { useCategoryStore } from '~/store/category';
 import { useProjectStore } from '~/store/project';
+import { useAssertStore } from '~/store/assert';
 import { getAppState } from '~/sync/manager';
 import { Trx } from '~/store/transaction.model';
 import { sumArray } from '~/store/currency';
@@ -55,6 +56,10 @@ export async function hydratePinia() {
 
     const projectStore = useProjectStore();
     projectStore.$state.projects = Object.values(state.projects);
+
+    // 5. Restore Asserts
+    const assertStore = useAssertStore();
+    assertStore.$state.asserts = Object.values(state.asserts);
 
     console.log(`UI updated: ${syncAccountCount} accounts, ${syncTrxCount} transactions.`);
 }

@@ -25,7 +25,7 @@ export function transactionToContext(
   reverseTransaction?: FullTransaction,
 ): TransactionContext {
   const common: CommonTransactionContext = {
-    payee: transaction.payee,
+    payee: transaction?.payee || '',
     date: transaction.date,
     memo: transaction.memo,
     projectName: getFullProjectName(transaction),
