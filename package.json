@@ -36,6 +36,9 @@
       "sharp",
       "unrs-resolver",
       "vue-demi"
-    ]
+    ],
+    "overrides": {
+      "zod-to-json-schema": "3.24.3"
+    }
   }
 }
