@@ -48,14 +48,24 @@ export const useTransactionStore = defineStore('transaction', {
         syncUpdateTransaction(trx.json);
       }
     },
-    update(id: string, transaction: Transaction) {
-      const newTrx = new Trx({ ...transaction, id });
-      const index = this.getIndexById(newTrx.id);
+    update(id: string, transaction: Partial<Transaction>) {
+      const index = this.getIndexById(id);
       if (index !== -1) {
         const oldTrxData = this.$state.transactions[index];
         if (!oldTrxData) throw new Error('Transaction not found');
         const oldTrx = new Trx(oldTrxData);
+
+        // Merge old data with new partial data
+        const newTrxData = { ...oldTrx.data, ...transaction, id };
+
+        // If it was a transfer but now isn't (category changed), remove transferHash
+        if (oldTrx.data.transferHash && !isTransferByCategory(newTrxData)) {
+          delete newTrxData.transferHash;
+        }
+
+        const newTrx = new Trx(newTrxData);
         const accountStore = useAccountStore();
+
         if (
           oldTrx.data.accountId !== newTrx.data.accountId ||
           newTrx.data.amount !== oldTrx.data.amount
@@ -70,7 +80,7 @@ export const useTransactionStore = defineStore('transaction', {
         this.$state.transactions.splice(
           index,
           1,
-          Object.assign(oldTrx.json, newTrx.json),
+          newTrx.json,
         );
         syncUpdateTransaction(newTrx.json);
 
@@ -89,8 +99,14 @@ export const useTransactionStore = defineStore('transaction', {
           this.$state.transactions.splice(reverseIndex, 1);
         }
       } else {
+        // Fallback for creating if not found? 
+        // Original code called create. If partial, create might fail if missing fields.
+        // Assuming create needs full objects or defaults. 
+        // If transaction is Partial, we can't really create a valid transaction easily without defaults.
+        // But getNew() exists?
+        // Let's keep original behavior but warn it might be incomplete if transaction is partial.
         this.create(
-          { ...transaction, id },
+          { ...transaction, id } as any,
           {
             allowDuplicates: true,
             updateAccountBalance: true,

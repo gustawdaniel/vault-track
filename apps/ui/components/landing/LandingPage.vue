@@ -171,7 +171,8 @@ const footerNavigation = {
     <main class="isolate">
       <!-- Hero section -->
       <div class="relative pt-14">
-        <div aria-hidden="true"
+        <div
+aria-hidden="true"
           class="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80">
           <div
             class="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"
@@ -221,7 +222,8 @@ const footerNavigation = {
             <div class="mt-16 flow-root sm:mt-24">
               <div
                 class="-m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
-                <img alt="App screenshot" class="rounded-md shadow-2xl ring-1 ring-gray-900/10 w-full" height="537"
+                <img
+alt="App screenshot" class="rounded-md shadow-2xl ring-1 ring-gray-900/10 w-full" height="537"
                   src="../../assets/screenshots/open-cash-manager-shot-1.webp" width="1054" />
                 <!--                <img-->
                 <!--                  alt="App screenshot"-->
@@ -234,7 +236,8 @@ const footerNavigation = {
             </div>
           </div>
         </div>
-        <div aria-hidden="true"
+        <div
+aria-hidden="true"
           class="absolute inset-x-0 top-[calc(100%-13rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-30rem)]">
           <div
             class="relative left-[calc(50%+3rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem]"
@@ -265,7 +268,8 @@ const footerNavigation = {
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div
           class="mx-auto grid max-w-lg grid-cols-4 items-center gap-x-8 gap-y-12 sm:max-w-xl sm:grid-cols-6 sm:gap-x-10 sm:gap-y-14 lg:mx-0 lg:max-w-none lg:grid-cols-3">
-          <img v-for="logo in logos" :key="logo.name" :alt="logo.name" :src="logo.image"
+          <img
+v-for="logo in logos" :key="logo.name" :alt="logo.name" :src="logo.image"
             class="col-span-2 max-h-8 w-full object-contain lg:col-span-1" height="48" style="
               filter: opacity(0.9) grayscale(100%)
                 drop-shadow(0 0 0 rgb(17, 24, 39));
@@ -276,7 +280,8 @@ const footerNavigation = {
             class="relative rounded-full px-4 py-1.5 text-sm leading-6 text-gray-600 ring-1 ring-inset ring-gray-900/10 hover:ring-gray-900/20">
             <span class="hidden md:inline">In any endeavor, the initial act of measuring progress is the
               cornerstone of eventual success.</span>
-            <NuxtLink class="font-semibold text-indigo-600" to="/why"><span aria-hidden="true"
+            <NuxtLink class="font-semibold text-indigo-600" to="/why"><span
+aria-hidden="true"
                 class="absolute inset-0" /> Benefits of
               personal finance tracking
               <span aria-hidden="true">&rarr;</span>
@@ -322,11 +327,13 @@ const footerNavigation = {
       <div class="mx-auto mt-32 max-w-7xl sm:mt-56 sm:px-6 lg:px-8">
         <div
           class="relative overflow-hidden bg-gray-900 px-6 py-20 shadow-xl sm:rounded-3xl sm:px-10 sm:py-24 md:px-12 lg:px-20">
-          <img alt="" class="absolute inset-0 h-full w-full object-cover brightness-150 saturate-0"
+          <img
+alt="" class="absolute inset-0 h-full w-full object-cover brightness-150 saturate-0"
             src="https://images.unsplash.com/photo-1601381718415-a05fb0a261f3?ixid=MXwxMjA3fDB8MHxwcm9maWxlLXBhZ2V8ODl8fHxlbnwwfHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=1216&q=80" />
           <div class="absolute inset-0 bg-gray-900/90 mix-blend-multiply" />
           <div aria-hidden="true" class="absolute -left-80 -top-56 transform-gpu blur-3xl">
-            <div class="aspect-[1097/845] w-[68.5625rem] bg-gradient-to-r from-[#ff4694] to-[#776fff] opacity-[0.45]"
+            <div
+class="aspect-[1097/845] w-[68.5625rem] bg-gradient-to-r from-[#ff4694] to-[#776fff] opacity-[0.45]"
               style="
                 clip-path: polygon(
                   74.1% 44.1%,
@@ -348,9 +355,11 @@ const footerNavigation = {
                 );
               " />
           </div>
-          <div aria-hidden="true"
+          <div
+aria-hidden="true"
             class="hidden md:absolute md:bottom-16 md:left-[50rem] md:block md:transform-gpu md:blur-3xl">
-            <div class="aspect-[1097/845] w-[68.5625rem] bg-gradient-to-r from-[#ff4694] to-[#776fff] opacity-25" style="
+            <div
+class="aspect-[1097/845] w-[68.5625rem] bg-gradient-to-r from-[#ff4694] to-[#776fff] opacity-25" style="
                 clip-path: polygon(
                   74.1% 44.1%,
                   100% 61.6%,
@@ -406,12 +415,14 @@ const footerNavigation = {
           </p>
           <div
             class="isolate mx-auto mt-16 grid max-w-md grid-cols-1 gap-y-8 sm:mt-20 lg:mx-0 lg:max-w-none lg:grid-cols-3">
-            <div v-for="tier in tiers" :key="tier.id" :class="[
+            <div
+v-for="tier in tiers" :key="tier.id" :class="[
               'flex flex-col justify-between rounded-3xl bg-white p-8 ring-1 ring-gray-200 xl:p-10 lg:col-start-2',
             ]">
               <div>
                 <div class="flex items-center justify-between gap-x-4">
-                  <h3 :id="tier.id" :class="[
+                  <h3
+:id="tier.id" :class="[
                     'text-indigo-600',
                     'text-lg font-semibold leading-8',
                   ]">
@@ -435,7 +446,8 @@ const footerNavigation = {
                   </li>
                 </ul>
               </div>
-              <NuxtLink :aria-describedby="tier.id" :class="[
+              <NuxtLink
+:aria-describedby="tier.id" :class="[
                 tier.mostPopular
                   ? 'bg-indigo-600 text-white shadow-sm hover:bg-indigo-500'
                   : 'text-indigo-600 ring-1 ring-inset ring-indigo-200 hover:ring-indigo-300',
@@ -466,7 +478,8 @@ const footerNavigation = {
               <p v-else-if="Array.isArray(faq.answer)" class="text-base leading-7 text-gray-600">
                 <template v-for="(part, key) of faq.answer" :key="key">
                   <span v-if="typeof part === 'string'">{{ part }}</span>
-                  <a v-else-if="typeof part === 'object'" :href="part.href"
+                  <a
+v-else-if="typeof part === 'object'" :href="part.href"
                     class="text-indigo-700 hover:text-indigo-800">
                     {{ part.text }}
                   </a>
@@ -479,9 +492,11 @@ const footerNavigation = {
 
       <!-- CTA section -->
       <div class="relative -z-10 mt-32 px-6 lg:px-8">
-        <div aria-hidden="true"
+        <div
+aria-hidden="true"
           class="absolute inset-x-0 top-1/2 -z-10 flex -translate-y-1/2 transform-gpu justify-center overflow-hidden blur-3xl sm:bottom-0 sm:right-[calc(50%-6rem)] sm:top-auto sm:translate-y-0 sm:transform-gpu sm:justify-end">
-          <div class="aspect-[1108/632] w-[69.25rem] flex-none bg-gradient-to-r from-[#ff80b5] to-[#9089fc] opacity-25"
+          <div
+class="aspect-[1108/632] w-[69.25rem] flex-none bg-gradient-to-r from-[#ff80b5] to-[#9089fc] opacity-25"
             style="
               clip-path: polygon(
                 73.6% 48.6%,
@@ -521,9 +536,11 @@ const footerNavigation = {
                 aria-hidden="true">→</span></NuxtLink>
           </div>
         </div>
-        <div aria-hidden="true"
+        <div
+aria-hidden="true"
           class="absolute left-1/2 right-0 top-full -z-10 hidden -translate-y-1/2 transform-gpu overflow-hidden blur-3xl sm:block">
-          <div class="aspect-[1155/678] w-[72.1875rem] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30" style="
+          <div
+class="aspect-[1155/678] w-[72.1875rem] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30" style="
               clip-path: polygon(
                 74.1% 44.1%,
                 100% 61.6%,
@@ -571,11 +588,13 @@ const footerNavigation = {
                 </h3>
                 <ul class="mt-6 space-y-4" role="list">
                   <li v-for="item in footerNavigation.support" :key="item.name">
-                    <a v-if="item.href.startsWith('https')" :href="item.href"
+                    <a
+v-if="item.href.startsWith('https')" :href="item.href"
                       class="text-sm leading-6 text-gray-600 hover:text-gray-900">
                       {{ item.name }}
                     </a>
-                    <NuxtLink v-else-if="item.href.startsWith('/')" :to="item.href"
+                    <NuxtLink
+v-else-if="item.href.startsWith('/')" :to="item.href"
                       class="text-sm leading-6 text-gray-600 hover:text-gray-900">
                       {{ item.name }}
                     </NuxtLink>

@@ -33,7 +33,14 @@ const selected = computed({
 </script>
 
 <template>
-  <UFormField :label="props.label ?? 'Account'" name="account">
+  <UFormField name="account">
+    <template #label>
+      <div class="flex items-center gap-2">
+        <span>{{ props.label ?? 'Account' }}</span>
+        <UButton v-if="modelValue" icon="i-heroicons-arrow-top-right-on-square" variant="link"
+          :to="`/account/${modelValue}`" size="xs" class="p-0 h-auto" title="Go to Account" />
+      </div>
+    </template>
     <USelectMenu v-model="selected" :items="accounts" label-key="name" by="id" class="w-full">
       <template #item-label="{ item }">
         {{ item.name }}

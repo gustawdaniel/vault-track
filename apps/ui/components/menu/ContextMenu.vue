@@ -123,7 +123,8 @@ const options = computed(() => {
 </script>
 
 <template>
-  <UContextMenu :items="options" :ui="{
+  <UContextMenu
+:items="options" :ui="{
     content: 'min-w-48 bg-white dark:bg-gray-900 shadow-xl ring-1 ring-gray-200 dark:ring-gray-800 rounded-lg overflow-hidden'
   }">
     <slot />

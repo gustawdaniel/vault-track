@@ -2,6 +2,7 @@
 import { useCategoryStore } from '~/store/category';
 import { useRoute } from '#imports';
 import SingleCategoryEdit from '~/components/category/SingleCategoryEdit.vue';
+import CategoryDashboard from '~/components/category/CategoryDashboard.vue';
 
 const NEW_CATEGORY_ID = 'new';
 const route = useRoute();
@@ -28,7 +29,11 @@ const category = getInitialCategory();
 
 <template>
   <div v-if="category">
-    <SingleCategoryEdit :category="category" />
+    <SingleCategoryEdit
+      v-if="categoryId === NEW_CATEGORY_ID"
+      :category="category"
+    />
+    <CategoryDashboard v-else :category="category" />
   </div>
   <div v-else>
     <p>Category {{ categoryId }} not found</p>

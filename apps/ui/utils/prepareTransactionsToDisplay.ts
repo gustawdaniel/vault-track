@@ -1,6 +1,9 @@
-import type { FullTransaction } from '~/store/transaction.model';
+import {
+  type FullTransaction,
+  isTransferByCategory,
+} from '~/store/transaction.model';
 import { type Currency, sum } from '~/store/currency';
-import { useCategoryStore } from '~/store/category';
+import { useCategoryStore, decomposeRawCategoryToCategoryAndProject } from '~/store/category';
 import { useAccountStore } from '~/store/account';
 import { decodeSplitId } from '~/utils/splitIdParams';
 
@@ -12,6 +15,14 @@ export interface ExtendedFullTransaction extends FullTransaction {
 
 export interface TransactionFilter {
   accountId?: string;
+  accounts?: string[];
+  categoryId?: string;
+  includeSubcategories?: boolean;
+  excludeTransfers?: boolean;
+  type?: 'income' | 'expense' | 'all';
+  startDate?: string;
+  endDate?: string;
+  projects?: string[];
 }
 
 export function prepareTransactionsToDisplay(
@@ -21,8 +32,51 @@ export function prepareTransactionsToDisplay(
   const categoryStore = useCategoryStore();
   const accountStore = useAccountStore();
 
-  const transactions = fullTransactions
-    .filter((t) => (filter ? t.accountId === filter.accountId : true));
+  const transactions = fullTransactions.filter((t) => {
+    if (filter) {
+      if (filter.accountId && t.accountId !== filter.accountId) return false;
+      if (
+        filter.accounts &&
+        filter.accounts.length > 0 &&
+        !filter.accounts.includes(t.accountId)
+      )
+        return false;
+
+      if (filter.projects && filter.projects.length > 0) {
+        const [, project] = decomposeRawCategoryToCategoryAndProject(
+          t.category,
+        );
+        if (!project || !filter.projects.includes(project)) return false;
+      }
+
+      if (filter.categoryId) {
+        // Strip project from comparison if filtering by category?
+        // Usually categoryId filter implies the category part.
+        // t.category might be "Food/ProjectA". filter.categoryId is "Food".
+        // simple equality fails.
+        // We should check the category PART.
+        const [catPart] = decomposeRawCategoryToCategoryAndProject(t.category);
+
+        const matchesCategory =
+          catPart === filter.categoryId ||
+          (filter.includeSubcategories &&
+            catPart?.startsWith(filter.categoryId + ':'));
+
+        if (!matchesCategory) return false;
+      }
+
+      if (filter.excludeTransfers && isTransferByCategory(t)) return false;
+
+      if (filter.type) {
+        if (filter.type === 'expense' && t.amount >= 0) return false;
+        if (filter.type === 'income' && t.amount <= 0) return false;
+      }
+
+      if (filter.startDate && t.date < filter.startDate) return false;
+      if (filter.endDate && t.date > filter.endDate) return false;
+    }
+    return true;
+  });
 
   // Group by splitId
   const groupedTransactions: FullTransaction[] = [];
@@ -37,7 +91,7 @@ export function prepareTransactionsToDisplay(
         existing.amount += t.amount;
       } else {
         const clone = { ...t };
-        clone.category = "Split Transaction";
+        clone.category = 'Split Transaction';
         if (masterPayee) {
           clone.payee = masterPayee;
         }
@@ -50,7 +104,10 @@ export function prepareTransactionsToDisplay(
   }
 
   const extendedTransactions = groupedTransactions.map((t) => {
-    const color = t.category === "Split Transaction" ? "#7d7d7d" : categoryStore.getColorByCategory(t.category);
+    const color =
+      t.category === 'Split Transaction'
+        ? '#7d7d7d'
+        : categoryStore.getColorByCategory(t.category);
     // Use gray for split or mixed?
     const account = accountStore.getById(t.accountId);
     return {
@@ -63,7 +120,7 @@ export function prepareTransactionsToDisplay(
 
   let subBalance = 0;
 
-  extendedTransactions.sort((a, b) => a.date.localeCompare(b.date));
+  extendedTransactions.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 
   for (const transaction of extendedTransactions) {
     subBalance = sum(subBalance, transaction.amount, transaction.currency);

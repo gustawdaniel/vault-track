@@ -49,7 +49,8 @@ function onCreate(option: string | Project) {
 
 <template>
   <UFormField label="Project" name="project">
-    <USelectMenu v-model="selected" :items="options" by="project" create-item label-key="project" class="w-full"
+    <USelectMenu
+v-model="selected" :items="options" by="project" create-item label-key="project" class="w-full"
       @create="onCreate">
       <template #item-label="{ item }">
         <span class="truncate">{{ item.project }}</span>
