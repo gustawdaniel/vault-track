@@ -120,7 +120,7 @@ importers:
         version: 5.7.4
       fastify-type-provider-zod:
         specifier: ^4.0.0
-        version: 4.0.2(fastify@5.7.4)(zod@3.24.1)
+        version: 4.0.2(fastify@5.7.4)(zod@4.3.6)
       google-auth-library:
         specifier: ^10.5.0
         version: 10.5.0
@@ -129,13 +129,13 @@ importers:
         version: 4.2.1
       openai:
         specifier: ^6.21.0
-        version: 6.22.0(ws@8.19.0)(zod@3.24.1)
+        version: 6.22.0(ws@8.19.0)(zod@4.3.6)
       pino-pretty:
         specifier: ^13.1.3
         version: 13.1.3
       zod:
-        specifier: 3.24.1
-        version: 3.24.1
+        specifier: ^4.3.6
+        version: 4.3.6
     devDependencies:
       '@types/node':
         specifier: ^25.2.3
@@ -16611,12 +16611,12 @@ snapshots:
 
   fastify-plugin@5.1.0: {}
 
-  fastify-type-provider-zod@4.0.2(fastify@5.7.4)(zod@3.24.1):
+  fastify-type-provider-zod@4.0.2(fastify@5.7.4)(zod@4.3.6):
     dependencies:
       '@fastify/error': 4.2.0
       fastify: 5.7.4
-      zod: 3.24.1
-      zod-to-json-schema: 3.25.1(zod@3.24.1)
+      zod: 4.3.6
+      zod-to-json-schema: 3.25.1(zod@4.3.6)
 
   fastify@5.7.4:
     dependencies:
@@ -19777,10 +19777,10 @@ snapshots:
       is-docker: 2.2.1
       is-wsl: 2.2.0
 
-  openai@6.22.0(ws@8.19.0)(zod@3.24.1):
+  openai@6.22.0(ws@8.19.0)(zod@4.3.6):
     optionalDependencies:
       ws: 8.19.0
-      zod: 3.24.1
+      zod: 4.3.6
 
   openapi-types@12.1.3: {}
 
@@ -22627,10 +22627,6 @@ snapshots:
       archiver-utils: 5.0.2
       compress-commons: 6.0.2
       readable-stream: 4.7.0
-
-  zod-to-json-schema@3.25.1(zod@3.24.1):
-    dependencies:
-      zod: 3.24.1
 
   zod-to-json-schema@3.25.1(zod@3.25.76):
     dependencies:
