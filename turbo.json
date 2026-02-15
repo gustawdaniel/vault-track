@@ -6,7 +6,8 @@
         "TURSO_DATABASE_URL"
     ],
     "globalPassThroughEnv": [
-        "COREPACK_HOME"
+        "COREPACK_HOME",
+        "ENABLE_EXPERIMENTAL_COREPACK"
     ],
     "tasks": {
         "build": {
