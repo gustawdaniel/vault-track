@@ -158,6 +158,18 @@ async function applyBulkCategory() {
   }
 }
 
+function deleteSelected() {
+  const count = selectedIds.value.length;
+  if (!count) return;
+
+  if (confirm(`Are you sure you want to delete ${count} transaction${count > 1 ? 's' : ''}? This cannot be undone.`)) {
+    for (const id of selectedIds.value) {
+      transactionStore.delete(id);
+    }
+    selectedIds.value = [];
+  }
+}
+
 // Assert Actions
 function handleAddAssert() {
   if (!props.filter?.accountId) return;
@@ -218,6 +230,7 @@ function handleDeleteAssert(id: string) {
         <div class="flex gap-2 mt-2 sm:mt-0">
           <UButton label="Apply" :disabled="!bulkCategory" @click="applyBulkCategory" color="primary" />
           <UButton label="Cancel" variant="ghost" color="neutral" @click="selectedIds = []" />
+          <UButton label="Delete Selected" icon="i-heroicons-trash" color="error" variant="soft" @click="deleteSelected" />
         </div>
       </div>
 

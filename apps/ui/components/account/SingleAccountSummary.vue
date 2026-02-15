@@ -3,12 +3,23 @@ import type { ComputedAccount } from '~/store/account';
 import { formatAmount } from '~/utils/formatAmount';
 import AppContainer from '~/components/shared/AppContainer.vue';
 import UploadTransactionsToAccount from '~/components/account/UploadTransactionsToAccount.vue';
+import { useTransactionStore } from '~/store/transaction';
+import { exportTransactionsCsv, downloadCsv } from '~/utils/exportTransactionsCsv';
+
+const transactionStore = useTransactionStore();
 
 const props = defineProps<{
   account: ComputedAccount;
 }>();
 
 const emit = defineEmits(['edit']);
+
+function handleExportCsv() {
+  const transactions = transactionStore.getAllByAccountId(props.account.id);
+  const csv = exportTransactionsCsv(transactions);
+  const date = new Date().toISOString().slice(0, 10);
+  downloadCsv(csv, `${props.account.name}_${date}.csv`);
+}
 </script>
 
 <template>
@@ -40,6 +51,10 @@ const emit = defineEmits(['edit']);
         </NuxtLink>
 
         <UploadTransactionsToAccount :account="account" />
+
+        <UButton icon="i-heroicons-arrow-down-tray" size="xs" class="mt-4 mx-1" @click="handleExportCsv">
+          Export CSV
+        </UButton>
       </div>
     </UCard>
   </AppContainer>
