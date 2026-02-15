@@ -1,51 +1,56 @@
-# Categories / Projects
+# Categories & Projects
 
-Both projects and categories names are packed in single field of transaction called `category`. There is assumptions
-that changes of categories names is rare, but displaying of category name for given transaction is that common operation
-that this model should be denormalized.
+Categories and projects help you organize and analyze your transactions. Both are stored in the transaction's `category` field using a compact notation.
 
-In this field, there are two special characters
+## Category Format
 
-- `/` as separator between categories and projects
-- `:` as separator between root and child categories/projects
+The `category` field uses special separators:
 
-For example
+- `/` separates categories from projects
+- `:` separates parent from child
 
 ```
-A:B/C:D
+Food:Groceries/Home:Kitchen
 ```
 
-means that we have root category `A`, child category `B`, root project `C`, and child project `D`.
+This means: category **Food → Groceries**, project **Home → Kitchen**.
 
-Independently of this convention, there are also collections of projects and categories with quite similar models
+## Categories
+
+Categories represent **what** you spent money on. They support a two-level hierarchy:
+
+- **Root Category** — e.g., `Food`, `Transport`, `Entertainment`
+- **Child Category** — e.g., `Food:Groceries`, `Food:Restaurants`
+
+Each category has an assigned **color** that appears as a colored indicator next to transactions.
 
 ```ts
-export interface Category {
-    category: string;
-}
-
-export interface ColoredCategory extends Category {
-    color: string;
-}
-
-export interface PersistedCategory extends ColoredCategory {
+export interface PersistedCategory {
     id: string;
+    category: string;  // e.g. "Food:Groceries"
+    color: string;     // hex color code
 }
 ```
 
-and
+## Projects
+
+Projects represent **why** you spent money — a specific goal, event, or tracking group:
+
+- **Root Project** — e.g., `Home`, `Vacation`
+- **Child Project** — e.g., `Home:Kitchen`, `Vacation:Thailand`
 
 ```ts
-export interface Project {
-    project: string;
-}
-
-export interface PersistedProject extends Project {
+export interface PersistedProject {
     id: string;
+    project: string;  // e.g. "Home:Kitchen"
 }
 ```
 
-You can see that the only difference is color.
-It is because of color box is calculated for transaction using this `category` field in transaction,
-so there is no practical usage of color for projects.
+## Managing Categories & Projects
 
+Navigate to **Preferences** to manage your categories and projects:
+
+- **Categories** — add, rename, and assign colors
+- **Projects** — add and rename projects
+
+Categories and projects are created automatically when you type them in a transaction, but managing them in Preferences lets you set colors and clean up unused entries.
