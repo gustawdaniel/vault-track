@@ -32,7 +32,7 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "bin": {
-    "qif2json": "./dist/cli.js"
+    "qif2json": "./bin/qif2json.js"
   },
   "scripts": {
     "test": "jest",
