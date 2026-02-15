@@ -116,6 +116,22 @@ const mergedList = computed(() => {
 
 const route = useRoute();
 
+// Pagination Logic
+const ITEMS_PER_PAGE = 100;
+const visibleCount = ref(ITEMS_PER_PAGE);
+
+const paginatedList = computed(() => mergedList.value.slice(0, visibleCount.value));
+const hasMore = computed(() => visibleCount.value < mergedList.value.length);
+
+function loadMore() {
+  visibleCount.value += ITEMS_PER_PAGE;
+}
+
+// Reset pagination when search changes
+watch(searchQuery, () => {
+  visibleCount.value = ITEMS_PER_PAGE;
+});
+
 // Selection Logic
 const selectedIds = ref<string[]>([]);
 // ... (rest of logic same)
@@ -236,7 +252,7 @@ function handleDeleteAssert(id: string) {
 
       <!-- List -->
       <ul>
-        <template v-for="(item, index) of mergedList" :key="item.id">
+        <template v-for="(item, index) of paginatedList" :key="item.id">
           <!-- Transaction Item -->
           <li v-if="item.type === 'tx'" :id="item.data.id" :class="{
             'border-green-300 border bg-green-100':
@@ -314,6 +330,12 @@ function handleDeleteAssert(id: string) {
           </li>
         </template>
       </ul>
+
+      <div v-if="hasMore" class="text-center py-4">
+        <UButton variant="ghost" color="neutral" @click="loadMore">
+          Load more ({{ mergedList.length - visibleCount }} remaining)
+        </UButton>
+      </div>
 
       <div v-if="mergedList.length === 0" class="text-center py-8 text-gray-500">
         No transactions found.

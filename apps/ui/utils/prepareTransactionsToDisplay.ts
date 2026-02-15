@@ -103,17 +103,34 @@ export function prepareTransactionsToDisplay(
     }
   }
 
+  // Pre-build color cache: Map<category, color> to avoid O(N×C) linear scans
+  const colorCache = new Map<string, string>();
+  function getCachedColor(category?: string): string {
+    if (!category) return 'transparent';
+    if (category === 'Split Transaction') return '#7d7d7d';
+    if (colorCache.has(category)) return colorCache.get(category)!;
+    const color = categoryStore.getColorByCategory(category);
+    colorCache.set(category, color);
+    return color;
+  }
+
+  // Pre-build account cache: Map<accountId, account> to avoid O(N×A) linear scans
+  const accountCache = new Map<string, { currency: Currency }>();
+  function getCachedAccount(accountId: string): { currency: Currency } {
+    if (accountCache.has(accountId)) return accountCache.get(accountId)!;
+    const account = accountStore.getById(accountId);
+    const result = { currency: account ? account.currency : 'USD' as Currency };
+    accountCache.set(accountId, result);
+    return result;
+  }
+
   const extendedTransactions = groupedTransactions.map((t) => {
-    const color =
-      t.category === 'Split Transaction'
-        ? '#7d7d7d'
-        : categoryStore.getColorByCategory(t.category);
-    // Use gray for split or mixed?
-    const account = accountStore.getById(t.accountId);
+    const color = getCachedColor(t.category);
+    const { currency } = getCachedAccount(t.accountId);
     return {
       ...t,
       color,
-      currency: account ? account.currency : 'USD',
+      currency,
       accountSubBalance: 0,
     };
   });
