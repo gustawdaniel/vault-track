@@ -6,7 +6,7 @@
     },
     "scripts": {
         "dev": "nuxt dev --port 5000",
-        "build": "nuxt generate && cp -r .output/public dist",
+        "build": "nuxt generate && rm -rf dist && mv .output/public dist",
         "generate": "nuxt generate",
         "preview": "nuxt preview"
     },
