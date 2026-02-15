@@ -1,3 +1,4 @@
 export default defineNuxtConfig({
-    extends: 'docus'
+    extends: 'docus',
+    compatibilityDate: '2025-02-15'
 })
