@@ -8,7 +8,7 @@
     "node": "24.x"
   },
   "scripts": {
-    "build": "nuxt build",
+    "build": "nuxt generate && cp -r .output/public dist",
     "dev": "nuxt dev",
     "test": "vitest run",
     "generate": "nuxt generate",
