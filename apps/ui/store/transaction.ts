@@ -13,6 +13,7 @@ import {
   type FullTransaction,
   type PersistedTransaction,
   type CreateTransactionOptions,
+  isTransferByCategory,
 } from '~/store/transaction.model';
 
 // Re-export for compatibility
