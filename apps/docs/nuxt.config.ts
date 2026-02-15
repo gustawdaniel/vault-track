@@ -2,6 +2,7 @@ export default defineNuxtConfig({
     extends: 'docus',
     compatibilityDate: '2025-02-15',
     nitro: {
+        preset: 'static',
         prerender: {
             failOnError: false,
             ignore: [
