@@ -22,6 +22,7 @@ const emit = defineEmits<{
   (e: 'toggle-selection', id: string): void;
   (e: 'edit-assert', assert: Assert): void;
   (e: 'delete-assert', id: string): void;
+  (e: 'edit-transaction', id: string): void;
 }>();
 
 const isTx = computed(() => props.item.type === 'tx');
@@ -59,9 +60,9 @@ const assertItem = computed(() =>
           />
         </div>
 
-        <NuxtLink
-          :to="`/transaction/${tx.id}`"
-          class="flex-grow flex justify-between items-start select-none"
+        <div
+          class="flex-grow flex justify-between items-start select-none cursor-pointer hover:opacity-80 transition-opacity"
+          @click="emit('edit-transaction', tx.id)"
         >
           <CategoryColorBox :color="tx.color" :extended="showAccount" />
           <div class="flex-grow ml-2 w-10 shrink-0">
@@ -87,7 +88,7 @@ const assertItem = computed(() =>
               {{ formatAmount(tx.accountSubBalance) }}
             </p>
           </div>
-        </NuxtLink>
+        </div>
       </div>
     </ContextMenu>
   </div>

@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 import { useAccountStore } from '~/store/account';
 import {
   createTransaction as syncCreateTransaction,
+  createTransactionBatch as syncCreateTransactionBatch,
   updateTransaction as syncUpdateTransaction,
   deleteTransaction as syncDeleteTransaction,
 } from '~/sync/manager';
@@ -48,6 +49,23 @@ export const useTransactionStore = defineStore('transaction', {
         this.$state.transactions.splice(index, 1, trx.json);
         syncUpdateTransaction(trx.json);
       }
+    },
+    async createBatch(
+      transactions: (Transaction | PersistedTransaction)[],
+      options?: CreateTransactionOptions,
+    ) {
+      const trxList = transactions.map((t) => new Trx(t));
+      const accountStore = useAccountStore();
+
+      for (const trx of trxList) {
+        if (options?.updateAccountBalance) {
+          accountStore.pathBalance(trx.data.accountId, trx.data.amount);
+        }
+        this.$state.transactions.push(trx.json);
+      }
+
+      // Sync all as a single batch with reserved counters
+      await syncCreateTransactionBatch(trxList.map((t) => t.json));
     },
     update(id: string, transaction: Partial<Transaction>) {
       const index = this.getIndexById(id);
@@ -139,6 +157,24 @@ export const useTransactionStore = defineStore('transaction', {
 
         accountStore.pathBalance(reverse.accountId, -reverse.amount);
         this.$state.transactions.splice(reverseIndex, 1);
+        syncDeleteTransaction(reverse.id);
+      }
+
+      // Cascade delete for split transactions
+      if (transaction.splitId) {
+        const siblings = this.$state.transactions.filter(
+          (t) => t.splitId === transaction.splitId && t.id !== id,
+        );
+        for (const sibling of siblings) {
+          const siblingIndex = this.$state.transactions.findIndex(
+            (t) => t.id === sibling.id,
+          );
+          if (siblingIndex !== -1) {
+            accountStore.pathBalance(sibling.accountId, -sibling.amount);
+            this.$state.transactions.splice(siblingIndex, 1);
+            syncDeleteTransaction(sibling.id);
+          }
+        }
       }
     },
     getNew(): FullTransaction {

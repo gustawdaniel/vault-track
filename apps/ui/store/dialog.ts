@@ -8,14 +8,16 @@ export const useDialog = defineStore('dialog', {
     dialogProps: Record<string, unknown>;
     title?: string;
     description?: string;
-  } => ({ isDialogOpen: false, dialogComponent: null, dialogProps: {}, title: undefined, description: undefined }),
+    fullscreen?: boolean;
+  } => ({ isDialogOpen: false, dialogComponent: null, dialogProps: {}, title: undefined, description: undefined, fullscreen: false }),
   actions: {
-    openDialog(component: Component, props: Record<string, unknown> = {}, options?: { title?: string, description?: string }) {
+    openDialog(component: Component, props: Record<string, unknown> = {}, options?: { title?: string, description?: string, fullscreen?: boolean }) {
       console.log('openDialog', component, props);
       this.dialogProps = props;
       this.dialogComponent = markRaw(component);
       this.title = options?.title;
       this.description = options?.description;
+      this.fullscreen = options?.fullscreen ?? false;
       this.isDialogOpen = true;
       console.log('openDialog end', this.isDialogOpen, this.dialogComponent, this.dialogProps);
     },
@@ -25,6 +27,7 @@ export const useDialog = defineStore('dialog', {
       this.dialogProps = {};
       this.title = undefined;
       this.description = undefined;
+      this.fullscreen = false;
     },
   },
 });
