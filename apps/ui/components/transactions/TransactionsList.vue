@@ -6,6 +6,7 @@ import type { Assert } from '~/store/assert.model';
 import { useDialog } from '~/store/dialog';
 import AssertEditDialog from '~/components/dialog/AssertEditDialog.vue';
 import ConfirmDelete from '~/components/dialog/ConfirmDelete.vue';
+import SingleTransactionEdit from '~/components/transactions/SingleTransactionEdit.vue';
 
 import { formatAmount } from '~/utils/formatAmount';
 import {
@@ -223,6 +224,26 @@ function handleDeleteAssert(id: string) {
     id
   });
 }
+
+function handleEditTransaction(id: string) {
+  const transaction = transactionStore.getById(id);
+  if (!transaction) return;
+
+  const reverseTransaction = transactionStore.getReverseByIdAndHash(
+    id,
+    transaction.transferHash,
+  );
+
+  dialog.openDialog(
+    SingleTransactionEdit,
+    {
+      transaction,
+      ...(reverseTransaction ? { reverseTransaction } : {}),
+      onExit: () => dialog.closeDialog(),
+    },
+    { fullscreen: true, title: 'Edit Transaction' },
+  );
+}
 </script>
 
 <template>
@@ -293,6 +314,7 @@ function handleDeleteAssert(id: string) {
               @toggle-selection="toggleSelection"
               @edit-assert="handleEditAssert"
               @delete-assert="handleDeleteAssert"
+              @edit-transaction="handleEditTransaction"
             />
           </div>
         </div>

@@ -48,6 +48,27 @@ export async function createTransaction(payload: Transaction & { id: string }): 
     return getAppState();
 }
 
+export async function createTransactionBatch(payloads: (Transaction & { id: string })[]): Promise<AppState> {
+    if (payloads.length === 0) return getAppState();
+
+    const deviceId = await getDeviceId();
+    const { start } = await reserveCounters(payloads.length);
+    const timestamp = Date.now();
+
+    const events: TransactionAdded[] = payloads.map((payload, i) => ({
+        eventId: `${deviceId}:${start + i}:${uid(8)}`,
+        deviceId,
+        counter: start + i,
+        timestamp,
+        type: 'TRANSACTION_ADDED' as const,
+        payload: toRaw(payload),
+    }));
+
+    await addEvents(events);
+    triggerSync();
+    return getAppState();
+}
+
 export async function updateTransaction(payload: Transaction & { id: string }): Promise<AppState> {
     const base = await createBaseEvent();
     const event: TransactionUpdated = {

@@ -10,6 +10,7 @@ import type {
 import type {
   FullTransaction,
   NormalTransactionContextType,
+  Transaction,
 } from '~/store/transaction.model';
 import { useTransactionStore } from '~/store/transaction';
 import { useAccountStore } from '~/store/account';
@@ -70,7 +71,7 @@ const transferAccount = computed<ComputedTransferAccounts>(() => {
   }
 });
 
-function submit(event: FormSubmitEvent<TransactionContext>) {
+async function submit(event: FormSubmitEvent<TransactionContext>) {
   const updates = computeUpdateMapFromContext(
     props.transaction.id,
     event.data,
@@ -81,7 +82,7 @@ function submit(event: FormSubmitEvent<TransactionContext>) {
   const transactionStore = useTransactionStore();
   let returnedId = '';
 
-  // Handle deletions for split transactions
+  // Handle deletions for split transactions (remove siblings no longer in the update map)
   if (props.transaction.splitId) {
     const siblings = transactionStore.getSiblingsBySplitId(
       props.transaction.splitId,
@@ -90,16 +91,44 @@ function submit(event: FormSubmitEvent<TransactionContext>) {
 
     for (const sibling of siblings) {
       if (!updatedIds.includes(sibling.id)) {
-        transactionStore.delete(sibling.id);
+        // Delete individually (don't cascade since we're managing the full set)
+        const index = transactionStore.getIndexById(sibling.id);
+        if (index !== -1) {
+          const accountStore = useAccountStore();
+          accountStore.pathBalance(sibling.accountId, -sibling.amount);
+          transactionStore.$state.transactions.splice(index, 1);
+          // Sync deletion will happen via the individual sync call
+          const { deleteTransaction: syncDelete } = await import('~/sync/manager');
+          syncDelete(sibling.id);
+        }
       }
     }
   }
 
+  // Separate existing updates from new creates
+  const existingUpdates = new Map<string, Transaction>();
+  const newCreates: (Transaction & { id: string })[] = [];
+
   for (const [id, update] of updates.entries()) {
-    transactionStore.update(id, update);
+    const existingIndex = transactionStore.getIndexById(id);
+    if (existingIndex !== -1) {
+      existingUpdates.set(id, update);
+    } else {
+      newCreates.push({ ...update, id });
+    }
     if (update.accountId === props.transaction.accountId) {
       returnedId = id;
     }
+  }
+
+  // Apply updates to existing transactions
+  for (const [id, update] of existingUpdates.entries()) {
+    transactionStore.update(id, update);
+  }
+
+  // Batch create new transactions (atomic counter reservation)
+  if (newCreates.length > 0) {
+    await transactionStore.createBatch(newCreates, { updateAccountBalance: true });
   }
 
   emit('exit', returnedId ? { transactionId: returnedId } : undefined);

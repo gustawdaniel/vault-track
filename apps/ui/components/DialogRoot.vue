@@ -3,14 +3,23 @@ import { useDialog } from '~/store/dialog';
 
 
 const dialog = useDialog();
+
+const modalUi = computed(() => {
+  if (dialog.fullscreen) {
+    return { content: 'sm:max-w-4xl h-[90vh]' };
+  }
+  return { content: 'sm:max-w-lg' };
+});
 </script>
 
 <template>
   <UModal
 v-model:open="dialog.isDialogOpen" :title="dialog.title" :description="dialog.description"
-    :ui="{ content: 'sm:max-w-lg' }">
+    :ui="modalUi">
     <template #body>
-      <component :is="dialog.dialogComponent" v-bind="dialog.dialogProps" @close="dialog.closeDialog" />
+      <div :class="{ 'overflow-y-auto max-h-[calc(90vh-4rem)]': dialog.fullscreen }">
+        <component :is="dialog.dialogComponent" v-bind="dialog.dialogProps" @close="dialog.closeDialog" />
+      </div>
     </template>
   </UModal>
 </template>
@@ -19,6 +28,9 @@ v-model:open="dialog.isDialogOpen" :title="dialog.title" :description="dialog.de
 @media (min-width: 640px) {
   .sm\:max-w-lg {
     max-width: 48rem;
+  }
+  .sm\:max-w-4xl {
+    max-width: 56rem;
   }
 }
 </style>
