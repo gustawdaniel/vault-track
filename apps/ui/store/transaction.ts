@@ -67,7 +67,7 @@ export const useTransactionStore = defineStore('transaction', {
       // Sync all as a single batch with reserved counters
       await syncCreateTransactionBatch(trxList.map((t) => t.json));
     },
-    update(id: string, transaction: Partial<Transaction>) {
+    update(id: string, transaction: Partial<Transaction>, options?: { skipReverseCleanup?: boolean }) {
       const index = this.getIndexById(id);
       if (index !== -1) {
         const oldTrxData = this.$state.transactions[index];
@@ -75,12 +75,10 @@ export const useTransactionStore = defineStore('transaction', {
         const oldTrx = new Trx(oldTrxData);
 
         // Merge old data with new partial data
-        const newTrxData = { ...oldTrx.data, ...transaction, id };
-
-        // If it was a transfer but now isn't (category changed), remove transferHash
-        if (oldTrx.data.transferHash && !isTransferByCategory(newTrxData)) {
-          delete newTrxData.transferHash;
-        }
+        const newTrxData: any = { ...oldTrx.data, ...transaction, id };
+        // Force transferHash recomputation based on current data
+        // to prevent stale hashes from keeping broken transfer links
+        delete newTrxData.transferHash;
 
         const newTrx = new Trx(newTrxData);
         const accountStore = useAccountStore();
@@ -103,7 +101,7 @@ export const useTransactionStore = defineStore('transaction', {
         );
         syncUpdateTransaction(newTrx.json);
 
-        if (oldTrx.data.transferHash && !newTrx.data.transferHash) {
+        if (!options?.skipReverseCleanup && oldTrx.data.transferHash && oldTrx.data.transferHash !== newTrx.data.transferHash) {
           const reverse = this.getReverseByIdAndHash(
             id,
             oldTrx.data.transferHash,
