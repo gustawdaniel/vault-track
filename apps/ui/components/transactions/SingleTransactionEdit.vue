@@ -121,9 +121,28 @@ async function submit(event: FormSubmitEvent<TransactionContext>) {
     }
   }
 
-  // Apply updates to existing transactions
+  // Capture old transfer hashes before updates (update() recomputes them)
+  const oldTransferHashes = new Map<string, string>();
+  for (const [id] of existingUpdates.entries()) {
+    const oldTx = transactionStore.getById(id);
+    if (oldTx?.transferHash) {
+      oldTransferHashes.set(id, oldTx.transferHash);
+    }
+  }
+
+  // Apply updates to existing transactions (skip auto-cleanup, we handle it below)
   for (const [id, update] of existingUpdates.entries()) {
-    transactionStore.update(id, update);
+    transactionStore.update(id, update, { skipReverseCleanup: true });
+  }
+
+  // Clean up orphaned reverse transactions before creating new ones
+  if (newCreates.length > 0) {
+    for (const [id, oldHash] of oldTransferHashes.entries()) {
+      const oldReverse = transactionStore.getReverseByIdAndHash(id, oldHash);
+      if (oldReverse && !existingUpdates.has(oldReverse.id)) {
+        transactionStore.delete(oldReverse.id);
+      }
+    }
   }
 
   // Batch create new transactions (atomic counter reservation)

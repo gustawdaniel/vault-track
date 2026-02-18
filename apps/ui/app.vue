@@ -12,7 +12,7 @@
 import { useDebugStore } from '~/store/debug';
 
 function notOurDomain(origin: string): boolean {
-  return !['http://localhost:3000', 'http://localhost:3001', 'https://gustawdaniel.github.io'].includes(
+  return !['http://localhost:3000', 'http://localhost:3001', 'https://gustawdaniel.github.io', 'https://www.vaulttrack.org'].includes(
     origin,
   );
 }
