@@ -26,7 +26,7 @@ interface State {
 
 export const useTransactionStore = defineStore('transaction', {
   state: (): State => ({
-    transactions: useLocalStorage<FullTransaction[]>('transaction', []),
+    transactions: useLocalStorage<FullTransaction[]>('transaction', [], { shallow: true }),
   }),
   actions: {
     async create(
@@ -43,10 +43,13 @@ export const useTransactionStore = defineStore('transaction', {
           accountStore.pathBalance(trx.data.accountId, trx.data.amount);
         }
 
-        this.$state.transactions.push(trx.json);
+        this.$state.transactions = [...this.$state.transactions, trx.json];
         await syncCreateTransaction(trx.json);
       } else {
-        this.$state.transactions.splice(index, 1, trx.json);
+        const newTransactions = [...this.$state.transactions];
+        newTransactions[index] = trx.json;
+        this.$state.transactions = newTransactions;
+
         await syncUpdateTransaction(trx.json);
       }
     },
@@ -61,8 +64,9 @@ export const useTransactionStore = defineStore('transaction', {
         if (options?.updateAccountBalance) {
           accountStore.pathBalance(trx.data.accountId, trx.data.amount);
         }
-        this.$state.transactions.push(trx.json);
       }
+
+      this.$state.transactions = [...this.$state.transactions, ...trxList.map(t => t.json)];
 
       // Sync all as a single batch with reserved counters
       await syncCreateTransactionBatch(trxList.map((t) => t.json));
@@ -94,27 +98,29 @@ export const useTransactionStore = defineStore('transaction', {
         if (oldTrx.id !== newTrx.id)
           throw new Error(`Id can't be changed on update`);
 
-        this.$state.transactions.splice(
-          index,
-          1,
-          newTrx.json,
-        );
-        await syncUpdateTransaction(newTrx.json);
+        const newTransactions = [...this.$state.transactions];
+        newTransactions[index] = newTrx.json;
 
         if (!options?.skipReverseCleanup && oldTrx.data.transferHash && oldTrx.data.transferHash !== newTrx.data.transferHash) {
-          const reverse = this.getReverseByIdAndHash(
-            id,
-            oldTrx.data.transferHash,
-          );
           const reverseIndex = this.getReverseIndexByIdAndHash(
             id,
             oldTrx.data.transferHash,
           );
-          if (!reverse || reverseIndex === -1) return;
-
-          accountStore.pathBalance(reverse.accountId, -reverse.amount);
-          this.$state.transactions.splice(reverseIndex, 1);
+          if (reverseIndex !== -1) {
+            const reverse = newTransactions[reverseIndex]; // Use newTransactions to look up? No, indices shift if we spliced? 
+            // Wait, I am using direct index assignment above, so indices are stable.
+            // But if I splice below, it changes.
+            // If I use splice to remove reverse:
+            if (reverse) {
+              const accountStore = useAccountStore();
+              accountStore.pathBalance(reverse.accountId, -reverse.amount);
+              newTransactions.splice(reverseIndex, 1);
+            }
+          }
         }
+
+        this.$state.transactions = newTransactions;
+        await syncUpdateTransaction(newTrx.json);
       } else {
         // Fallback for creating if not found? 
         // Original code called create. If partial, create might fail if missing fields.
@@ -138,24 +144,17 @@ export const useTransactionStore = defineStore('transaction', {
 
       const accountStore = useAccountStore();
 
-      // Collect all IDs to delete atomically
+      // Collect all IDs to delete
       const idsToDelete: string[] = [id];
-
       accountStore.pathBalance(transaction.accountId, -transaction.amount);
-      this.$state.transactions.splice(index, 1);
 
       if (transaction.transferHash) {
         const reverse = this.getReverseByIdAndHash(
           id,
           transaction.transferHash,
         );
-        const reverseIndex = this.getReverseIndexByIdAndHash(
-          id,
-          transaction.transferHash,
-        );
-        if (reverse && reverseIndex !== -1) {
+        if (reverse) {
           accountStore.pathBalance(reverse.accountId, -reverse.amount);
-          this.$state.transactions.splice(reverseIndex, 1);
           idsToDelete.push(reverse.id);
         }
       }
@@ -166,16 +165,13 @@ export const useTransactionStore = defineStore('transaction', {
           (t) => t.splitId === transaction.splitId && t.id !== id,
         );
         for (const sibling of siblings) {
-          const siblingIndex = this.$state.transactions.findIndex(
-            (t) => t.id === sibling.id,
-          );
-          if (siblingIndex !== -1) {
-            accountStore.pathBalance(sibling.accountId, -sibling.amount);
-            this.$state.transactions.splice(siblingIndex, 1);
-            idsToDelete.push(sibling.id);
-          }
+          accountStore.pathBalance(sibling.accountId, -sibling.amount);
+          idsToDelete.push(sibling.id);
         }
       }
+
+      const idsToDeleteSet = new Set(idsToDelete);
+      this.$state.transactions = this.$state.transactions.filter(t => !idsToDeleteSet.has(t.id));
 
       // Delete all related transactions atomically via batch
       await syncDeleteTransactionBatch(idsToDelete);
@@ -209,15 +205,16 @@ export const useTransactionStore = defineStore('transaction', {
     }) {
       if (fromName === to) return;
 
-      this.$state.transactions = this.$state.transactions.map((tx) => {
+      const newTransactions = this.$state.transactions.map((tx) => {
         if (tx.account === fromName || tx.accountId === fromId) {
-          return Object.assign(tx, { account: to });
+          return { ...tx, account: to };
         } else if (tx.category === `[${fromName}]`) {
-          return Object.assign(tx, { category: `[${to}]` });
+          return { ...tx, category: `[${to}]` };
         } else {
           return tx;
         }
       });
+      this.$state.transactions = newTransactions;
     },
     getAllByAccountId(accountId: string): FullTransaction[] {
       return this.$state.transactions.filter(

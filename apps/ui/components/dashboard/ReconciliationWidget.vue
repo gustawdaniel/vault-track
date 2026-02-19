@@ -26,79 +26,132 @@ interface FailingAssert {
 const failingAsserts = computed<FailingAssert[]>(() => {
     const failures: FailingAssert[] = [];
 
-    // We need to check all accounts with assertions
-    for (const account of accountStore.accounts) {
-        const accountAsserts = assertStore.getByAccountId(account.id);
-        if (accountAsserts.length === 0) continue;
+    // Optimization: Single pass over transactions to calculate balances for ALL accounts
+    // Map<AccountId, { date: string, balance: number }[]>
+    // Since we need running balances at specific dates, this is still tricky.
+    // However, prepareTransactionsToDisplay calculates running balances.
+    // We can just iterate assertions and check against the transaction at that date.
+    
+    // Better approach:
+    // 1. Get all assertions, group by account.
+    // 2. Iterate transactions ONCE (they are sorted by date usually, or we sort them).
+    // ... Actually, prepareTransactionsToDisplay is heavy because it adds colors, formats currency etc.
+    // We only need raw amounts and dates.
 
-        // Get transactions for this account
-        // Optimization: We could cache this or be smarter?
-        // But for "Health Check" we probably want accuracy.
-        // prepareTransactionsToDisplay is heavy? It calculates balances.
-        // We need balances.
+    const accountsWithAsserts = new Set(assertStore.asserts.map(a => a.accountId));
+    if (accountsWithAsserts.size === 0) return [];
 
-        const transactions = prepareTransactionsToDisplay(
-            transactionStore.transactions,
-            { accountId: account.id }
-        );
+    // Get all transactions for relevant accounts
+    const relevantTxs = transactionStore.transactions.filter(t => accountsWithAsserts.has(t.accountId));
+    
+    // Sort transactions by date ASC (oldest first) to calculate running balance
+    // Note: transactionStore.transactions might not be sorted perfectly if modified.
+    relevantTxs.sort((a, b) => a.date.localeCompare(b.date));
 
-        // Sort transactions - prepareTransactionsToDisplay already sorts by date
-        // Reverse for our logic? logic in TransactionsList uses descending.
-        const txs = [...transactions].reverse();
-        const sortedAsserts = [...accountAsserts].sort((a, b) => b.date.localeCompare(a.date));
+    // Calculate running balances per account
+    // Map<AccountId, { date: string, balance: number }[]> matches? 
+    // actually we just need to check asserts as we go or after.
+    
+    const accountBalances: Record<string, number> = {};
+    const accountAsserts = new Map<string, typeof assertStore.asserts>();
 
-        let txIndex = 0;
-        let assertIndex = 0;
+    for(const assert of assertStore.asserts) {
+        if(!accountAsserts.has(assert.accountId)) accountAsserts.set(assert.accountId, []);
+        accountAsserts.get(assert.accountId)!.push(assert);
+    }
 
-        while (txIndex < txs.length || assertIndex < sortedAsserts.length) {
-            const tx = txs[txIndex];
-            const assert = sortedAsserts[assertIndex];
-            const currentBalance = txs[txIndex]?.accountSubBalance ?? 0;
+    // Sort assertions by date ASC
+    for(const list of accountAsserts.values()) {
+        list.sort((a, b) => a.date.localeCompare(b.date));
+    }
 
-            if (!assert) {
-                txIndex++;
-            } else if (!tx) {
-                // Assert older than all transactions. Balance 0.
-                const actual = 0;
-                const diff = actual - assert.value;
-                if (Math.abs(diff) >= 0.005) {
-                    failures.push({
-                        id: assert.id,
-                        accountName: account.name,
-                        accountId: account.id,
-                        date: assert.date,
-                        expected: assert.value,
-                        actual,
-                        diff
-                    });
-                }
-                assertIndex++;
-            } else {
-                const txDateDay = (tx.date || '').split('T')[0];
-                if (txDateDay > assert.date) {
-                    txIndex++;
+    // Pointers for assertions
+    const assertPointers: Record<string, number> = {};
+
+    // Helper to check assert
+    const checkAssert = (assert: typeof assertStore.asserts[0], currentBalance: number) => {
+        const diff = currentBalance - assert.value;
+        if (Math.abs(diff) >= 0.005) {
+             const account = accountStore.getById(assert.accountId);
+             if (!account) return;
+             
+             failures.push({
+                id: assert.id,
+                accountName: account.name,
+                accountId: account.id,
+                date: assert.date,
+                expected: assert.value,
+                actual: currentBalance,
+                diff
+            });
+        }
+    };
+
+    // Iterate transactions
+    for (const tx of relevantTxs) {
+        const accId = tx.accountId;
+        // Initialize balance if needed
+        if (accountBalances[accId] === undefined) accountBalances[accId] = 0;
+
+        const currentBalance = accountBalances[accId];
+        const txDateDay = (tx.date || '').split('T')[0];
+        if (!txDateDay) continue; // Should not happen for valid transactions
+
+        // Check if we passed any asserts for this account (Assert Date < Tx Date)
+        // If Assert Date == Tx Date, the assert happens BEFORE the transaction in our logic?
+        // Wait, standard accounting: Assert is usually "Balance at end of day" or similar.
+        // In previous logic: 
+        // if (txDateDay > assert.date) -> Assert is older. Check it against balance BEFORE this tx.
+        // if (txDateDay <= assert.date) -> Assert is newer/same. Process tx first.
+        
+        const asserts = accountAsserts.get(accId);
+        if (asserts) {
+            let ptr = assertPointers[accId] || 0;
+            while(ptr < asserts.length) {
+                const assert = asserts[ptr];
+                if (!assert) { ptr++; continue; } // Safety check
+
+                if (assert.date < txDateDay) {
+                    // Assert date is in the past compared to current tx. 
+                    // Verify against Current Balance (which does NOT include current tx yet)
+                    checkAssert(assert, currentBalance);
+                    ptr++;
                 } else {
-                    // Assert check
-                    const actual = currentBalance;
-                    const diff = actual - assert.value;
-                    if (Math.abs(diff) >= 0.005) {
-                        failures.push({
-                            id: assert.id,
-                            accountName: account.name,
-                            accountId: account.id,
-                            date: assert.date,
-                            expected: assert.value,
-                            actual,
-                            diff
-                        });
-                    }
-                    assertIndex++;
+                    break; 
                 }
             }
+            assertPointers[accId] = ptr;
+        }
+
+        // Apply transaction
+        accountBalances[accId] = currentBalance + tx.amount;
+    }
+
+    // Check remaining asserts (dates after last transaction) for each account
+    for (const [accId, asserts] of accountAsserts) {
+        let ptr = assertPointers[accId] || 0;
+        const currentBalance = accountBalances[accId] || 0;
+        while(ptr < asserts.length) {
+             const assert = asserts[ptr];
+             if (assert) {
+                 // All these asserts are after the last transaction (or no transactions existed)
+                 // So they should match the final balance
+                 checkAssert(assert, currentBalance);
+             }
+             ptr++;
         }
     }
+    
     return failures;
-});
+}); 
+
+// Helper to get new transaction (hoisted or imported?)
+// reusing existing imports
+function getNewTransaction(accountId: string) {
+    const tx = transactionStore.getNew();
+    tx.accountId = accountId;
+    return tx;
+}
 
 function handleFix(item: FailingAssert) {
     const tx = transactionStore.getNew();
