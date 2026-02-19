@@ -2,6 +2,8 @@
 <script lang="ts" setup>
 import { useTransactionStore } from '~/store/transaction';
 import { useAssertStore } from '~/store/assert';
+import { useCategoryStore } from '~/store/category';
+import { useAccountStore } from '~/store/account';
 import type { Assert } from '~/store/assert.model';
 import { useDialog } from '~/store/dialog';
 import AssertEditDialog from '~/components/dialog/AssertEditDialog.vue';
@@ -19,20 +21,28 @@ import CategoryPicker from '~/components/category/CategoryPicker.vue';
 import { useVirtualizer } from '@tanstack/vue-virtual';
 import VirtualTransactionRow from '~/components/transactions/VirtualTransactionRow.vue';
 
+
 const transactionStore = useTransactionStore();
 const assertStore = useAssertStore();
+const categoryStore = useCategoryStore();
+const accountStore = useAccountStore();
 const dialog = useDialog();
 
 const props = defineProps<{ filter?: TransactionFilter }>();
 
 const transactions = computed<ExtendedFullTransaction[]>(
   (): ExtendedFullTransaction[] => {
-    return prepareTransactionsToDisplay(
+    // console.time('prepareTransactionsToDisplay');
+    const res = prepareTransactionsToDisplay(
       transactionStore.transactions,
       props.filter ?? {},
     );
+    // console.timeEnd('prepareTransactionsToDisplay');
+    return res;
   },
 );
+
+// Search Logic
 
 // Search Logic
 const searchQuery = ref('');
@@ -124,6 +134,7 @@ const virtualizer = useVirtualizer(
     getScrollElement: () => parentRef.value,
     estimateSize: () => 56,
     overscan: 10,
+    getItemKey: (index) => mergedList.value[index]?.id ?? index,
   })),
 );
 
