@@ -7,7 +7,7 @@ import type { Assert } from '~/store/assert.model';
 import { createBaseEvent, reserveCounters, getDeviceId } from './deviceId';
 import { addEvent, addEvents, getAllEvents } from './db';
 import { sortEvents } from './ordering';
-import { replay, reduceEvent } from './reducer';
+import { replayAsync, reduceEventMutable } from './reducer'; // Use optimized versions
 import type { AppEvent, AppState, TransactionAdded, TransactionUpdated, TransactionDeleted, AccountCreated, AccountUpdated, AccountDeleted, AccountReordered, CategoryCreated, CategoryUpdated, CategoryDeleted, ProjectCreated, ProjectUpdated, ProjectDeleted, AssertCreated, AssertUpdated, AssertDeleted } from './types';
 import { useDebounceFn } from '@vueuse/core';
 import { hashEntityId } from './crypto';
@@ -38,7 +38,8 @@ export async function getAppState(): Promise<AppState> {
 
     const events = await getAllEvents();
     const sorted = sortEvents(events);
-    latestAppState = replay(sorted);
+    // Use async replay with chunking to avoid blocking UI
+    latestAppState = await replayAsync(sorted);
     return latestAppState;
 }
 
@@ -48,7 +49,8 @@ async function applyEvent(event: AppEvent): Promise<AppState> {
 
     // Incrementally update cache if possible
     if (latestAppState) {
-        latestAppState = reduceEvent(latestAppState, event);
+        // Use mutable reducer to avoid O(N) copy
+        reduceEventMutable(latestAppState, event);
     } else {
         // If no cache, built it (lazy)
         await getAppState();
@@ -91,7 +93,7 @@ export async function createTransactionBatch(payloads: (Transaction & { id: stri
     // Batch apply to cache
     if (latestAppState) {
         for (const event of events) {
-            latestAppState = reduceEvent(latestAppState, event);
+            reduceEventMutable(latestAppState, event);
         }
     } else {
         await getAppState();
@@ -141,7 +143,7 @@ export async function deleteTransactionBatch(ids: string[]): Promise<AppState> {
 
     if (latestAppState) {
         for (const event of events) {
-            latestAppState = reduceEvent(latestAppState, event);
+            reduceEventMutable(latestAppState, event);
         }
     } else {
         await getAppState();
