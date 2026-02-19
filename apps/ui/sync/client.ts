@@ -351,5 +351,16 @@ export async function syncWithServer(
     await addEvent(event);
   }
 
+  // Import dynamically to avoid circular dependency in top-level
+  const { invalidateAppState } = await import('./manager');
+
+  // If we have new remote events, we must invalidate the cache because our incremental update logic
+  // only works for appending NEW local events at the end. Merging remote events might insert
+  // events in the past, changing the computed state.
+  if (remoteNewEvents.length > 0) {
+    console.log('[Sync] Invaliding app state cache due to new remote events');
+    invalidateAppState();
+  }
+
   return replay(sortEvents(mergedEvents));
 }

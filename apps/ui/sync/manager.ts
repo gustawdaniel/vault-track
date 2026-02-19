@@ -7,7 +7,7 @@ import type { Assert } from '~/store/assert.model';
 import { createBaseEvent, reserveCounters, getDeviceId } from './deviceId';
 import { addEvent, addEvents, getAllEvents } from './db';
 import { sortEvents } from './ordering';
-import { replay } from './reducer';
+import { replay, reduceEvent } from './reducer';
 import type { AppEvent, AppState, TransactionAdded, TransactionUpdated, TransactionDeleted, AccountCreated, AccountUpdated, AccountDeleted, AccountReordered, CategoryCreated, CategoryUpdated, CategoryDeleted, ProjectCreated, ProjectUpdated, ProjectDeleted, AssertCreated, AssertUpdated, AssertDeleted } from './types';
 import { useDebounceFn } from '@vueuse/core';
 import { hashEntityId } from './crypto';
@@ -23,15 +23,39 @@ function triggerSync() {
     if (debouncedSync) debouncedSync();
 }
 
-// Cache current state in memory? 
-// For now, to be strictly correct per prompt "replays reducer", we will replay.
-// In production, we would cache the state and only apply the new event if we are sure we are at the head,
-// but for "Offline Sync" robustness, replaying is safer initially.
+// Cache current state in memory
+let latestAppState: AppState | null = null;
+
+// Export for cache invalidation (e.g. from client.ts on merge)
+export function invalidateAppState() {
+    latestAppState = null;
+}
 
 export async function getAppState(): Promise<AppState> {
+    if (latestAppState) {
+        return latestAppState;
+    }
+
     const events = await getAllEvents();
     const sorted = sortEvents(events);
-    return replay(sorted);
+    latestAppState = replay(sorted);
+    return latestAppState;
+}
+
+// Helper to apply event incrementally and update cache
+async function applyEvent(event: AppEvent): Promise<AppState> {
+    await addEvent(event);
+
+    // Incrementally update cache if possible
+    if (latestAppState) {
+        latestAppState = reduceEvent(latestAppState, event);
+    } else {
+        // If no cache, built it (lazy)
+        await getAppState();
+    }
+
+    triggerSync();
+    return latestAppState!;
 }
 
 // --- Transactions ---
@@ -43,9 +67,7 @@ export async function createTransaction(payload: Transaction & { id: string }): 
         type: 'TRANSACTION_ADDED',
         payload: toRaw(payload)
     };
-    await addEvent(event);
-    triggerSync();
-    return getAppState();
+    return applyEvent(event);
 }
 
 export async function createTransactionBatch(payloads: (Transaction & { id: string })[]): Promise<AppState> {
@@ -65,8 +87,18 @@ export async function createTransactionBatch(payloads: (Transaction & { id: stri
     }));
 
     await addEvents(events);
+
+    // Batch apply to cache
+    if (latestAppState) {
+        for (const event of events) {
+            latestAppState = reduceEvent(latestAppState, event);
+        }
+    } else {
+        await getAppState();
+    }
+
     triggerSync();
-    return getAppState();
+    return latestAppState!;
 }
 
 export async function updateTransaction(payload: Transaction & { id: string }): Promise<AppState> {
@@ -76,9 +108,7 @@ export async function updateTransaction(payload: Transaction & { id: string }): 
         type: 'TRANSACTION_UPDATED',
         payload: toRaw(payload)
     };
-    await addEvent(event);
-    triggerSync();
-    return getAppState();
+    return applyEvent(event);
 }
 
 export async function deleteTransaction(id: string): Promise<AppState> {
@@ -88,9 +118,7 @@ export async function deleteTransaction(id: string): Promise<AppState> {
         type: 'TRANSACTION_DELETED',
         payload: { id }
     };
-    await addEvent(event);
-    triggerSync();
-    return getAppState();
+    return applyEvent(event);
 }
 
 export async function deleteTransactionBatch(ids: string[]): Promise<AppState> {
@@ -110,8 +138,17 @@ export async function deleteTransactionBatch(ids: string[]): Promise<AppState> {
     }));
 
     await addEvents(events);
+
+    if (latestAppState) {
+        for (const event of events) {
+            latestAppState = reduceEvent(latestAppState, event);
+        }
+    } else {
+        await getAppState();
+    }
+
     triggerSync();
-    return getAppState();
+    return latestAppState!;
 }
 
 // --- Accounts ---
@@ -123,9 +160,7 @@ export async function createAccount(payload: Account): Promise<AppState> {
         type: 'ACCOUNT_CREATED',
         payload: toRaw(payload)
     };
-    await addEvent(event);
-    triggerSync();
-    return getAppState();
+    return applyEvent(event);
 }
 
 export async function updateAccount(payload: Account): Promise<AppState> {
@@ -135,9 +170,7 @@ export async function updateAccount(payload: Account): Promise<AppState> {
         type: 'ACCOUNT_UPDATED',
         payload: toRaw(payload)
     };
-    await addEvent(event);
-    triggerSync();
-    return getAppState();
+    return applyEvent(event);
 }
 
 export async function deleteAccount(id: string): Promise<AppState> {
@@ -147,9 +180,7 @@ export async function deleteAccount(id: string): Promise<AppState> {
         type: 'ACCOUNT_DELETED',
         payload: { id }
     };
-    await addEvent(event);
-    triggerSync();
-    return getAppState();
+    return applyEvent(event);
 }
 
 export async function reorderAccounts(payload: { accountId: string; order: number }[]): Promise<AppState> {
@@ -159,9 +190,7 @@ export async function reorderAccounts(payload: { accountId: string; order: numbe
         type: 'ACCOUNT_REORDERED',
         payload
     };
-    await addEvent(event);
-    triggerSync();
-    return getAppState();
+    return applyEvent(event);
 }
 
 // --- Categories ---
@@ -173,9 +202,7 @@ export async function createCategory(payload: PersistedCategory): Promise<AppSta
         type: 'CATEGORY_CREATED',
         payload: toRaw(payload)
     };
-    await addEvent(event);
-    triggerSync();
-    return getAppState();
+    return applyEvent(event);
 }
 
 export async function updateCategory(payload: PersistedCategory): Promise<AppState> {
@@ -185,9 +212,7 @@ export async function updateCategory(payload: PersistedCategory): Promise<AppSta
         type: 'CATEGORY_UPDATED',
         payload: toRaw(payload)
     };
-    await addEvent(event);
-    triggerSync();
-    return getAppState();
+    return applyEvent(event);
 }
 
 export async function deleteCategory(id: string): Promise<AppState> {
@@ -197,9 +222,7 @@ export async function deleteCategory(id: string): Promise<AppState> {
         type: 'CATEGORY_DELETED',
         payload: { id }
     };
-    await addEvent(event);
-    triggerSync();
-    return getAppState();
+    return applyEvent(event);
 }
 
 // --- Projects ---
@@ -211,9 +234,7 @@ export async function createProject(payload: PersistedProject): Promise<AppState
         type: 'PROJECT_CREATED',
         payload: toRaw(payload)
     };
-    await addEvent(event);
-    triggerSync();
-    return getAppState();
+    return applyEvent(event);
 }
 
 export async function updateProject(payload: PersistedProject): Promise<AppState> {
@@ -223,9 +244,7 @@ export async function updateProject(payload: PersistedProject): Promise<AppState
         type: 'PROJECT_UPDATED',
         payload: toRaw(payload)
     };
-    await addEvent(event);
-    triggerSync();
-    return getAppState();
+    return applyEvent(event);
 }
 
 export async function deleteProject(id: string): Promise<AppState> {
@@ -235,9 +254,7 @@ export async function deleteProject(id: string): Promise<AppState> {
         type: 'PROJECT_DELETED',
         payload: { id }
     };
-    await addEvent(event);
-    triggerSync();
-    return getAppState();
+    return applyEvent(event);
 }
 
 // --- Asserts ---
@@ -249,9 +266,7 @@ export async function createAssert(payload: Assert): Promise<AppState> {
         type: 'ASSERT_CREATED',
         payload: toRaw(payload)
     };
-    await addEvent(event);
-    triggerSync();
-    return getAppState();
+    return applyEvent(event);
 }
 
 export async function updateAssert(payload: Assert): Promise<AppState> {
@@ -261,9 +276,7 @@ export async function updateAssert(payload: Assert): Promise<AppState> {
         type: 'ASSERT_UPDATED',
         payload: toRaw(payload)
     };
-    await addEvent(event);
-    triggerSync();
-    return getAppState();
+    return applyEvent(event);
 }
 
 export async function deleteAssert(id: string): Promise<AppState> {
@@ -273,9 +286,7 @@ export async function deleteAssert(id: string): Promise<AppState> {
         type: 'ASSERT_DELETED',
         payload: { id }
     };
-    await addEvent(event);
-    triggerSync();
-    return getAppState();
+    return applyEvent(event);
 }
 
 export async function importLocalData(data: {
