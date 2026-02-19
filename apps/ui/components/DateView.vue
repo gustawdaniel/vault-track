@@ -3,7 +3,7 @@ import { useDateFormat } from '@vueuse/core';
 
 const props = defineProps<{ date: string }>();
 
-const formatted = useDateFormat(props.date, 'DD MMM YYYY');
+const formatted = useDateFormat(() => props.date, 'DD MMM YYYY');
 </script>
 
 <template>
