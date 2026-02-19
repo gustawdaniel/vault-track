@@ -1,102 +1,99 @@
 <script lang="ts" setup>
 import {
   ArrowPathIcon,
-  CloudArrowUpIcon,
+  CloudArrowDownIcon,
+  PlusCircleIcon,
   LockClosedIcon,
-} from '@heroicons/vue/20/solid';
+  DocumentArrowUpIcon
+} from '@heroicons/vue/24/outline'; // Switched to outline for larger cards
 import { seedDemoData } from '~/utils/seed';
 
-const secondaryFeatures = [
-  {
-    name: 'Add my own data',
-    description:
-      'Just create my accounts, transactions and categories starting from today.',
-    click: () => {
-      console.log(1);
-      const router = useRouter();
-      console.log(2);
-      router.push('/account/new?edit=1');
-      console.log(3);
-    },
-    icon: CloudArrowUpIcon,
-    button: 'First account',
-  },
-  {
-    name: 'Add demo data',
-    description: 'Show how apps look like with demo data generated as example.',
-    click: () => {
-      seedDemoData();
+const router = useRouter();
 
-      const router = useRouter();
-      router.push('/');
-    },
-    icon: LockClosedIcon,
-    button: 'Load example data',
-  },
-  {
-    name: 'Import my qif or json file',
-    description: 'Import qif or json file exported from other app or this app.',
-    click: () => {
-      const router = useRouter();
-      router.push('/backup');
-    },
-    icon: ArrowPathIcon,
-    button: 'Import my file',
-  },
-];
+function startFresh() {
+  router.push('/account/new?edit=1');
+}
+
+function syncExisting() {
+  router.push('/settings/sync');
+}
+
+function importData() {
+  router.push('/backup');
+}
+
+function loadDemo() {
+  seedDemoData();
+  router.push('/');
+}
 </script>
 
 <template>
-  <div class="mx-auto mt-32 max-w-7xl px-6 sm:mt-56 lg:px-8">
-    <div class="mx-auto max-w-2xl lg:text-center">
-      <h2 class="text-base font-semibold leading-7 text-indigo-600">
-        Enter data
+  <div class="min-h-screen flex flex-col justify-center items-center px-6 py-12 lg:px-8 bg-gray-50 dark:bg-gray-900">
+    <div class="mx-auto max-w-2xl text-center mb-12">
+      <h2 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
+        Welcome to Vault Track
       </h2>
-      <p
-        class="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl"
-      >
-        Add accounts, transactions and categories
-      </p>
-      <p class="mt-6 text-lg leading-8 text-gray-600">
-        Any data you introducing to app are stored in your browser. It is why it
-        works with light speed, is super secure and not require any email from
-        you.
+      <p class="mt-4 text-lg leading-8 text-gray-600 dark:text-gray-400">
+        Your privacy-first finance tracker. Data stays on your device.
+        <br />How would you like to start?
       </p>
     </div>
-    <div class="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
-      <dl
-        class="grid max-w-xl grid-cols-1 gap-x-8 gap-y-16 lg:max-w-none lg:grid-cols-3"
+
+    <!-- Primary Actions -->
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 max-w-4xl w-full">
+      <!-- Start Fresh Card -->
+      <div
+        class="group relative flex flex-col items-center p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-indigo-500 dark:hover:ring-indigo-400 hover:shadow-lg transition-all cursor-pointer"
+        @click="startFresh"
       >
-        <div
-          v-for="feature in secondaryFeatures"
-          :key="feature.name"
-          class="flex flex-col"
-        >
-          <dt
-            class="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900"
-          >
-            <component
-              :is="feature.icon"
-              aria-hidden="true"
-              class="h-5 w-5 flex-none text-indigo-600"
-            />
-            {{ feature.name }}
-          </dt>
-          <dd
-            class="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600"
-          >
-            <p class="flex-auto">{{ feature.description }}</p>
-            <p class="mt-6">
-              <button
-                class="text-md font-semibold leading-6 text-indigo-600"
-                @click="feature.click"
-              >
-                {{ feature.button }} <span aria-hidden="true">→</span>
-              </button>
-            </p>
-          </dd>
+        <div class="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-full mb-4 group-hover:scale-110 transition-transform">
+          <PlusCircleIcon class="h-10 w-10 text-indigo-600 dark:text-indigo-400" />
         </div>
-      </dl>
+        <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Start Fresh</h3>
+        <p class="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">
+          Create a new budget from scratch. Add manually your accounts and transactions.
+        </p>
+        <span class="mt-6 text-sm font-semibold text-indigo-600 dark:text-indigo-400 group-hover:underline">
+          Create New Data &rarr;
+        </span>
+      </div>
+
+      <!-- Sync Card -->
+      <div
+        class="group relative flex flex-col items-center p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-sky-500 dark:hover:ring-sky-400 hover:shadow-lg transition-all cursor-pointer"
+        @click="syncExisting"
+      >
+        <div class="p-4 bg-sky-50 dark:bg-sky-900/20 rounded-full mb-4 group-hover:scale-110 transition-transform">
+          <CloudArrowDownIcon class="h-10 w-10 text-sky-600 dark:text-sky-400" />
+        </div>
+        <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Sync Existing</h3>
+        <p class="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">
+          Already have data on another device? Connect to your sync group to download it.
+        </p>
+        <span class="mt-6 text-sm font-semibold text-sky-600 dark:text-sky-400 group-hover:underline">
+          Connect Device &rarr;
+        </span>
+      </div>
+    </div>
+
+    <!-- Secondary Actions -->
+    <div class="mt-12 flex flex-col sm:flex-row gap-8 text-center sm:text-left">
+      <button
+        class="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+        @click="importData"
+      >
+        <DocumentArrowUpIcon class="h-5 w-5" />
+        Import from Backup / QIF
+      </button>
+
+      <button
+        class="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+        @click="loadDemo"
+      >
+        <LockClosedIcon class="h-5 w-5" />
+        Try with Demo Data
+      </button>
     </div>
   </div>
 </template>
