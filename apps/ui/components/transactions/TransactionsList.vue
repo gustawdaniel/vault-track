@@ -105,7 +105,7 @@ const mergedList = computed(() => {
       assertIndex++;
     } else {
       // Compare dates (YYYY-MM-DD)
-      const txDateDay = (tx!.date || '').split('T')[0];
+      const txDateDay = (tx!.date || '').split('T')[0] ?? '';
 
       if (txDateDay > assert.date) {
         list.push({ type: 'tx', data: tx!, id: tx!.id });
