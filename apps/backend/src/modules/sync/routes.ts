@@ -75,7 +75,7 @@ export async function syncRoutes(fastify: FastifyInstance) {
                 try {
                     const result = await db.execute({
                         sql: `SELECT event_id, device_id, counter, timestamp, payload FROM events 
-                              WHERE group_id = ? AND timestamp > ? 
+                              WHERE group_id = ? AND timestamp >= ? 
                               ORDER BY timestamp ASC, counter ASC 
                               LIMIT 2000`,
                         args: [groupId, since],

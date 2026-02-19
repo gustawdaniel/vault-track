@@ -293,7 +293,7 @@ export async function syncWithServer(
   const lastPushed = await getLastPushedTimestamp();
 
   const allLocalEvents = await getAllEvents();
-  const newEvents = allLocalEvents.filter((e) => e.timestamp > lastPushed);
+  const newEvents = allLocalEvents.filter((e) => e.timestamp >= lastPushed);
 
   console.log(
     `[Sync] Found ${allLocalEvents.length} local events, ${newEvents.length} new since last push`,

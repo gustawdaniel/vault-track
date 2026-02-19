@@ -6,7 +6,7 @@ import {
   createTransaction as syncCreateTransaction,
   createTransactionBatch as syncCreateTransactionBatch,
   updateTransaction as syncUpdateTransaction,
-  deleteTransaction as syncDeleteTransaction,
+  deleteTransactionBatch as syncDeleteTransactionBatch,
 } from '~/sync/manager';
 import {
   Trx,
@@ -29,7 +29,7 @@ export const useTransactionStore = defineStore('transaction', {
     transactions: useLocalStorage<FullTransaction[]>('transaction', []),
   }),
   actions: {
-    create(
+    async create(
       transaction: Transaction | PersistedTransaction,
       options?: CreateTransactionOptions,
     ) {
@@ -44,10 +44,10 @@ export const useTransactionStore = defineStore('transaction', {
         }
 
         this.$state.transactions.push(trx.json);
-        syncCreateTransaction(trx.json);
+        await syncCreateTransaction(trx.json);
       } else {
         this.$state.transactions.splice(index, 1, trx.json);
-        syncUpdateTransaction(trx.json);
+        await syncUpdateTransaction(trx.json);
       }
     },
     async createBatch(
@@ -67,7 +67,7 @@ export const useTransactionStore = defineStore('transaction', {
       // Sync all as a single batch with reserved counters
       await syncCreateTransactionBatch(trxList.map((t) => t.json));
     },
-    update(id: string, transaction: Partial<Transaction>, options?: { skipReverseCleanup?: boolean }) {
+    async update(id: string, transaction: Partial<Transaction>, options?: { skipReverseCleanup?: boolean }) {
       const index = this.getIndexById(id);
       if (index !== -1) {
         const oldTrxData = this.$state.transactions[index];
@@ -99,7 +99,7 @@ export const useTransactionStore = defineStore('transaction', {
           1,
           newTrx.json,
         );
-        syncUpdateTransaction(newTrx.json);
+        await syncUpdateTransaction(newTrx.json);
 
         if (!options?.skipReverseCleanup && oldTrx.data.transferHash && oldTrx.data.transferHash !== newTrx.data.transferHash) {
           const reverse = this.getReverseByIdAndHash(
@@ -122,7 +122,7 @@ export const useTransactionStore = defineStore('transaction', {
         // If transaction is Partial, we can't really create a valid transaction easily without defaults.
         // But getNew() exists?
         // Let's keep original behavior but warn it might be incomplete if transaction is partial.
-        this.create(
+        await this.create(
           { ...transaction, id } as any,
           {
             allowDuplicates: true,
@@ -131,16 +131,18 @@ export const useTransactionStore = defineStore('transaction', {
         );
       }
     },
-    delete(id: string): void {
+    async delete(id: string): Promise<void> {
       const transaction = this.getById(id);
       const index = this.getIndexById(id);
       if (!transaction || index === -1) return;
 
       const accountStore = useAccountStore();
 
+      // Collect all IDs to delete atomically
+      const idsToDelete: string[] = [id];
+
       accountStore.pathBalance(transaction.accountId, -transaction.amount);
       this.$state.transactions.splice(index, 1);
-      syncDeleteTransaction(id);
 
       if (transaction.transferHash) {
         const reverse = this.getReverseByIdAndHash(
@@ -151,11 +153,11 @@ export const useTransactionStore = defineStore('transaction', {
           id,
           transaction.transferHash,
         );
-        if (!reverse || reverseIndex === -1) return;
-
-        accountStore.pathBalance(reverse.accountId, -reverse.amount);
-        this.$state.transactions.splice(reverseIndex, 1);
-        syncDeleteTransaction(reverse.id);
+        if (reverse && reverseIndex !== -1) {
+          accountStore.pathBalance(reverse.accountId, -reverse.amount);
+          this.$state.transactions.splice(reverseIndex, 1);
+          idsToDelete.push(reverse.id);
+        }
       }
 
       // Cascade delete for split transactions
@@ -170,10 +172,13 @@ export const useTransactionStore = defineStore('transaction', {
           if (siblingIndex !== -1) {
             accountStore.pathBalance(sibling.accountId, -sibling.amount);
             this.$state.transactions.splice(siblingIndex, 1);
-            syncDeleteTransaction(sibling.id);
+            idsToDelete.push(sibling.id);
           }
         }
       }
+
+      // Delete all related transactions atomically via batch
+      await syncDeleteTransactionBatch(idsToDelete);
     },
     getNew(): FullTransaction {
       const accountStore = useAccountStore();
