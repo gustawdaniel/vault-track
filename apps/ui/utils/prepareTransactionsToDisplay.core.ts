@@ -101,12 +101,17 @@ export function prepareTransactionsToDisplayCore(
         }
     }
 
+    // Build category map for O(1) lookup
+    const categoryMap = new Map<string, PersistedCategory>();
+    for (const c of categories) {
+        categoryMap.set(c.category, c);
+    }
+
     // Helper to find category color
-    // Replacing store.getColorByCategory logic
     function getColorByCategory(rawName?: string): string {
         if (!rawName) return 'transparent';
-        const name = rawName.split('/')[0];
-        const category = categories.find((c) => c.category === name);
+        const name = rawName.split('/')[0] ?? '';
+        const category = categoryMap.get(name);
         if (!category) return 'transparent';
         return category.color;
     }
