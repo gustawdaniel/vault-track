@@ -17,10 +17,53 @@ export async function hydratePinia() {
     const syncAccountCount = Object.keys(state.accounts).length;
     const syncTrxCount = Object.keys(state.transactions).length;
 
+    const accountStore = useAccountStore();
+    const transactionStore = useTransactionStore();
+
+    // Check if Pinia has data that would be lost if we hydrated with empty state
+    // (This happens if indexedDB is wiped but localStorage persists)
+    const hasLocalData = accountStore.accounts.length > 0 || transactionStore.transactions.length > 0;
+
     if (syncAccountCount === 0 && syncTrxCount === 0) {
-        console.log('Sync state is empty. Skipping UI update to prevent data loss.');
+        if (hasLocalData) {
+            console.warn('[Hydration] Sync state is empty but local data exists. Attempting recovery from server...');
+
+            try {
+                // Dynamic import to avoid circular dependency
+                const { fetchRemoteEvents } = await import('~/sync/client');
+                const { addEvents } = await import('~/sync/db');
+
+                // Try to fetch everything from beginning
+                const recoveredEvents = await fetchRemoteEvents(0);
+
+                if (recoveredEvents.length > 0) {
+                    console.log(`[Hydration] Recovered ${recoveredEvents.length} events from server. Rebuilding state...`);
+                    await addEvents(recoveredEvents);
+
+                    // Re-fetch state now that DB is populated
+                    const newState = await getAppState();
+                    await doHydrate(newState);
+                    return;
+                } else {
+                    console.log('[Hydration] Server is also empty. Keeping local data safe (no hydration).');
+                    return;
+                }
+            } catch (e) {
+                console.error('[Hydration] Recovery failed', e);
+                return;
+            }
+        }
+
+        console.log('[Hydration] Sync state is empty. Skipping UI update to prevent data loss.');
         return;
     }
+
+    await doHydrate(state);
+}
+
+async function doHydrate(state: Awaited<ReturnType<typeof getAppState>>) {
+    const syncAccountCount = Object.keys(state.accounts).length;
+    const syncTrxCount = Object.keys(state.transactions).length;
 
     const accountStore = useAccountStore();
     const transactionStore = useTransactionStore();

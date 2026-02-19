@@ -93,6 +93,27 @@ export async function deleteTransaction(id: string): Promise<AppState> {
     return getAppState();
 }
 
+export async function deleteTransactionBatch(ids: string[]): Promise<AppState> {
+    if (ids.length === 0) return getAppState();
+
+    const deviceId = await getDeviceId();
+    const { start } = await reserveCounters(ids.length);
+    const timestamp = Date.now();
+
+    const events: TransactionDeleted[] = ids.map((id, i) => ({
+        eventId: `${deviceId}:${start + i}:${uid(8)}`,
+        deviceId,
+        counter: start + i,
+        timestamp,
+        type: 'TRANSACTION_DELETED' as const,
+        payload: { id },
+    }));
+
+    await addEvents(events);
+    triggerSync();
+    return getAppState();
+}
+
 // --- Accounts ---
 
 export async function createAccount(payload: Account): Promise<AppState> {
