@@ -7,39 +7,23 @@ import { useTransactionStore } from '~/store/transaction';
 import { type Currency, sumArray, getCurrency, sum } from '~/store/currency';
 import { createAccount as syncCreateAccount, updateAccount as syncUpdateAccount, deleteAccount as syncDeleteAccount, reorderAccounts as syncReorderAccounts } from '~/sync/manager';
 
-export type QifAccountType = 'Cash' | 'Bank' | 'CCard';
+import {
+  type Account,
+  AccountModel,
+  type AccountType,
+  type ComputedAccount,
+  type QifAccount,
+  type QifAccountType,
+} from '~/store/account.model';
 
-export type QifAccount = {
-  name: string;
-  type: QifAccountType;
-  currency?: string; // by default USD
-  description?: string; // eg account number
-  order?: number; // will be used to sort accounts in ui
-  hidden?: boolean; // allow to archive instead of delete data
+export {
+  type Account,
+  AccountModel,
+  type AccountType,
+  type ComputedAccount,
+  type QifAccount,
+  type QifAccountType,
 };
-
-export const AccountModel = z.object({
-  id: z.string(),
-  name: z.string(),
-  type: z.enum(['Cash', 'Bank', 'Invst', 'CCard']),
-  currency: z.string().optional(), // z.enum(currencies).optional(),
-  description: z.string().optional(),
-  order: z.number().optional(),
-  hidden: z.boolean().optional(),
-});
-
-export type AccountType = QifAccountType | 'Invst';
-
-export interface Account extends Omit<QifAccount, 'type' | 'currency'> {
-  type: AccountType;
-  currency: Currency;
-  id: string;
-  order?: number;
-}
-
-export interface ComputedAccount extends Account {
-  balance: number;
-}
 
 interface State {
   accounts: RemovableRef<ComputedAccount[]>;

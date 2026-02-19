@@ -2,6 +2,8 @@
 <script lang="ts" setup>
 import { useTransactionStore } from '~/store/transaction';
 import { useAssertStore } from '~/store/assert';
+import { useCategoryStore } from '~/store/category';
+import { useAccountStore } from '~/store/account';
 import type { Assert } from '~/store/assert.model';
 import { useDialog } from '~/store/dialog';
 import AssertEditDialog from '~/components/dialog/AssertEditDialog.vue';
@@ -19,20 +21,81 @@ import CategoryPicker from '~/components/category/CategoryPicker.vue';
 import { useVirtualizer } from '@tanstack/vue-virtual';
 import VirtualTransactionRow from '~/components/transactions/VirtualTransactionRow.vue';
 
+// Web Worker for heavy lifting
+import TransactionWorker from '../../workers/transaction.worker?worker';
+
 const transactionStore = useTransactionStore();
 const assertStore = useAssertStore();
+const categoryStore = useCategoryStore();
+const accountStore = useAccountStore();
 const dialog = useDialog();
 
 const props = defineProps<{ filter?: TransactionFilter }>();
 
-const transactions = computed<ExtendedFullTransaction[]>(
-  (): ExtendedFullTransaction[] => {
-    return prepareTransactionsToDisplay(
-      transactionStore.transactions,
-      props.filter ?? {},
-    );
+// State for async transactions from worker
+const transactions = ref<ExtendedFullTransaction[]>([]);
+const isProcessing = ref(false);
+
+// Initialize Worker
+let worker: Worker | null = null;
+if (import.meta.client) {
+  worker = new TransactionWorker();
+  
+  worker.onmessage = (e) => {
+    transactions.value = e.data;
+    isProcessing.value = false;
+    // console.timeEnd('WorkerTotalTime');
+  };
+}
+
+// Watch changes and post to worker
+// We use a debounced watcher or just watchEffect? 
+// Computed was reactive. Here we watch the dependencies.
+// Since transactionStore.transactions might change frequently during sync,
+// but filter changes during user input.
+// We should debounce slightly for search query? No, search query is handled in `filteredTransactions`.
+// `prepareTransactionsToDisplay` handles generic filters (account, category, date).
+// Search query filtering happens AFTER prepareTransactionsToDisplay in this component (lines 40-52).
+// So `prepareTransactionsToDisplay` is heavy.
+
+watch(
+  [
+    () => transactionStore.transactions,
+    () => props.filter,
+    // We also need to watch categories and accounts because they are used for color/currency resolution
+    () => categoryStore.categories, 
+    () => accountStore.accounts
+  ],
+  ([newTransactions, newFilter, newCategories, newAccounts]) => {
+    if (!worker) {
+        // Fallback for SSR or no worker support (unlikely client side)
+        transactions.value = prepareTransactionsToDisplay(newTransactions, newFilter ?? {});
+        return;
+    }
+
+    isProcessing.value = true;
+    // console.time('WorkerTotalTime');
+    
+    // We must send RAW data to worker to avoid Proxy issues
+    // structuredClone or JSON.parse(JSON.stringify) might be needed if Proxies are stubborn
+    // But usually postMessage handles structural cloning. 
+    // However, Vue's reactive objects are Proxies. 
+    // It's safer to unwrap them. `toRaw` from vue.
+    
+    worker.postMessage({
+      transactions: JSON.parse(JSON.stringify(newTransactions)), // brute force unwrap to be safe and avoid "function could not be cloned" if any
+      filter: JSON.parse(JSON.stringify(newFilter ?? {})),
+      categories: JSON.parse(JSON.stringify(newCategories)),
+      accounts: JSON.parse(JSON.stringify(newAccounts))
+    });
   },
+  { immediate: true, deep: true }
 );
+
+// Cleanup
+onUnmounted(() => {
+  worker?.terminate();
+});
 
 // Search Logic
 const searchQuery = ref('');
@@ -124,6 +187,7 @@ const virtualizer = useVirtualizer(
     getScrollElement: () => parentRef.value,
     estimateSize: () => 56,
     overscan: 10,
+    getItemKey: (index) => mergedList.value[index]?.id ?? index,
   })),
 );
 
