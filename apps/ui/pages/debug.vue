@@ -4,6 +4,9 @@ import { useDialog } from '~/store/dialog';
 import ConfirmDelete from '~/components/dialog/ConfirmDelete.vue';
 import { useAccountStore } from '~/store/account';
 import { useTransactionStore } from '~/store/transaction';
+import { useDebugStore } from '~/store/debug';
+
+const debugStore = useDebugStore();
 import { deleteTransaction as syncDeleteTransaction } from '~/sync/manager';
 
 const items = ref(['Backlog', 'Todo', 'In Progress', 'Done'])
@@ -80,6 +83,10 @@ function cleanupCorrupted() {
 
 <template>
   <div class="p-4">
+    <div class="mb-4">
+      <UCheckbox v-model="debugStore.showFps" label="Show FPS Counter" />
+    </div>
+
     <UButton label="Open" color="neutral" variant="subtle" @click="openModal" />
     <UButton label="Cleanup Orphans" color="error" variant="solid" class="ml-2" @click="cleanupOrphans" />
     <UButton label="Cleanup Corrupted" color="error" variant="outline" class="ml-2" @click="cleanupCorrupted" />

@@ -19,6 +19,11 @@ const options: MenuOption[] = [
     name: 'Preferences',
     to: '/preferences'
   },
+  {
+    id: 'debug',
+    name: 'Debug',
+    to: '/debug'
+  },
 ];
 </script>
 
