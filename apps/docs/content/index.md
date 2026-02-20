@@ -40,12 +40,12 @@ Private, offline-first, and smart. :br Scan receipts, automate transactions, and
     ---
     spotlight: true
     class: col-span-2 lg:col-span-1
-    target: _blank
+    to: /introduction/architecture
     ---
       :::::u-color-mode-image
       ---
       height: 320
-      alt: Beautiful visual powered by UI
+      alt: Modern UI with dark mode support
       class: w-full h-80 object-cover rounded-lg
       dark: /images/vault_tracker_modern_ui.png
       light: /images/vault_tracker_modern_ui.png
@@ -63,13 +63,12 @@ Private, offline-first, and smart. :br Scan receipts, automate transactions, and
     ---
     spotlight: true
     class: col-span-2 lg:col-span-1
-    target: _blank
-    to: /introduction/3.transaction#receipt-scanning
+    to: /introduction/transaction#receipt-scanning
     ---
       :::::u-color-mode-image
       ---
       height: 320
-      alt: Smart Automation powered by AI
+      alt: AI-powered receipt scanning
       class: w-full h-80 object-cover rounded-lg
       dark: /images/receipt.png
       light: /images/receipt.png
@@ -80,43 +79,88 @@ Private, offline-first, and smart. :br Scan receipts, automate transactions, and
     Smart [Automation]{.text-primary}
 
     #description
-    **Scan receipts** and let AI extract details automatically. Smart categorization learns from your habits to save you time.
+    **Scan receipts** and let AI extract details automatically. Smart categorization and split transactions save you time on every purchase.
     ::::
 
     ::::u-page-card
     ---
     spotlight: true
     class: col-span-2 lg:col-span-1
-    target: _blank
+    to: /introduction/reports
     ---
-      :::::div{.bg-elevated.rounded-lg.p-3.overflow-x-auto}
-      ```typescript [nuxt.config.ts]
-      storage: {
-        sync: process.env.REDIS_URL
-          ? { driver: 'redis', url: process.env.REDIS_URL }
-          : { driver: 'fs', base: '.data/sync' }
-      }
-      ```
+      :::::u-color-mode-image
+      ---
+      height: 320
+      alt: Financial reports and charts
+      class: w-full h-80 object-cover rounded-lg
+      dark: /images/reports.png
+      light: /images/reports.png
+      ---
+      :::::
+
+    #title
+    Reports & [Analytics]{.text-primary}
+
+    #description
+    **Cash flow forecasts**, monthly analysis, and category breakdowns — all with real-time multi-currency conversion. Understand where your money goes.
+    ::::
+
+    ::::u-page-card
+    ---
+    spotlight: true
+    class: col-span-2 lg:col-span-1
+    to: /introduction/assertions
+    ---
+      :::::u-color-mode-image
+      ---
+      height: 320
+      alt: Balance assertions and reconciliation
+      class: w-full h-80 object-cover rounded-lg
+      dark: /images/assertions.png
+      light: /images/assertions.png
+      ---
+      :::::
+
+    #title
+    Balance [Assertions]{.text-primary}
+
+    #description
+    Set verification checkpoints against your bank statements. The **Reconciliation Widget** automatically detects discrepancies and helps you fix them in one click.
+    ::::
+
+    ::::u-page-card
+    ---
+    spotlight: true
+    class: col-span-2 lg:col-span-1
+    to: /files/backup-sync
+    ---
+      :::::u-color-mode-image
+      ---
+      height: 320
+      alt: Private and secure data with encryption
+      class: w-full h-80 object-cover rounded-lg
+      dark: /images/privacy_security.png
+      light: /images/privacy_security.png
+      ---
       :::::
 
     #title
     Private & [Secure]{.text-primary}
 
     #description
-    **Offline-first by design.** Your data lives on your device in IndexedDB and syncs to your personal Redis server only when you choose. You own your data completely.
+    **Offline-first by design.** Your data lives on your device in IndexedDB and syncs to your personal server only when you choose. You own your data completely.
     ::::
 
     ::::u-page-card
     ---
     spotlight: true
     class: col-span-2 lg:col-span-1
-    target: _blank
     to: /developer-guide/architecture
     ---
       :::::u-color-mode-image
       ---
       height: 320
-      alt: Beautiful visual powered by UI
+      alt: Open source code and extensibility
       class: w-full h-80 object-cover rounded-lg
       dark: /images/vault_tracker_open_source.png
       light: /images/vault_tracker_open_source.png

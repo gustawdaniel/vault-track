@@ -7,6 +7,8 @@ import {
   TransactionModel,
 } from '~/store/transaction.model';
 import { useTransactionStore } from '~/store/transaction';
+import { useAssertStore } from '~/store/assert';
+import { AssertModel } from '~/store/assert.model';
 
 export function loadDataToStore(payload: Data): void {
   const storeAccount = useAccountStore();
@@ -56,5 +58,14 @@ export function loadDataToStore(payload: Data): void {
       allowDuplicates,
       updateAccountBalance: false,
     });
+  }
+
+  // Restore asserts
+  const assertStore = useAssertStore();
+  for (const assertEntity of (payload as any).asserts ?? []) {
+    const valid = AssertModel.omit({ id: true }).safeParse(assertEntity);
+    if (valid.success) {
+      assertStore.create(valid.data);
+    }
   }
 }

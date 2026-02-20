@@ -25,6 +25,9 @@ export default defineNuxtConfig({
         }
     },
     ssr: false, // SPA is fine for internal admin
+    nitro: {
+        preset: 'static',
+    },
     devtools: { enabled: true },
     compatibilityDate: '2026-01-02',
     app: {

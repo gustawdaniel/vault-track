@@ -5,6 +5,10 @@
         "TURSO_AUTH_TOKEN",
         "TURSO_DATABASE_URL"
     ],
+    "globalPassThroughEnv": [
+        "COREPACK_HOME",
+        "ENABLE_EXPERIMENTAL_COREPACK"
+    ],
     "tasks": {
         "build": {
             "dependsOn": [

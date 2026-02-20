@@ -12,6 +12,7 @@ import {
 import { dropNotFullColumns, parseTextAsCsv } from '~/utils/parseTextAsCsv';
 import type { Transaction } from '~/store/transaction.model';
 import { tableHeadersToTransactionKeys } from '~/components/account/tableHeadersToTransactionKeys';
+import { parseAmount, computeAmount, titleMatchToTransactionKey } from '~/utils/transactionImport';
 import UploadTransactionAcceptance from '~/components/account/UploadTransactionAcceptance.vue';
 import type { ClearedStatus } from '~/store/clearedStatus';
 import type { UploadTransactionsHeaderType } from '~/components/account/UploadTransactionsHeaderType';
@@ -75,10 +76,7 @@ function stringToClearedStatus(input?: string): ClearedStatus {
 
 const readyToReview = ref<boolean>(false);
 
-function parseAmount(value: string): number {
-  if (!value) return 0;
-  return Number(value.replaceAll(',', '.').replace(/[^0-9.-]/g, ''));
-}
+
 
 function csvToJson(): void {
   const headerMap = tableHeadersToTransactionKeys(headers.value);
@@ -94,12 +92,7 @@ function csvToJson(): void {
       accountId: props.account.id,
       date: dayjs(row[headerMap.date], dateFormat.value).format('YYYY-MM-DD'),
       category: row[headerMap.category],
-      amount:
-        parseAmount(row[headerMap.in] ?? row[headerMap.amount] ?? '') ||
-        -parseAmount(
-          row[headerMap.out] ??
-          row[Math.min(headerMap.amount + 1, row.length - 1)] ?? '',
-        ),
+      amount: computeAmount(row, headerMap),
       memo: row[headerMap.memo],
       payee: row[headerMap.payee],
       clearedStatus: stringToClearedStatus(row[headerMap.clearedStatus]),
@@ -142,44 +135,7 @@ function isCorrect(
   }
 }
 
-function titleMatchToTransactionKey(
-  title: string,
-  key: UploadTransactionsHeaderType,
-): boolean {
-  switch (key) {
-    // #Data księgowania	#Data operacji	#Opis operacji	#Tytuł	#Nadawca/Odbiorca	#Numer konta	#Kwota	#Saldo po operacji
 
-    case 'date':
-      return /^#?Data/.test(title) || /Date/.test(title);
-    case 'category':
-      return (
-        /^Rodzaj/.test(title) ||
-        /^#Opis operacji/.test(title) ||
-        /Type/.test(title)
-      );
-    case 'payee':
-      return /^Odbiorca/.test(title) || /^#Nadawca/.test(title);
-    case 'memo':
-      return (
-        /^Opis/.test(title) ||
-        /^#Tytuł/.test(title) ||
-        /Description/.test(title)
-      );
-    case 'amount':
-      return (
-        /^Obciążenia/.test(title) ||
-        /^#Kwota/.test(title) ||
-        /Paid Out/.test(title) ||
-        /Amount/.test(title)
-      );
-    case 'fee':
-      return /^Fee$/.test(title);
-    case 'state':
-      return /^State$/.test(title);
-    default:
-      return false;
-  }
-}
 
 function moveKeyToHeaderIndex(
   key: UploadTransactionsHeaderType,
@@ -204,6 +160,8 @@ function autoAssignHeaders() {
       'payee',
       'memo',
       'amount',
+      'in',
+      'out',
       'fee',
       'state',
     ];

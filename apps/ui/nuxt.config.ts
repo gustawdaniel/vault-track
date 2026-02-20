@@ -41,6 +41,7 @@ export default defineNuxtConfig({
   },
 
   nitro: {
+    preset: 'static',
     prerender: {
       routes: ['/robots.txt'],
     },

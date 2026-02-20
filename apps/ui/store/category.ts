@@ -6,18 +6,29 @@ import { useProjectStore } from '~/store/project';
 import type { Transaction } from '~/store/transaction.model';
 import { createCategory as syncCreateCategory, updateCategory as syncUpdateCategory, deleteCategory as syncDeleteCategory } from '~/sync/manager';
 
-export interface Category {
-  category: string;
-}
+import {
+  type Category,
+  type ColoredCategory,
+  type PersistedCategory,
+  decomposeRawCategoryToCategoryAndProject,
+  composeRawCategoryFromCategoryAndProject,
+  getFullCategoryName,
+  getMainCategoryName,
+  getSubCategoryName,
+} from '~/utils/category';
 
-export interface ColoredCategory extends Category {
-  color: string;
-}
+export {
+  type Category,
+  type ColoredCategory,
+  type PersistedCategory,
+  decomposeRawCategoryToCategoryAndProject,
+  composeRawCategoryFromCategoryAndProject,
+  getFullCategoryName,
+  getMainCategoryName,
+  getSubCategoryName,
+};
 
-export interface PersistedCategory extends ColoredCategory {
-  id: string;
-  order: number;
-}
+
 
 interface State {
   categories: RemovableRef<PersistedCategory[]>;
@@ -67,45 +78,7 @@ class Cat {
   }
 }
 
-export function getFullCategoryName(
-  t: Pick<Transaction, 'category'>,
-): string | undefined {
-  if (!t.category) return t.category;
-  return t.category.split('/')[0];
-}
 
-export function getMainCategoryName(
-  t: Pick<Transaction, 'category'>,
-): string | undefined {
-  const fullName = getFullCategoryName(t);
-  if (!fullName) return fullName;
-  return fullName.split('/')[0];
-}
-
-export function getSubCategoryName(
-  t: Pick<Transaction, 'category'>,
-): string | undefined {
-  const fullName = getFullCategoryName(t);
-  if (!fullName) return fullName;
-  const [, subName] = fullName.split('/');
-  return subName;
-}
-
-export function decomposeRawCategoryToCategoryAndProject(
-  rawCategoryName: string | undefined,
-): [string | undefined, string | undefined] {
-  if (!rawCategoryName) return [undefined, undefined];
-  const [categoryName, projectName] = rawCategoryName.split('/');
-  return [categoryName, projectName];
-}
-
-export function composeRawCategoryFromCategoryAndProject(
-  categoryName: string | undefined,
-  projectName: string | undefined,
-): string {
-  if (!categoryName && projectName) return '/' + projectName;
-  return [categoryName, projectName].filter(Boolean).join('/');
-}
 
 // ... existing code ...
 export type CategoryTree = Array<
