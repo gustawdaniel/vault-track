@@ -32,6 +32,29 @@ export async function initDB() {
             PRIMARY KEY (date, currency)
         );
     `);
+
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            group_id TEXT NOT NULL,
+            event_id TEXT NOT NULL,
+            device_id TEXT NOT NULL,
+            counter INTEGER NOT NULL,
+            timestamp INTEGER NOT NULL,
+            payload TEXT NOT NULL,
+            created_at INTEGER DEFAULT (unixepoch())
+        );
+    `);
+
+    await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_events_sync 
+        ON events(group_id, timestamp);
+    `);
+
+    await db.execute(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_events_unique 
+        ON events(group_id, event_id);
+    `);
 }
 
 export const UserSchema = z.object({
