@@ -4,7 +4,7 @@ import { clearEvents } from '~/sync/db';
 import { clearMeta } from '~/sync/meta';
 
 export async function clearLocalStorage() {
-  for (const key of ['account', 'category', 'transaction', 'project']) {
+  for (const key of ['account', 'category', 'transaction', 'project', 'assert']) {
     const ls = useLocalStorage(key, []);
     ls.value = [];
     await nextTick();

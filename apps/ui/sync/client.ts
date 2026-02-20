@@ -293,7 +293,7 @@ export async function syncWithServer(
   const lastPushed = await getLastPushedTimestamp();
 
   const allLocalEvents = await getAllEvents();
-  const newEvents = allLocalEvents.filter((e) => e.timestamp > lastPushed);
+  const newEvents = allLocalEvents.filter((e) => e.timestamp >= lastPushed);
 
   console.log(
     `[Sync] Found ${allLocalEvents.length} local events, ${newEvents.length} new since last push`,
@@ -349,6 +349,17 @@ export async function syncWithServer(
   // The previous error suggests syntax issues.
   for (const event of remoteNewEvents) {
     await addEvent(event);
+  }
+
+  // Import dynamically to avoid circular dependency in top-level
+  const { invalidateAppState } = await import('./manager');
+
+  // If we have new remote events, we must invalidate the cache because our incremental update logic
+  // only works for appending NEW local events at the end. Merging remote events might insert
+  // events in the past, changing the computed state.
+  if (remoteNewEvents.length > 0) {
+    console.log('[Sync] Invaliding app state cache due to new remote events');
+    invalidateAppState();
   }
 
   return replay(sortEvents(mergedEvents));

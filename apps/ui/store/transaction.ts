@@ -4,8 +4,9 @@ import dayjs from 'dayjs';
 import { useAccountStore } from '~/store/account';
 import {
   createTransaction as syncCreateTransaction,
+  createTransactionBatch as syncCreateTransactionBatch,
   updateTransaction as syncUpdateTransaction,
-  deleteTransaction as syncDeleteTransaction,
+  deleteTransactionBatch as syncDeleteTransactionBatch,
 } from '~/sync/manager';
 import {
   Trx,
@@ -13,6 +14,7 @@ import {
   type FullTransaction,
   type PersistedTransaction,
   type CreateTransactionOptions,
+  isTransferByCategory,
 } from '~/store/transaction.model';
 
 // Re-export for compatibility
@@ -24,10 +26,10 @@ interface State {
 
 export const useTransactionStore = defineStore('transaction', {
   state: (): State => ({
-    transactions: useLocalStorage<FullTransaction[]>('transaction', []),
+    transactions: useLocalStorage<FullTransaction[]>('transaction', [], { shallow: true }),
   }),
   actions: {
-    create(
+    async create(
       transaction: Transaction | PersistedTransaction,
       options?: CreateTransactionOptions,
     ) {
@@ -41,14 +43,35 @@ export const useTransactionStore = defineStore('transaction', {
           accountStore.pathBalance(trx.data.accountId, trx.data.amount);
         }
 
-        this.$state.transactions.push(trx.json);
-        syncCreateTransaction(trx.json);
+        this.$state.transactions = [...this.$state.transactions, trx.json];
+        await syncCreateTransaction(trx.json);
       } else {
-        this.$state.transactions.splice(index, 1, trx.json);
-        syncUpdateTransaction(trx.json);
+        const newTransactions = [...this.$state.transactions];
+        newTransactions[index] = trx.json;
+        this.$state.transactions = newTransactions;
+
+        await syncUpdateTransaction(trx.json);
       }
     },
-    update(id: string, transaction: Partial<Transaction>) {
+    async createBatch(
+      transactions: (Transaction | PersistedTransaction)[],
+      options?: CreateTransactionOptions,
+    ) {
+      const trxList = transactions.map((t) => new Trx(t));
+      const accountStore = useAccountStore();
+
+      for (const trx of trxList) {
+        if (options?.updateAccountBalance) {
+          accountStore.pathBalance(trx.data.accountId, trx.data.amount);
+        }
+      }
+
+      this.$state.transactions = [...this.$state.transactions, ...trxList.map(t => t.json)];
+
+      // Sync all as a single batch with reserved counters
+      await syncCreateTransactionBatch(trxList.map((t) => t.json));
+    },
+    async update(id: string, transaction: Partial<Transaction>, options?: { skipReverseCleanup?: boolean }) {
       const index = this.getIndexById(id);
       if (index !== -1) {
         const oldTrxData = this.$state.transactions[index];
@@ -56,12 +79,10 @@ export const useTransactionStore = defineStore('transaction', {
         const oldTrx = new Trx(oldTrxData);
 
         // Merge old data with new partial data
-        const newTrxData = { ...oldTrx.data, ...transaction, id };
-
-        // If it was a transfer but now isn't (category changed), remove transferHash
-        if (oldTrx.data.transferHash && !isTransferByCategory(newTrxData)) {
-          delete newTrxData.transferHash;
-        }
+        const newTrxData: any = { ...oldTrx.data, ...transaction, id };
+        // Force transferHash recomputation based on current data
+        // to prevent stale hashes from keeping broken transfer links
+        delete newTrxData.transferHash;
 
         const newTrx = new Trx(newTrxData);
         const accountStore = useAccountStore();
@@ -77,27 +98,29 @@ export const useTransactionStore = defineStore('transaction', {
         if (oldTrx.id !== newTrx.id)
           throw new Error(`Id can't be changed on update`);
 
-        this.$state.transactions.splice(
-          index,
-          1,
-          newTrx.json,
-        );
-        syncUpdateTransaction(newTrx.json);
+        const newTransactions = [...this.$state.transactions];
+        newTransactions[index] = newTrx.json;
 
-        if (oldTrx.data.transferHash && !newTrx.data.transferHash) {
-          const reverse = this.getReverseByIdAndHash(
-            id,
-            oldTrx.data.transferHash,
-          );
+        if (!options?.skipReverseCleanup && oldTrx.data.transferHash && oldTrx.data.transferHash !== newTrx.data.transferHash) {
           const reverseIndex = this.getReverseIndexByIdAndHash(
             id,
             oldTrx.data.transferHash,
           );
-          if (!reverse || reverseIndex === -1) return;
-
-          accountStore.pathBalance(reverse.accountId, -reverse.amount);
-          this.$state.transactions.splice(reverseIndex, 1);
+          if (reverseIndex !== -1) {
+            const reverse = newTransactions[reverseIndex]; // Use newTransactions to look up? No, indices shift if we spliced? 
+            // Wait, I am using direct index assignment above, so indices are stable.
+            // But if I splice below, it changes.
+            // If I use splice to remove reverse:
+            if (reverse) {
+              const accountStore = useAccountStore();
+              accountStore.pathBalance(reverse.accountId, -reverse.amount);
+              newTransactions.splice(reverseIndex, 1);
+            }
+          }
         }
+
+        this.$state.transactions = newTransactions;
+        await syncUpdateTransaction(newTrx.json);
       } else {
         // Fallback for creating if not found? 
         // Original code called create. If partial, create might fail if missing fields.
@@ -105,7 +128,7 @@ export const useTransactionStore = defineStore('transaction', {
         // If transaction is Partial, we can't really create a valid transaction easily without defaults.
         // But getNew() exists?
         // Let's keep original behavior but warn it might be incomplete if transaction is partial.
-        this.create(
+        await this.create(
           { ...transaction, id } as any,
           {
             allowDuplicates: true,
@@ -114,31 +137,44 @@ export const useTransactionStore = defineStore('transaction', {
         );
       }
     },
-    delete(id: string): void {
+    async delete(id: string): Promise<void> {
       const transaction = this.getById(id);
       const index = this.getIndexById(id);
       if (!transaction || index === -1) return;
 
       const accountStore = useAccountStore();
 
+      // Collect all IDs to delete
+      const idsToDelete: string[] = [id];
       accountStore.pathBalance(transaction.accountId, -transaction.amount);
-      this.$state.transactions.splice(index, 1);
-      syncDeleteTransaction(id);
 
       if (transaction.transferHash) {
         const reverse = this.getReverseByIdAndHash(
           id,
           transaction.transferHash,
         );
-        const reverseIndex = this.getReverseIndexByIdAndHash(
-          id,
-          transaction.transferHash,
-        );
-        if (!reverse || reverseIndex === -1) return;
-
-        accountStore.pathBalance(reverse.accountId, -reverse.amount);
-        this.$state.transactions.splice(reverseIndex, 1);
+        if (reverse) {
+          accountStore.pathBalance(reverse.accountId, -reverse.amount);
+          idsToDelete.push(reverse.id);
+        }
       }
+
+      // Cascade delete for split transactions
+      if (transaction.splitId) {
+        const siblings = this.$state.transactions.filter(
+          (t) => t.splitId === transaction.splitId && t.id !== id,
+        );
+        for (const sibling of siblings) {
+          accountStore.pathBalance(sibling.accountId, -sibling.amount);
+          idsToDelete.push(sibling.id);
+        }
+      }
+
+      const idsToDeleteSet = new Set(idsToDelete);
+      this.$state.transactions = this.$state.transactions.filter(t => !idsToDeleteSet.has(t.id));
+
+      // Delete all related transactions atomically via batch
+      await syncDeleteTransactionBatch(idsToDelete);
     },
     getNew(): FullTransaction {
       const accountStore = useAccountStore();
@@ -169,15 +205,16 @@ export const useTransactionStore = defineStore('transaction', {
     }) {
       if (fromName === to) return;
 
-      this.$state.transactions = this.$state.transactions.map((tx) => {
+      const newTransactions = this.$state.transactions.map((tx) => {
         if (tx.account === fromName || tx.accountId === fromId) {
-          return Object.assign(tx, { account: to });
+          return { ...tx, account: to };
         } else if (tx.category === `[${fromName}]`) {
-          return Object.assign(tx, { category: `[${to}]` });
+          return { ...tx, category: `[${to}]` };
         } else {
           return tx;
         }
       });
+      this.$state.transactions = newTransactions;
     },
     getAllByAccountId(accountId: string): FullTransaction[] {
       return this.$state.transactions.filter(

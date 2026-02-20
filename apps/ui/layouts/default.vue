@@ -5,6 +5,7 @@ import { SpeedInsights } from '@vercel/speed-insights/vue';
 import ExpandableListNavigationButtons from '~/components/expandableList/ExpandableListNavigationButtons.vue';
 import { useDialog } from '~/store/dialog';
 import { useAccountStore } from '~/store/account';
+import FpsCounter from '~/components/debug/FpsCounter.vue';
 
 const route = useRoute();
 
@@ -74,6 +75,7 @@ const accountStore = useAccountStore();
 
 
     <SpeedInsights />
+    <FpsCounter />
   </div>
 </template>
 

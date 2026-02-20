@@ -120,6 +120,13 @@ const options = computed(() => {
         {
           label: 'Delete transaction',
           onSelect: () => {
+            const tx = transactionStore.getById(props.id);
+            const siblingCount = tx?.splitId
+              ? transactionStore.getSiblingsBySplitId(tx.splitId).length
+              : 0;
+            const description = siblingCount > 1
+              ? `This is a split transaction with ${siblingCount} items. All ${siblingCount} will be deleted.`
+              : 'Are you sure you want to delete this transaction?';
             dialog.openDialog(
               ConfirmDelete,
               {
@@ -127,8 +134,8 @@ const options = computed(() => {
                 id: props.id,
               },
               {
-                title: 'Delete Transaction',
-                description: 'Are you sure you want to delete this transaction?',
+                title: siblingCount > 1 ? 'Delete Split Transaction' : 'Delete Transaction',
+                description,
               },
             );
           },
