@@ -113,6 +113,36 @@ export async function updateTransaction(payload: Transaction & { id: string }): 
     return applyEvent(event);
 }
 
+export async function updateTransactionBatch(payloads: (Transaction & { id: string })[]): Promise<AppState> {
+    if (payloads.length === 0) return getAppState();
+
+    const deviceId = await getDeviceId();
+    const { start } = await reserveCounters(payloads.length);
+    const timestamp = Date.now();
+
+    const events: TransactionUpdated[] = payloads.map((payload, i) => ({
+        eventId: `${deviceId}:${start + i}:${uid(8)}`,
+        deviceId,
+        counter: start + i,
+        timestamp,
+        type: 'TRANSACTION_UPDATED' as const,
+        payload: toRaw(payload),
+    }));
+
+    await addEvents(events);
+
+    if (latestAppState) {
+        for (const event of events) {
+            reduceEventMutable(latestAppState, event);
+        }
+    } else {
+        await getAppState();
+    }
+
+    triggerSync();
+    return latestAppState!;
+}
+
 export async function deleteTransaction(id: string): Promise<AppState> {
     const base = await createBaseEvent();
     const event: TransactionDeleted = {

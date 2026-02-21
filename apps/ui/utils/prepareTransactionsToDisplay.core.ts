@@ -76,6 +76,7 @@ export function prepareTransactionsToDisplayCore(
         return true;
     });
 
+
     // Group by splitId
     const groupedTransactions: FullTransaction[] = [];
     const splitMap = new Map<string, FullTransaction>();
@@ -157,11 +158,24 @@ export function prepareTransactionsToDisplayCore(
 
     let subBalance = 0;
 
+    console.time('sortTransactions');
+
     extendedTransactions.sort((a, b) => {
         const dateCompare = (a.date || '').localeCompare(b.date || '');
         if (dateCompare !== 0) return dateCompare;
+
+        const orderA = a.order ?? 0;
+        const orderB = b.order ?? 0;
+        if (orderA !== orderB) return orderA - orderB;
+
         return a.id.localeCompare(b.id);
     });
+
+    console.log('e', extendedTransactions.at(-1)?.date)
+
+    console.log('extendedTransactions', extendedTransactions.filter((t) => t.date === '2026-02-18'));
+    
+    console.timeEnd('sortTransactions');
 
     for (const transaction of extendedTransactions) {
         subBalance = sum(subBalance, transaction.amount, transaction.currency);
