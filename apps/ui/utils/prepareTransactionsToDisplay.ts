@@ -8,7 +8,7 @@ import {
 import type { FullTransaction } from '~/store/transaction.model';
 
 // Re-export types for consumers
-export type { ExtendedFullTransaction, TransactionFilter };
+// export type { ExtendedFullTransaction, TransactionFilter };
 
 /**
  * Main thread version of prepareTransactionsToDisplay.

@@ -2,7 +2,7 @@
 import { useAccountStore } from '~/store/account';
 import { useTransactionStore } from '~/store/transaction';
 import { useAssertStore } from '~/store/assert';
-import { prepareTransactionsToDisplay, type ExtendedFullTransaction } from '~/utils/prepareTransactionsToDisplay';
+// import { prepareTransactionsToDisplay, type ExtendedFullTransaction } from '~/utils/prepareTransactionsToDisplay';
 import { formatAmount } from '~/utils/formatAmount';
 import { getCurrencyDigits, type Currency } from '~/store/currency';
 import { useDialog } from '~/store/dialog';
@@ -31,7 +31,7 @@ const failingAsserts = computed<FailingAssert[]>(() => {
     // Since we need running balances at specific dates, this is still tricky.
     // However, prepareTransactionsToDisplay calculates running balances.
     // We can just iterate assertions and check against the transaction at that date.
-    
+
     // Better approach:
     // 1. Get all assertions, group by account.
     // 2. Iterate transactions ONCE (they are sorted by date usually, or we sort them).
@@ -43,7 +43,7 @@ const failingAsserts = computed<FailingAssert[]>(() => {
 
     // Get all transactions for relevant accounts
     const relevantTxs = transactionStore.transactions.filter(t => accountsWithAsserts.has(t.accountId));
-    
+
     // Sort transactions by date ASC (oldest first) to calculate running balance
     // Note: transactionStore.transactions might not be sorted perfectly if modified.
     relevantTxs.sort((a, b) => a.date.localeCompare(b.date));
@@ -51,17 +51,17 @@ const failingAsserts = computed<FailingAssert[]>(() => {
     // Calculate running balances per account
     // Map<AccountId, { date: string, balance: number }[]> matches? 
     // actually we just need to check asserts as we go or after.
-    
+
     const accountBalances: Record<string, number> = {};
     const accountAsserts = new Map<string, typeof assertStore.asserts>();
 
-    for(const assert of assertStore.asserts) {
-        if(!accountAsserts.has(assert.accountId)) accountAsserts.set(assert.accountId, []);
+    for (const assert of assertStore.asserts) {
+        if (!accountAsserts.has(assert.accountId)) accountAsserts.set(assert.accountId, []);
         accountAsserts.get(assert.accountId)!.push(assert);
     }
 
     // Sort assertions by date ASC
-    for(const list of accountAsserts.values()) {
+    for (const list of accountAsserts.values()) {
         list.sort((a, b) => a.date.localeCompare(b.date));
     }
 
@@ -72,10 +72,10 @@ const failingAsserts = computed<FailingAssert[]>(() => {
     const checkAssert = (assert: typeof assertStore.asserts[0], currentBalance: number) => {
         const diff = currentBalance - assert.value;
         if (Math.abs(diff) >= 0.005) {
-             const account = accountStore.getById(assert.accountId);
-             if (!account) return;
-             
-             failures.push({
+            const account = accountStore.getById(assert.accountId);
+            if (!account) return;
+
+            failures.push({
                 id: assert.id,
                 accountName: account.name,
                 accountId: account.id,
@@ -103,11 +103,11 @@ const failingAsserts = computed<FailingAssert[]>(() => {
         // In previous logic: 
         // if (txDateDay > assert.date) -> Assert is older. Check it against balance BEFORE this tx.
         // if (txDateDay <= assert.date) -> Assert is newer/same. Process tx first.
-        
+
         const asserts = accountAsserts.get(accId);
         if (asserts) {
             let ptr = assertPointers[accId] || 0;
-            while(ptr < asserts.length) {
+            while (ptr < asserts.length) {
                 const assert = asserts[ptr];
                 if (!assert) { ptr++; continue; } // Safety check
 
@@ -117,7 +117,7 @@ const failingAsserts = computed<FailingAssert[]>(() => {
                     checkAssert(assert, currentBalance);
                     ptr++;
                 } else {
-                    break; 
+                    break;
                 }
             }
             assertPointers[accId] = ptr;
@@ -131,19 +131,19 @@ const failingAsserts = computed<FailingAssert[]>(() => {
     for (const [accId, asserts] of accountAsserts) {
         let ptr = assertPointers[accId] || 0;
         const currentBalance = accountBalances[accId] || 0;
-        while(ptr < asserts.length) {
-             const assert = asserts[ptr];
-             if (assert) {
-                 // All these asserts are after the last transaction (or no transactions existed)
-                 // So they should match the final balance
-                 checkAssert(assert, currentBalance);
-             }
-             ptr++;
+        while (ptr < asserts.length) {
+            const assert = asserts[ptr];
+            if (assert) {
+                // All these asserts are after the last transaction (or no transactions existed)
+                // So they should match the final balance
+                checkAssert(assert, currentBalance);
+            }
+            ptr++;
         }
     }
-    
+
     return failures;
-}); 
+});
 
 // Helper to get new transaction (hoisted or imported?)
 // reusing existing imports

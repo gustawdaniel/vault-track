@@ -23,6 +23,9 @@ vi.mock('~/sync/reducer', () => ({
     replay: (events: any[]) => ({
         accounts: [], transactions: [], categories: [], projects: []
     }),
+    replayAsync: async (events: any[]) => ({
+        accounts: [], transactions: [], categories: [], projects: []
+    }),
 }));
 
 // We want to SPY on addEvent to see what it receives
