@@ -17,7 +17,7 @@
     "@tiptap/y-tiptap": "^3.0.2",
     "@vercel/analytics": "^1.6.1",
     "better-sqlite3": "^12.2.0",
-    "docus": "5.5.0",
+    "docus": "5.6.1",
     "eslint": "^9.39.2",
     "nuxt": "^4.1.2",
     "yjs": "^13.6.28",
