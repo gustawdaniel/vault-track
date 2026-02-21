@@ -6,6 +6,7 @@ import {
   createTransaction as syncCreateTransaction,
   createTransactionBatch as syncCreateTransactionBatch,
   updateTransaction as syncUpdateTransaction,
+  updateTransactionBatch as syncUpdateTransactionBatch,
   deleteTransactionBatch as syncDeleteTransactionBatch,
 } from '~/sync/manager';
 import {
@@ -186,15 +187,129 @@ export const useTransactionStore = defineStore('transaction', {
       return new Trx({
         account: fullAccount.name,
         accountId,
-        date: dayjs()
-          .set('h', 0)
-          .set('m', 0)
-          .set('s', 0)
-          .format('YYYY-MM-DDTHH:mm:ss'),
+        date: dayjs().format('YYYY-MM-DD'),
         amount: 0,
       }).json;
     },
-    changeAccountName({
+    async changeTransactionOrder(id: string, direction: 'up' | 'down') {
+      const transaction = this.getById(id);
+      if (!transaction) return;
+
+      const sameDateTransactions = this.$state.transactions.filter(
+        (t) => t.date === transaction.date
+      );
+
+      sameDateTransactions.sort((a, b) => {
+        const dateCompare = (a.date || '').localeCompare(b.date || '');
+        if (dateCompare !== 0) return dateCompare;
+
+        const orderA = a.order ?? 0;
+        const orderB = b.order ?? 0;
+        if (orderA !== orderB) return orderA - orderB;
+
+        return a.id.localeCompare(b.id);
+      });
+
+      const newTransactions = [...this.$state.transactions];
+      const updatesToSync: FullTransaction[] = [];
+
+      // Ensure all sameDateTransactions have an explicit sequential order
+      let nextOrder = 0;
+      const transferOrderMap = new Map<string, number>();
+
+      for (let i = 0; i < sameDateTransactions.length; i++) {
+        const t = sameDateTransactions[i]!;
+        let expectedOrder = nextOrder;
+
+        if (t.transferHash) {
+          if (transferOrderMap.has(t.transferHash)) {
+            expectedOrder = transferOrderMap.get(t.transferHash)!;
+          } else {
+            transferOrderMap.set(t.transferHash, nextOrder);
+            nextOrder++;
+          }
+        } else {
+          nextOrder++;
+        }
+
+        if (t.order !== expectedOrder) {
+          const storeIdx = this.getIndexById(t.id);
+          if (storeIdx !== -1) {
+            const updated = { ...newTransactions[storeIdx]!, order: expectedOrder };
+            newTransactions[storeIdx] = updated;
+            updatesToSync.push(updated);
+            sameDateTransactions[i] = updated; // Update local array for accurate finding below
+          }
+        }
+      }
+
+      const index = sameDateTransactions.findIndex((t) => t.id === id);
+      if (index === -1) return;
+
+      const txFinal = sameDateTransactions[index]!;
+      let siblingFinal: FullTransaction | undefined;
+
+      let targetIndex = index;
+      const step = direction === 'up' ? +1 : -1;
+
+      while (true) {
+        targetIndex += step;
+        if (targetIndex < 0 || targetIndex >= sameDateTransactions.length) {
+          break;
+        }
+        const candidate = sameDateTransactions[targetIndex]!;
+        if (txFinal.transferHash && candidate.transferHash === txFinal.transferHash) {
+          continue; // Skip the other half of the same transfer block
+        }
+        siblingFinal = candidate;
+        break;
+      }
+
+      if (siblingFinal) {
+        const tempOrder = txFinal.order!;
+        const siblingOrder = siblingFinal.order!;
+
+        const idsToUpdateToSiblingOrder = [txFinal.id];
+        if (txFinal.transferHash) {
+          const rev = this.getReverseByIdAndHash(txFinal.id, txFinal.transferHash);
+          if (rev) idsToUpdateToSiblingOrder.push(rev.id);
+        }
+
+        const idsToUpdateToTempOrder = [siblingFinal.id];
+        if (siblingFinal.transferHash) {
+          const rev = this.getReverseByIdAndHash(siblingFinal.id, siblingFinal.transferHash);
+          if (rev) idsToUpdateToTempOrder.push(rev.id);
+        }
+
+        for (const updateId of idsToUpdateToSiblingOrder) {
+          const storeIdx = this.getIndexById(updateId);
+          if (storeIdx !== -1) {
+            const updated = { ...newTransactions[storeIdx]!, order: siblingOrder };
+            newTransactions[storeIdx] = updated;
+            updatesToSync.push(updated);
+          }
+        }
+
+        for (const updateId of idsToUpdateToTempOrder) {
+          const storeIdx = this.getIndexById(updateId);
+          if (storeIdx !== -1) {
+            const updated = { ...newTransactions[storeIdx]!, order: tempOrder };
+            newTransactions[storeIdx] = updated;
+            updatesToSync.push(updated);
+          }
+        }
+      }
+
+      this.$state.transactions = newTransactions;
+
+      const uniqueUpdates = new Map<string, FullTransaction>();
+      for (const u of updatesToSync) uniqueUpdates.set(u.id, u);
+
+      if (uniqueUpdates.size > 0) {
+        await Promise.all(Array.from(uniqueUpdates.values()).map(t => syncUpdateTransaction(t)));
+      }
+    },
+    async changeAccountName({
       fromName,
       fromId,
       to,
@@ -205,16 +320,25 @@ export const useTransactionStore = defineStore('transaction', {
     }) {
       if (fromName === to) return;
 
+      const updatedTransactions: FullTransaction[] = [];
       const newTransactions = this.$state.transactions.map((tx) => {
         if (tx.account === fromName || tx.accountId === fromId) {
-          return { ...tx, account: to };
+          const updated = { ...tx, account: to };
+          updatedTransactions.push(updated);
+          return updated;
         } else if (tx.category === `[${fromName}]`) {
-          return { ...tx, category: `[${to}]` };
+          const updated = { ...tx, category: `[${to}]` };
+          updatedTransactions.push(updated);
+          return updated;
         } else {
           return tx;
         }
       });
       this.$state.transactions = newTransactions;
+
+      if (updatedTransactions.length > 0) {
+        await syncUpdateTransactionBatch(updatedTransactions);
+      }
     },
     getAllByAccountId(accountId: string): FullTransaction[] {
       return this.$state.transactions.filter(

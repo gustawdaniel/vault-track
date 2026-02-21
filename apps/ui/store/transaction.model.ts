@@ -14,6 +14,7 @@ export const TransactionModel = z.object({
   memo: z.string().optional(),
   clearedStatus: z.enum(['', '*', 'X', '?']).optional(),
   splitId: z.string().optional(),
+  order: z.number().optional(),
 });
 
 export interface CreateTransactionOptions {
@@ -31,6 +32,7 @@ export interface Transaction {
   memo?: string;
   clearedStatus?: ClearedStatus;
   splitId?: string;
+  order?: number;
 }
 
 export interface PersistedTransaction extends Transaction {

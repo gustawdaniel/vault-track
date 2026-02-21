@@ -118,6 +118,20 @@ const options = computed(() => {
           },
         },
         {
+          label: 'Move up',
+          icon: 'i-heroicons-arrow-up',
+          onSelect: () => {
+            transactionStore.changeTransactionOrder(props.id, 'up');
+          },
+        },
+        {
+          label: 'Move down',
+          icon: 'i-heroicons-arrow-down',
+          onSelect: () => {
+            transactionStore.changeTransactionOrder(props.id, 'down');
+          },
+        },
+        {
           label: 'Delete transaction',
           onSelect: () => {
             const tx = transactionStore.getById(props.id);

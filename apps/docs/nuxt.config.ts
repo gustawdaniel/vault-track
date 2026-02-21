@@ -4,10 +4,6 @@ export default defineNuxtConfig({
     image: {
         provider: 'none',
     },
-    alias: {
-        'zod': 'zod',
-        'zod/package.json': 'zod/package.json'
-    },
     nitro: {
         preset: 'static',
         prerender: {
