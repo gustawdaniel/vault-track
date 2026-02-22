@@ -15,6 +15,7 @@ const backendUrl = config.public.backendUrl;
 
 const pingResult = ref<{ status: number | null, body: string, error: string, duration: number | null, origin: string } | null>(null);
 const pinging = ref(false);
+const windowOrigin = computed(() => (typeof window !== 'undefined' ? window.location.origin : 'SSR'));
 
 async function pingBackend() {
   pinging.value = true;
@@ -177,7 +178,7 @@ function normalizeData() {
       </div>
       <div class="mb-2">
         <span class="text-gray-500">Window origin:</span>
-        <span class="ml-2 text-purple-700">{{ typeof window !== 'undefined' ? window.location.origin : 'SSR' }}</span>
+        <span class="ml-2 text-purple-700">{{ windowOrigin }}</span>
       </div>
       <UButton label="Ping /health" :loading="pinging" color="primary" variant="solid" size="sm" @click="pingBackend" />
       <div v-if="pingResult" class="mt-3 rounded p-3"
