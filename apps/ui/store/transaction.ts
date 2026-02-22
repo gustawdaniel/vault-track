@@ -44,6 +44,15 @@ export const useTransactionStore = defineStore('transaction', {
           accountStore.pathBalance(trx.data.accountId, trx.data.amount);
         }
 
+        // Auto-assign order = max_order + 1 for this account+date, if not explicitly set
+        if (trx.data.order === undefined || trx.data.order === null) {
+          const sameSlot = this.$state.transactions.filter(
+            (t) => t.accountId === trx.data.accountId && t.date === trx.data.date,
+          );
+          const maxOrder = sameSlot.reduce((m, t) => Math.max(m, t.order ?? 0), -1);
+          trx.data.order = maxOrder + 1;
+        }
+
         this.$state.transactions = [...this.$state.transactions, trx.json];
         await syncCreateTransaction(trx.json);
       } else {

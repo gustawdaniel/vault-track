@@ -65,7 +65,7 @@ export async function usersRoutes(fastify: FastifyInstance) {
         {
             schema: {
                 response: {
-                    200: z.array(UserSchema),
+                    200: z.array(UserSchema.extend({ event_count: z.number().optional() })),
                     401: z.object({ error: z.string() }),
                 },
             },
@@ -77,8 +77,17 @@ export async function usersRoutes(fastify: FastifyInstance) {
             },
         },
         async (req, reply) => {
-            const result = await db.execute('SELECT * FROM users ORDER BY created_at DESC');
-            return result.rows as unknown as User[];
+            const result = await db.execute(`
+                SELECT u.*, COALESCE(e.event_count, 0) as event_count
+                FROM users u
+                LEFT JOIN (
+                    SELECT group_id, COUNT(*) as event_count
+                    FROM events
+                    GROUP BY group_id
+                ) e ON e.group_id = u.id
+                ORDER BY u.created_at DESC
+            `);
+            return result.rows as unknown as { id: string; credits: number; email: string | null; created_at?: string; event_count?: number }[];
         }
     );
 
