@@ -8,6 +8,9 @@ on:
       - 'v*' # Trigger deployment when a version tag is pushed (e.g., v1.0.0)
   workflow_dispatch: # Allow manual trigger from the GitHub Actions UI
 
+permissions:
+  contents: write
+
 jobs:
   build-desktop:
     strategy:
