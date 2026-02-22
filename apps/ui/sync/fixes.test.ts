@@ -52,7 +52,7 @@ describe('Sync Fixes Verification', () => {
         // Old buggy logic: >
         const oldFilter = events.filter(e => e.timestamp > lastPushed);
         expect(oldFilter).toHaveLength(1);
-        expect(oldFilter[0].id).toBe(3);
+        expect(oldFilter[0]!.id).toBe(3);
 
         // New corrected logic: >=
         const newFilter = events.filter(e => e.timestamp >= lastPushed);
@@ -68,7 +68,7 @@ describe('Sync Fixes Verification', () => {
         // Verify addEvents was called ONCE with all 3 events
         expect(mockAddEvents).toHaveBeenCalledTimes(1);
 
-        const events = mockAddEvents.mock.calls[0][0] as TransactionDeleted[];
+        const events = mockAddEvents.mock.calls[0]![0]! as TransactionDeleted[];
         expect(events).toHaveLength(3);
 
         // Verify they share the same timestamp (roughly)
@@ -77,14 +77,14 @@ describe('Sync Fixes Verification', () => {
         expect(uniqueTimestamps.size).toBe(1);
 
         // Verify content
-        expect(events[0].payload.id).toBe('tx1');
-        expect(events[1].payload.id).toBe('tx2');
-        expect(events[2].payload.id).toBe('tx3');
+        expect(events[0]!.payload.id).toBe('tx1');
+        expect(events[1]!.payload.id).toBe('tx2');
+        expect(events[2]!.payload.id).toBe('tx3');
 
         // Verify counters are sequential
-        expect(events[0].counter).toBe(100);
-        expect(events[1].counter).toBe(101);
-        expect(events[2].counter).toBe(102);
+        expect(events[0]!.counter).toBe(100);
+        expect(events[1]!.counter).toBe(101);
+        expect(events[2]!.counter).toBe(102);
 
         // Verify event types
         events.forEach(e => expect(e.type).toBe('TRANSACTION_DELETED'));

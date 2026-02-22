@@ -19,9 +19,13 @@ const props = defineProps<{
   id: string;
 }>();
 
-// const router = useRouter(); // Hoist router
+const route = useRoute();
 const dialog = useDialog(); // Hoist dialog controller
 const transactionStore = useTransactionStore(); // Initialize
+
+const contextAccountId = computed(() =>
+  typeof route.params.id === 'string' ? route.params.id : undefined
+);
 
 // Helper to capitalize first letter
 function ucFirst(str: string) {
@@ -121,14 +125,14 @@ const options = computed(() => {
           label: 'Move up',
           icon: 'i-heroicons-arrow-up',
           onSelect: () => {
-            transactionStore.changeTransactionOrder(props.id, 'up');
+            transactionStore.changeTransactionOrder(props.id, 'up', contextAccountId.value);
           },
         },
         {
           label: 'Move down',
           icon: 'i-heroicons-arrow-down',
           onSelect: () => {
-            transactionStore.changeTransactionOrder(props.id, 'down');
+            transactionStore.changeTransactionOrder(props.id, 'down', contextAccountId.value);
           },
         },
         {

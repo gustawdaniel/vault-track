@@ -191,7 +191,7 @@ export const useTransactionStore = defineStore('transaction', {
         amount: 0,
       }).json;
     },
-    async changeTransactionOrder(id: string, direction: 'up' | 'down') {
+    async changeTransactionOrder(id: string, direction: 'up' | 'down', contextAccountId?: string) {
       const transaction = this.getById(id);
       if (!transaction) return;
 
@@ -261,6 +261,15 @@ export const useTransactionStore = defineStore('transaction', {
         if (txFinal.transferHash && candidate.transferHash === txFinal.transferHash) {
           continue; // Skip the other half of the same transfer block
         }
+
+        // Skip invisible items if we are in a specific account context
+        if (contextAccountId) {
+          const isTxInContext = candidate.accountId === contextAccountId || candidate.category?.startsWith(`[`);
+          if (!isTxInContext) {
+            continue;
+          }
+        }
+
         siblingFinal = candidate;
         break;
       }

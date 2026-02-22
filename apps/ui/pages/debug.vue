@@ -79,6 +79,68 @@ function cleanupCorrupted() {
     alert(`Deleted ${count} corrupted transactions locally. Please Sync/Refresh.`);
   }
 }
+import { updateTransactionBatch } from '~/sync/manager';
+
+function normalizeData() {
+  const accountMap = new Map(accountStore.accounts.map(a => [a.id, a.name]));
+  const transactionsToUpdate: ReturnType<typeof transactionStore.transactions[0]>[] = [];
+
+  transactionStore.transactions.forEach(t => {
+    let modified = false;
+    const updatePayload = { ...t };
+
+    // 1. Fix date strings (e.g. "2024-03-24T00:00:00" -> "2024-03-24")
+    if (updatePayload.date && updatePayload.date.includes('T')) {
+      updatePayload.date = updatePayload.date.substring(0, 10);
+      modified = true;
+    }
+
+    // 2. Fix account names
+    const exactAccountName = accountMap.get(updatePayload.accountId);
+    if (exactAccountName && updatePayload.account !== exactAccountName) {
+      updatePayload.account = exactAccountName;
+      modified = true;
+    }
+
+    // 3. Fix transfer category names
+    if (updatePayload.transferHash && updatePayload.category?.startsWith('[')) {
+      // Find the sibling
+      const sibling = transactionStore.transactions.find(
+        sib => sib.transferHash === updatePayload.transferHash && sib.id !== updatePayload.id
+      );
+      if (sibling) {
+        const expectedTargetName = accountMap.get(sibling.accountId);
+        if (expectedTargetName) {
+          const expectedCategory = `[${expectedTargetName}]`;
+          if (updatePayload.category !== expectedCategory) {
+            updatePayload.category = expectedCategory;
+            modified = true;
+          }
+        }
+      }
+    }
+
+    // Replace the internal ID with what Sync Manager expects (id: string, spreading rest)
+    if (modified) {
+      transactionsToUpdate.push(updatePayload);
+    }
+  });
+
+  if (transactionsToUpdate.length === 0) {
+    alert('No corrupted or desynced historical transactions found.');
+    return;
+  }
+
+  if (confirm(`Found ${transactionsToUpdate.length} anomalous transactions. Normalize and sync them?`)) {
+    // We update them sequentially using the internal sync wrapper (can be batched if implemented, we'll try updateTransactionBatch)
+    updateTransactionBatch(transactionsToUpdate).then(() => {
+      alert(`Successfully normalized ${transactionsToUpdate.length} transactions.`);
+    }).catch(e => {
+      console.error('Normalization batch fail', e);
+      alert('Failed to normalize. See console.');
+    });
+  }
+}
 </script>
 
 <template>
@@ -90,8 +152,9 @@ function cleanupCorrupted() {
     <UButton label="Open" color="neutral" variant="subtle" @click="openModal" />
     <UButton label="Cleanup Orphans" color="error" variant="solid" class="ml-2" @click="cleanupOrphans" />
     <UButton label="Cleanup Corrupted" color="error" variant="outline" class="ml-2" @click="cleanupCorrupted" />
+    <UButton label="Normalize Historical Data" color="primary" variant="solid" class="ml-2" @click="normalizeData" />
 
-    <USelectMenu v-model="value" :items="items" />
+    <USelectMenu v-model="value" :items="items" class="mt-4" />
     <p>Selected: {{ value }}</p>
     <pre>{{ accountStore.accounts }}</pre>
     <hr>

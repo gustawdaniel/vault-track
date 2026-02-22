@@ -34,7 +34,8 @@ export async function hydratePinia() {
                 const { addEvents } = await import('~/sync/db');
 
                 // Try to fetch everything from beginning
-                const recoveredEvents = await fetchRemoteEvents(0);
+                const recoveredResult = await fetchRemoteEvents(0);
+                const recoveredEvents = recoveredResult.events;
 
                 if (recoveredEvents.length > 0) {
                     console.log(`[Hydration] Recovered ${recoveredEvents.length} events from server. Rebuilding state...`);

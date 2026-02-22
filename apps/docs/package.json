@@ -4,6 +4,7 @@
     "dev": "nuxt dev",
     "build": "nuxt generate && rm -rf dist && mv .output/public dist"
   },
+  "license": "MIT",
   "engines": {
     "node": "24.x"
   },

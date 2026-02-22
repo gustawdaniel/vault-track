@@ -4,6 +4,7 @@ export interface SyncCursor {
     peerId: string;
     lastEventId?: string;
     timestamp: number; // Time of the last synced event
+    serverRowId?: number; // Monotonic auto-incrementing ID used for accurate pull pagination
 }
 
 export async function getCursor(peerId: string): Promise<SyncCursor | undefined> {
@@ -19,17 +20,13 @@ export async function updateCursor(peerId: string, cursor: Omit<SyncCursor, 'pee
 // Special peer ID for tracking what we've pushed to server
 export const PEER_ID_PUSH_CURSOR = 'push-cursor';
 
-/**
- * Get the last successfully pushed event timestamp
- */
-export async function getLastPushedTimestamp(): Promise<number> {
-    const cursor = await getCursor(PEER_ID_PUSH_CURSOR);
-    return cursor?.timestamp || 0;
+export async function getPushCursor(): Promise<SyncCursor | undefined> {
+    return getCursor(PEER_ID_PUSH_CURSOR);
 }
 
 /**
  * Update the push cursor after successful push
  */
-export async function updatePushCursor(timestamp: number): Promise<void> {
-    await updateCursor(PEER_ID_PUSH_CURSOR, { timestamp });
+export async function updatePushCursor(timestamp: number, lastEventId: string): Promise<void> {
+    await updateCursor(PEER_ID_PUSH_CURSOR, { timestamp, lastEventId });
 }
