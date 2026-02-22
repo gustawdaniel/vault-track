@@ -94,6 +94,17 @@ export const useTransactionStore = defineStore('transaction', {
         // to prevent stale hashes from keeping broken transfer links
         delete newTrxData.transferHash;
 
+        // If date or accountId changed, place transaction last in the new slot
+        const dateChanged = oldTrx.data.date !== newTrxData.date;
+        const accountChanged = oldTrx.data.accountId !== newTrxData.accountId;
+        if (dateChanged || accountChanged) {
+          const sameSlot = this.$state.transactions.filter(
+            (t) => t.id !== id && t.accountId === newTrxData.accountId && t.date === newTrxData.date,
+          );
+          const maxOrder = sameSlot.reduce((m, t) => Math.max(m, t.order ?? 0), -1);
+          newTrxData.order = maxOrder + 1;
+        }
+
         const newTrx = new Trx(newTrxData);
         const accountStore = useAccountStore();
 
