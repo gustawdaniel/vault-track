@@ -91,6 +91,8 @@ jobs:
 
       - name: Build Android App (APK & AAB)
         working-directory: apps/ui
+        env:
+          NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
         run: |
           pnpm tauri android init
           pnpm tauri android build
