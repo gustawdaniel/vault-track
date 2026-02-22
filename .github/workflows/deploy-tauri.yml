@@ -86,6 +86,7 @@ jobs:
       - name: Build Android App (APK & AAB)
         working-directory: apps/ui
         run: |
+          pnpm tauri android init
           pnpm tauri android build
 
       - name: Upload APK as Artifact

@@ -16,7 +16,8 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint . --fix",
-    "prettier": "prettier --write --list-different ."
+    "prettier": "prettier --write --list-different .",
+    "tauri": "tauri"
   },
   "devDependencies": {
     "@nuxt/devtools": "^3.2.1",
