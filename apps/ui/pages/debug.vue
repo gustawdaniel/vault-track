@@ -93,9 +93,13 @@ async function runSyncDiag() {
     let error = '';
     if (groupId) {
       try {
-        const res = await fetch(`${backendUrl}/sync/pull?cursor=0`, {
-          headers: { 'X-Sync-Group-ID': groupId }
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 10000);
+        const res = await fetch(`${backendUrl}/sync/pull?cursor=0&wait=false`, {
+          headers: { 'X-Sync-Group-ID': groupId },
+          signal: ctrl.signal,
         });
+        clearTimeout(tid);
         const data = await res.json() as { events?: unknown[] };
         serverEvents = data.events?.length ?? 0;
       } catch (e) { error = String(e); }
@@ -120,6 +124,17 @@ async function runSyncDiag() {
     };
   } finally {
     diagLoading.value = false;
+  }
+}
+
+async function resetCursor() {
+  try {
+    const { updateCursor } = await import('~/sync/cursor');
+    await updateCursor('server', { serverRowId: 0, timestamp: 0, lastEventId: '' });
+    alert('Cursor reset to 0. Go to Settings → Sync and click "Sync Now" to re-pull all data.');
+    await runSyncDiag();
+  } catch (e) {
+    alert('Failed to reset cursor: ' + String(e));
   }
 }
 
@@ -275,13 +290,13 @@ function normalizeData() {
       <div v-if="pingResult" class="mt-3 rounded p-3"
         :class="pingResult.error ? 'bg-red-50 border border-red-300' : 'bg-green-50 border border-green-300'">
         <div v-if="pingResult.status !== null"><span class="text-gray-500">Status:</span> <strong>{{ pingResult.status
-            }}</strong></div>
+        }}</strong></div>
         <div><span class="text-gray-500">Duration:</span> <strong>{{ pingResult.duration }}ms</strong></div>
         <div><span class="text-gray-500">My origin:</span> <strong>{{ pingResult.origin }}</strong></div>
         <div v-if="pingResult.body"><span class="text-gray-500">Response:</span> <code
             class="break-all">{{ pingResult.body }}</code></div>
         <div v-if="pingResult.error" class="text-red-600"><span class="text-gray-500">Error:</span> {{ pingResult.error
-          }}</div>
+        }}</div>
       </div>
     </div>
 
@@ -319,6 +334,12 @@ function normalizeData() {
         <div><span class="text-gray-500">Local cursor (serverRowId):</span> <code>{{ syncDiag.localCursor }}</code>
         </div>
         <div v-if="syncDiag.error" class="text-red-600">Error: {{ syncDiag.error }}</div>
+        <div class="mt-3">
+          <UButton label="Reset Cursor to 0 (force full re-pull)" color="warning" variant="solid" size="xs"
+            @click="resetCursor" />
+          <p class="text-yellow-700 text-xs mt-1">Zeros your local sync cursor without deleting any data. Then go to
+            Settings → Sync → Sync Now to re-pull everything from the server.</p>
+        </div>
       </div>
     </div>
 

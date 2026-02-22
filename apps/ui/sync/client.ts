@@ -112,9 +112,6 @@ export async function fetchRemoteEvents(
     let nextCursor = cursorValue;
 
     for (const remoteEvent of data.events) {
-      if (remoteEvent.serverRowId !== undefined) {
-        nextCursor = Math.max(nextCursor, remoteEvent.serverRowId);
-      }
       // remoteEvent is TransportEvent. payload is ciphertext.
       try {
         // Decrypt the blob -> Full AppEvent object
@@ -132,9 +129,14 @@ export async function fetchRemoteEvents(
         }
 
         plainEvents.push(decryptedEvent);
+        // Only advance cursor for successfully decrypted events
+        if (remoteEvent.serverRowId !== undefined) {
+          nextCursor = Math.max(nextCursor, remoteEvent.serverRowId);
+        }
       } catch (e) {
         console.error('Decryption failed for event', remoteEvent.eventId, e);
-        // Skip corrupt events
+        // Do NOT advance cursor — keep it at last-known-good position
+        // so the next sync will retry from there with correct key
       }
     }
 
