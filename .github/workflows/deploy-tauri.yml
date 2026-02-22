@@ -50,6 +50,7 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BACKEND_URL: "https://api.vaulttrack.org/api"
         with:
           projectPath: './apps/ui'
           tagName: ${{ github.ref_name }} # Creates/targets the Github Release
@@ -94,9 +95,12 @@ jobs:
 
       - name: Build Android App (APK & AAB)
         working-directory: apps/ui
+        env:
+          BACKEND_URL: "https://api.vaulttrack.org/api"
         run: |
           export NDK_HOME=$ANDROID_NDK_LATEST_HOME
           pnpm tauri android init
+          node -e "const fs = require('fs'); const file = 'src-tauri/gen/android/app/src/main/AndroidManifest.xml'; let content = fs.readFileSync(file, 'utf8'); content = content.replace('<application', '<uses-permission android:name=\"android.permission.CAMERA\" />\n    <uses-feature android:name=\"android.hardware.camera\" android:required=\"false\" />\n    <application'); fs.writeFileSync(file, content);"
           pnpm tauri android build --apk --debug
 
       - name: Upload APK as Artifact
