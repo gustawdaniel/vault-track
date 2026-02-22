@@ -9,6 +9,28 @@ import { useDebugStore } from '~/store/debug';
 const debugStore = useDebugStore();
 import { deleteTransaction as syncDeleteTransaction } from '~/sync/manager';
 
+// ---- Backend debug ----
+const config = useRuntimeConfig();
+const backendUrl = config.public.backendUrl;
+
+const pingResult = ref<{ status: number | null, body: string, error: string, duration: number | null, origin: string } | null>(null);
+const pinging = ref(false);
+
+async function pingBackend() {
+  pinging.value = true;
+  pingResult.value = null;
+  const start = Date.now();
+  try {
+    const res = await fetch(`${backendUrl}/health`);
+    const body = await res.text();
+    pingResult.value = { status: res.status, body, error: '', duration: Date.now() - start, origin: window.location.origin };
+  } catch (e: unknown) {
+    pingResult.value = { status: null, body: '', error: String(e), duration: Date.now() - start, origin: window.location.origin };
+  } finally {
+    pinging.value = false;
+  }
+}
+
 const items = ref(['Backlog', 'Todo', 'In Progress', 'Done'])
 const value = ref('Backlog')
 
@@ -145,6 +167,32 @@ function normalizeData() {
 
 <template>
   <div class="p-4">
+
+    <!-- ===== Backend Connectivity ===== -->
+    <div class="mb-6 rounded-lg border border-gray-200 p-4 bg-gray-50 font-mono text-sm">
+      <h2 class="font-bold text-base mb-2">🔗 Backend Debug</h2>
+      <div class="mb-2">
+        <span class="text-gray-500">API URL:</span>
+        <span class="ml-2 text-blue-700 break-all">{{ backendUrl }}</span>
+      </div>
+      <div class="mb-2">
+        <span class="text-gray-500">Window origin:</span>
+        <span class="ml-2 text-purple-700">{{ typeof window !== 'undefined' ? window.location.origin : 'SSR' }}</span>
+      </div>
+      <UButton label="Ping /health" :loading="pinging" color="primary" variant="solid" size="sm" @click="pingBackend" />
+      <div v-if="pingResult" class="mt-3 rounded p-3"
+        :class="pingResult.error ? 'bg-red-50 border border-red-300' : 'bg-green-50 border border-green-300'">
+        <div v-if="pingResult.status !== null"><span class="text-gray-500">Status:</span> <strong>{{ pingResult.status
+            }}</strong></div>
+        <div><span class="text-gray-500">Duration:</span> <strong>{{ pingResult.duration }}ms</strong></div>
+        <div><span class="text-gray-500">My origin:</span> <strong>{{ pingResult.origin }}</strong></div>
+        <div v-if="pingResult.body"><span class="text-gray-500">Response:</span> <code
+            class="break-all">{{ pingResult.body }}</code></div>
+        <div v-if="pingResult.error" class="text-red-600"><span class="text-gray-500">Error:</span> {{ pingResult.error
+          }}</div>
+      </div>
+    </div>
+
     <div class="mb-4">
       <UCheckbox v-model="debugStore.showFps" label="Show FPS Counter" />
     </div>
