@@ -97,7 +97,7 @@ jobs:
         run: |
           export NDK_HOME=$ANDROID_NDK_LATEST_HOME
           pnpm tauri android init
-          pnpm tauri android build
+          pnpm tauri android build --apk --debug
 
       - name: Upload APK as Artifact
         uses: actions/upload-artifact@v4
