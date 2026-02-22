@@ -208,4 +208,36 @@ export async function syncRoutes(fastify: FastifyInstance) {
             }
         }
     );
+    // Delete ALL events for a group (nuclear reset option)
+    app.delete(
+        '/events',
+        {
+            schema: {
+                response: {
+                    200: z.object({ success: z.boolean(), deleted: z.number() }),
+                    400: z.object({ error: z.string() }),
+                    500: z.object({ error: z.string() }),
+                },
+            },
+        },
+        async (req, reply) => {
+            const groupId = req.headers['x-sync-group-id'] as string;
+            if (!groupId) {
+                return reply.code(400).send({ error: 'Missing X-Sync-Group-ID header' });
+            }
+
+            try {
+                const result = await db.execute({
+                    sql: `DELETE FROM events WHERE group_id = ?`,
+                    args: [groupId],
+                });
+                const deleted = Number(result.rowsAffected ?? 0);
+                console.log(`[Sync] Deleted ${deleted} events for group ${groupId.substring(0, 16)}...`);
+                return { success: true, deleted };
+            } catch (e: any) {
+                console.error('Sync delete error:', e);
+                return reply.code(500).send({ error: 'Database error: ' + e.message });
+            }
+        }
+    );
 }

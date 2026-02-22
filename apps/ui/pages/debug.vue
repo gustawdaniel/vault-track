@@ -33,6 +33,50 @@ async function pingBackend() {
   }
 }
 
+// ---- Nuclear sync reset ----
+const resetting = ref(false);
+const resetResult = ref<string | null>(null);
+
+async function nuclearReset() {
+  if (!confirm('⚠️ This will DELETE ALL sync events from the server AND clear your local IndexedDB. You will need to re-import your data. Are you absolutely sure?')) return;
+
+  resetting.value = true;
+  resetResult.value = null;
+  try {
+    // 1. Delete server events
+    const groupId = localStorage.getItem('ocm-sync-group-id');
+    if (groupId) {
+      const res = await fetch(`${backendUrl}/sync/events`, {
+        method: 'DELETE',
+        headers: { 'X-Sync-Group-ID': groupId },
+      });
+      const body = await res.json() as { deleted?: number, error?: string };
+      if (!res.ok) throw new Error(body.error || `Server error ${res.status}`);
+      resetResult.value = `Server: deleted ${body.deleted} events. `;
+    } else {
+      resetResult.value = 'No group ID found (skipped server delete). ';
+    }
+
+    // 2. Clear IndexedDB
+    const dbs = await indexedDB.databases();
+    for (const dbInfo of dbs) {
+      if (dbInfo.name) indexedDB.deleteDatabase(dbInfo.name);
+    }
+
+    // 3. Clear sync-related localStorage keys
+    const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('ocm-'));
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+
+    resetResult.value += `Local: cleared ${dbs.length} IndexedDB databases and ${keysToRemove.length} localStorage keys.`;
+
+    setTimeout(() => { window.location.reload(); }, 2000);
+  } catch (e: unknown) {
+    resetResult.value = `Error: ${String(e)}`;
+  } finally {
+    resetting.value = false;
+  }
+}
+
 const items = ref(['Backlog', 'Todo', 'In Progress', 'Done'])
 const value = ref('Backlog')
 
@@ -192,6 +236,19 @@ function normalizeData() {
             class="break-all">{{ pingResult.body }}</code></div>
         <div v-if="pingResult.error" class="text-red-600"><span class="text-gray-500">Error:</span> {{ pingResult.error
         }}</div>
+      </div>
+    </div>
+
+    <!-- ===== Nuclear Sync Reset ===== -->
+    <div class="mb-6 rounded-lg border border-red-300 p-4 bg-red-50 font-mono text-sm">
+      <h2 class="font-bold text-base mb-2 text-red-700">☢️ Nuclear Sync Reset</h2>
+      <p class="text-red-600 mb-3 text-xs">Kasuje WSZYSTKIE eventy z serwera dla Twojej grupy i czyści lokalną
+        IndexedDB. Używaj po eksporcie danych. Na pozostałych urządzeniach wejdź w /debug i naciśnij ten sam przycisk
+        (nie ma co kasować na serwerze, więc tylko czyści lokalne dane).</p>
+      <UButton label="☢️ NUCLEAR RESET — Delete all sync data" :loading="resetting" color="error" variant="solid"
+        size="sm" @click="nuclearReset" />
+      <div v-if="resetResult" class="mt-3 rounded p-2 bg-white border border-red-200 text-red-800 text-xs">
+        {{ resetResult }}
       </div>
     </div>
 
