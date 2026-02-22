@@ -77,6 +77,52 @@ async function nuclearReset() {
   }
 }
 
+// ---- Sync diagnostics ----
+const syncDiag = ref<{ groupId: string, mnemonic: string, serverEvents: number | null, localCursor: number | null, error: string } | null>(null);
+const diagLoading = ref(false);
+
+async function runSyncDiag() {
+  diagLoading.value = true;
+  syncDiag.value = null;
+  try {
+    const groupId = localStorage.getItem('ocm-sync-group-id') || '';
+    const mnemonic = localStorage.getItem('ocm-mnemonic') || '';
+
+    // Check server event count from cursor=0
+    let serverEvents: number | null = null;
+    let error = '';
+    if (groupId) {
+      try {
+        const res = await fetch(`${backendUrl}/sync/pull?cursor=0`, {
+          headers: { 'X-Sync-Group-ID': groupId }
+        });
+        const data = await res.json() as { events?: unknown[] };
+        serverEvents = data.events?.length ?? 0;
+      } catch (e) { error = String(e); }
+    } else {
+      error = 'No ocm-sync-group-id in localStorage';
+    }
+
+    // Check local cursor
+    let localCursor: number | null = null;
+    try {
+      const { getCursor } = await import('~/sync/cursor');
+      const c = await getCursor('server');
+      localCursor = c?.serverRowId ?? 0;
+    } catch (_e) { /* ignore */ }
+
+    syncDiag.value = {
+      groupId: groupId ? `${groupId.substring(0, 16)}...` : '(none)',
+      mnemonic: mnemonic ? `${mnemonic.substring(0, 20)}...` : '(none)',
+      serverEvents,
+      localCursor,
+      error,
+    };
+  } finally {
+    diagLoading.value = false;
+  }
+}
+
 const items = ref(['Backlog', 'Todo', 'In Progress', 'Done'])
 const value = ref('Backlog')
 
@@ -249,6 +295,30 @@ function normalizeData() {
         size="sm" @click="nuclearReset" />
       <div v-if="resetResult" class="mt-3 rounded p-2 bg-white border border-red-200 text-red-800 text-xs">
         {{ resetResult }}
+      </div>
+    </div>
+
+    <!-- ===== Sync Diagnostics ===== -->
+    <div class="mb-6 rounded-lg border border-yellow-300 p-4 bg-yellow-50 font-mono text-sm">
+      <h2 class="font-bold text-base mb-2 text-yellow-800">🔍 Sync Diagnostics</h2>
+      <UButton label="Run Sync Diagnostics" :loading="diagLoading" color="warning" variant="outline" size="sm"
+        @click="runSyncDiag" />
+      <div v-if="syncDiag" class="mt-3 space-y-1 text-xs">
+        <div><span class="text-gray-500">Group ID:</span> <code>{{ syncDiag.groupId }}</code></div>
+        <div><span class="text-gray-500">Mnemonic:</span> <code>{{ syncDiag.mnemonic }}</code></div>
+        <div>
+          <span class="text-gray-500">Server events (cursor=0):</span>
+          <strong :class="syncDiag.serverEvents === 0 ? 'text-red-600' : 'text-green-600'">
+            {{ syncDiag.serverEvents ?? 'N/A' }}
+          </strong>
+          <span v-if="syncDiag.serverEvents === 0" class="text-red-600 ml-1">⚠️ Group ID mismatch or server
+            empty!</span>
+          <span v-else-if="syncDiag.serverEvents !== null" class="text-yellow-700 ml-1">(limited to 2000 per
+            pull)</span>
+        </div>
+        <div><span class="text-gray-500">Local cursor (serverRowId):</span> <code>{{ syncDiag.localCursor }}</code>
+        </div>
+        <div v-if="syncDiag.error" class="text-red-600">Error: {{ syncDiag.error }}</div>
       </div>
     </div>
 
