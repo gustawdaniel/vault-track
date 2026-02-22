@@ -49,14 +49,14 @@ const tiers = [
     id: 'single-device',
     to: '/setup',
     priceMonthly: '$0',
-    description: 'Your data are stored in browser, we not sync them.',
+    description: 'Your data is stored in the browser. We do not sync it.',
     features: [
       'Unlimited accounts',
       'Unlimited projects & categories',
       'Unlimited incomes, expenses and transfers',
       'Export and import in formats: QIF, JSON',
       'No account needed',
-      'Unlimited support of app creator',
+      'Unlimited support from the app creator',
     ],
     mostPopular: false,
   },
@@ -94,40 +94,40 @@ const tiers = [
 const faqs = [
   {
     id: 1,
-    question: 'Why that app exists?',
+    question: 'Why does this app exist?',
     answer:
-      'There are plenty of great competitors. I created it mainly because of other apps were saving data on these servers or had problems with web & mobile version or export / import of data by API.',
+      'There are plenty of great alternatives, but I created this app mainly because other apps were saving data on their servers, had problems with the web & mobile versions, or lacked proper data export/import via API.',
   },
   {
     id: 2,
-    question: 'Why I should use it?',
+    question: 'Why should I use it?',
     answer:
-      'It is not truth that you should. Tracing finance by general it is tradeoff. You confessing part of your willpower to do it systematically and you gaining knowledge about your spending that allow for better decisions. You can do it with excel or pen and notebook.',
+      'You don\'t necessarily have to. Tracking finances is generally a tradeoff. You sacrifice a portion of your willpower to do it systematically, and in return, you gain knowledge about your spending that allows for better decisions. You can achieve this just as well with Excel or a pen and notebook.',
   },
   {
     id: 3,
-    question: 'Are my data safe?',
+    question: 'Is my data safe?',
     answer:
-      'Your data are stored in localstorage (browsers memory). I do not have access to them but they are not encrypted. You are responsible for setting password to your operating system to protect them.',
+      'Your data is stored in LocalStorage (your browser\'s memory). I do not have access to it, but keep in mind it is not encrypted. You are responsible for setting a password on your operating system to protect it.',
   },
   {
     id: 4,
-    question: 'Can i recover lost data?',
+    question: 'Can I recover lost data?',
     answer:
-      'No. You can do backups in "Database" view selected from settings menu. If you will loose device with your browser without backup it is impossible to recover them.',
+      'No. However, you can make regular backups in the "Database" view accessible from the settings menu. If you lose the device with your browser and have no backup, it is impossible to recover your data.',
   },
   {
-    id: 4,
-    question: 'Where to report bug / request feature?',
+    id: 5,
+    question: 'Where can I report a bug or request a feature?',
     answer: [
-      'You are invited to open issue on ',
+      'You are invited to open an issue on ',
       {
         href: 'https://github.com/gustawdaniel/vault-track/issues',
         text: 'Github',
       },
       ' or reach me on ',
-      { href: 'https://twitter.com/_GustawDaniel', text: 'twitter' },
-      '. I appreciate any contact from you so do not hesitate to touch with me.',
+      { href: 'https://twitter.com/_GustawDaniel', text: 'Twitter' },
+      '. I appreciate any feedback, so please don\'t hesitate to get in touch with me.',
     ],
   },
   // More questions...
@@ -171,8 +171,7 @@ const footerNavigation = {
     <main class="isolate">
       <!-- Hero section -->
       <div class="relative pt-14">
-        <div
-aria-hidden="true"
+        <div aria-hidden="true"
           class="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80">
           <div
             class="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"
@@ -222,8 +221,7 @@ aria-hidden="true"
             <div class="mt-16 flow-root sm:mt-24">
               <div
                 class="-m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
-                <img
-alt="App screenshot" class="rounded-md shadow-2xl ring-1 ring-gray-900/10 w-full" height="537"
+                <img alt="App screenshot" class="rounded-md shadow-2xl ring-1 ring-gray-900/10 w-full" height="537"
                   src="../../assets/screenshots/open-cash-manager-shot-1.webp" width="1054" />
                 <!--                <img-->
                 <!--                  alt="App screenshot"-->
@@ -236,8 +234,7 @@ alt="App screenshot" class="rounded-md shadow-2xl ring-1 ring-gray-900/10 w-full
             </div>
           </div>
         </div>
-        <div
-aria-hidden="true"
+        <div aria-hidden="true"
           class="absolute inset-x-0 top-[calc(100%-13rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-30rem)]">
           <div
             class="relative left-[calc(50%+3rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem]"
@@ -268,8 +265,7 @@ aria-hidden="true"
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div
           class="mx-auto grid max-w-lg grid-cols-4 items-center gap-x-8 gap-y-12 sm:max-w-xl sm:grid-cols-6 sm:gap-x-10 sm:gap-y-14 lg:mx-0 lg:max-w-none lg:grid-cols-3">
-          <img
-v-for="logo in logos" :key="logo.name" :alt="logo.name" :src="logo.image"
+          <img v-for="logo in logos" :key="logo.name" :alt="logo.name" :src="logo.image"
             class="col-span-2 max-h-8 w-full object-contain lg:col-span-1" height="48" style="
               filter: opacity(0.9) grayscale(100%)
                 drop-shadow(0 0 0 rgb(17, 24, 39));
@@ -280,8 +276,7 @@ v-for="logo in logos" :key="logo.name" :alt="logo.name" :src="logo.image"
             class="relative rounded-full px-4 py-1.5 text-sm leading-6 text-gray-600 ring-1 ring-inset ring-gray-900/10 hover:ring-gray-900/20">
             <span class="hidden md:inline">In any endeavor, the initial act of measuring progress is the
               cornerstone of eventual success.</span>
-            <NuxtLink class="font-semibold text-indigo-600" to="/why"><span
-aria-hidden="true"
+            <NuxtLink class="font-semibold text-indigo-600" to="/why"><span aria-hidden="true"
                 class="absolute inset-0" /> Benefits of
               personal finance tracking
               <span aria-hidden="true">&rarr;</span>
@@ -327,13 +322,11 @@ aria-hidden="true"
       <div class="mx-auto mt-32 max-w-7xl sm:mt-56 sm:px-6 lg:px-8">
         <div
           class="relative overflow-hidden bg-gray-900 px-6 py-20 shadow-xl sm:rounded-3xl sm:px-10 sm:py-24 md:px-12 lg:px-20">
-          <img
-alt="" class="absolute inset-0 h-full w-full object-cover brightness-150 saturate-0"
+          <img alt="" class="absolute inset-0 h-full w-full object-cover brightness-150 saturate-0"
             src="https://images.unsplash.com/photo-1601381718415-a05fb0a261f3?ixid=MXwxMjA3fDB8MHxwcm9maWxlLXBhZ2V8ODl8fHxlbnwwfHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=1216&q=80" />
           <div class="absolute inset-0 bg-gray-900/90 mix-blend-multiply" />
           <div aria-hidden="true" class="absolute -left-80 -top-56 transform-gpu blur-3xl">
-            <div
-class="aspect-[1097/845] w-[68.5625rem] bg-gradient-to-r from-[#ff4694] to-[#776fff] opacity-[0.45]"
+            <div class="aspect-[1097/845] w-[68.5625rem] bg-gradient-to-r from-[#ff4694] to-[#776fff] opacity-[0.45]"
               style="
                 clip-path: polygon(
                   74.1% 44.1%,
@@ -355,11 +348,9 @@ class="aspect-[1097/845] w-[68.5625rem] bg-gradient-to-r from-[#ff4694] to-[#776
                 );
               " />
           </div>
-          <div
-aria-hidden="true"
+          <div aria-hidden="true"
             class="hidden md:absolute md:bottom-16 md:left-[50rem] md:block md:transform-gpu md:blur-3xl">
-            <div
-class="aspect-[1097/845] w-[68.5625rem] bg-gradient-to-r from-[#ff4694] to-[#776fff] opacity-25" style="
+            <div class="aspect-[1097/845] w-[68.5625rem] bg-gradient-to-r from-[#ff4694] to-[#776fff] opacity-25" style="
                 clip-path: polygon(
                   74.1% 44.1%,
                   100% 61.6%,
@@ -415,14 +406,12 @@ class="aspect-[1097/845] w-[68.5625rem] bg-gradient-to-r from-[#ff4694] to-[#776
           </p>
           <div
             class="isolate mx-auto mt-16 grid max-w-md grid-cols-1 gap-y-8 sm:mt-20 lg:mx-0 lg:max-w-none lg:grid-cols-3">
-            <div
-v-for="tier in tiers" :key="tier.id" :class="[
+            <div v-for="tier in tiers" :key="tier.id" :class="[
               'flex flex-col justify-between rounded-3xl bg-white p-8 ring-1 ring-gray-200 xl:p-10 lg:col-start-2',
             ]">
               <div>
                 <div class="flex items-center justify-between gap-x-4">
-                  <h3
-:id="tier.id" :class="[
+                  <h3 :id="tier.id" :class="[
                     'text-indigo-600',
                     'text-lg font-semibold leading-8',
                   ]">
@@ -446,8 +435,7 @@ v-for="tier in tiers" :key="tier.id" :class="[
                   </li>
                 </ul>
               </div>
-              <NuxtLink
-:aria-describedby="tier.id" :class="[
+              <NuxtLink :aria-describedby="tier.id" :class="[
                 tier.mostPopular
                   ? 'bg-indigo-600 text-white shadow-sm hover:bg-indigo-500'
                   : 'text-indigo-600 ring-1 ring-inset ring-indigo-200 hover:ring-indigo-300',
@@ -478,8 +466,7 @@ v-for="tier in tiers" :key="tier.id" :class="[
               <p v-else-if="Array.isArray(faq.answer)" class="text-base leading-7 text-gray-600">
                 <template v-for="(part, key) of faq.answer" :key="key">
                   <span v-if="typeof part === 'string'">{{ part }}</span>
-                  <a
-v-else-if="typeof part === 'object'" :href="part.href"
+                  <a v-else-if="typeof part === 'object'" :href="part.href"
                     class="text-indigo-700 hover:text-indigo-800">
                     {{ part.text }}
                   </a>
@@ -492,11 +479,9 @@ v-else-if="typeof part === 'object'" :href="part.href"
 
       <!-- CTA section -->
       <div class="relative -z-10 mt-32 px-6 lg:px-8">
-        <div
-aria-hidden="true"
+        <div aria-hidden="true"
           class="absolute inset-x-0 top-1/2 -z-10 flex -translate-y-1/2 transform-gpu justify-center overflow-hidden blur-3xl sm:bottom-0 sm:right-[calc(50%-6rem)] sm:top-auto sm:translate-y-0 sm:transform-gpu sm:justify-end">
-          <div
-class="aspect-[1108/632] w-[69.25rem] flex-none bg-gradient-to-r from-[#ff80b5] to-[#9089fc] opacity-25"
+          <div class="aspect-[1108/632] w-[69.25rem] flex-none bg-gradient-to-r from-[#ff80b5] to-[#9089fc] opacity-25"
             style="
               clip-path: polygon(
                 73.6% 48.6%,
@@ -520,7 +505,7 @@ class="aspect-[1108/632] w-[69.25rem] flex-none bg-gradient-to-r from-[#ff80b5] 
         </div>
         <div class="mx-auto max-w-2xl text-center">
           <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            Any journey start with first step.<br />Start using our app today.
+            Every journey starts with a single step.<br />Start using our app today.
           </h2>
           <p class="mx-auto mt-6 max-w-xl text-lg leading-8 text-gray-600">
             Establishing habits can be an uphill battle, but the rewards are
@@ -536,11 +521,9 @@ class="aspect-[1108/632] w-[69.25rem] flex-none bg-gradient-to-r from-[#ff80b5] 
                 aria-hidden="true">→</span></NuxtLink>
           </div>
         </div>
-        <div
-aria-hidden="true"
+        <div aria-hidden="true"
           class="absolute left-1/2 right-0 top-full -z-10 hidden -translate-y-1/2 transform-gpu overflow-hidden blur-3xl sm:block">
-          <div
-class="aspect-[1155/678] w-[72.1875rem] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30" style="
+          <div class="aspect-[1155/678] w-[72.1875rem] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30" style="
               clip-path: polygon(
                 74.1% 44.1%,
                 100% 61.6%,
@@ -588,13 +571,11 @@ class="aspect-[1155/678] w-[72.1875rem] bg-gradient-to-tr from-[#ff80b5] to-[#90
                 </h3>
                 <ul class="mt-6 space-y-4" role="list">
                   <li v-for="item in footerNavigation.support" :key="item.name">
-                    <a
-v-if="item.href.startsWith('https')" :href="item.href"
+                    <a v-if="item.href.startsWith('https')" :href="item.href"
                       class="text-sm leading-6 text-gray-600 hover:text-gray-900">
                       {{ item.name }}
                     </a>
-                    <NuxtLink
-v-else-if="item.href.startsWith('/')" :to="item.href"
+                    <NuxtLink v-else-if="item.href.startsWith('/')" :to="item.href"
                       class="text-sm leading-6 text-gray-600 hover:text-gray-900">
                       {{ item.name }}
                     </NuxtLink>
