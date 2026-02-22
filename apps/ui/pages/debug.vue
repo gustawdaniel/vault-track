@@ -275,22 +275,22 @@ function normalizeData() {
       <div v-if="pingResult" class="mt-3 rounded p-3"
         :class="pingResult.error ? 'bg-red-50 border border-red-300' : 'bg-green-50 border border-green-300'">
         <div v-if="pingResult.status !== null"><span class="text-gray-500">Status:</span> <strong>{{ pingResult.status
-        }}</strong></div>
+            }}</strong></div>
         <div><span class="text-gray-500">Duration:</span> <strong>{{ pingResult.duration }}ms</strong></div>
         <div><span class="text-gray-500">My origin:</span> <strong>{{ pingResult.origin }}</strong></div>
         <div v-if="pingResult.body"><span class="text-gray-500">Response:</span> <code
             class="break-all">{{ pingResult.body }}</code></div>
         <div v-if="pingResult.error" class="text-red-600"><span class="text-gray-500">Error:</span> {{ pingResult.error
-        }}</div>
+          }}</div>
       </div>
     </div>
 
     <!-- ===== Nuclear Sync Reset ===== -->
     <div class="mb-6 rounded-lg border border-red-300 p-4 bg-red-50 font-mono text-sm">
       <h2 class="font-bold text-base mb-2 text-red-700">☢️ Nuclear Sync Reset</h2>
-      <p class="text-red-600 mb-3 text-xs">Kasuje WSZYSTKIE eventy z serwera dla Twojej grupy i czyści lokalną
-        IndexedDB. Używaj po eksporcie danych. Na pozostałych urządzeniach wejdź w /debug i naciśnij ten sam przycisk
-        (nie ma co kasować na serwerze, więc tylko czyści lokalne dane).</p>
+      <p class="text-red-600 mb-3 text-xs">Deletes ALL sync events from the server for your group and clears local
+        IndexedDB. Use this after exporting your data. On other devices, open /debug and click the same button — it will
+        only clear local data (nothing left to delete on server).</p>
       <UButton label="☢️ NUCLEAR RESET — Delete all sync data" :loading="resetting" color="error" variant="solid"
         size="sm" @click="nuclearReset" />
       <div v-if="resetResult" class="mt-3 rounded p-2 bg-white border border-red-200 text-red-800 text-xs">
