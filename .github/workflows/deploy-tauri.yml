@@ -101,7 +101,31 @@ jobs:
         run: |
           export NDK_HOME=$ANDROID_NDK_LATEST_HOME
           pnpm tauri android init
-          node -e "const fs = require('fs'); const file = 'src-tauri/gen/android/app/src/main/AndroidManifest.xml'; let content = fs.readFileSync(file, 'utf8'); content = content.replace('<application', '<uses-permission android:name=\"android.permission.CAMERA\" />\n    <uses-feature android:name=\"android.hardware.camera\" android:required=\"false\" />\n    <application'); fs.writeFileSync(file, content);"
+
+          # Create network security config to allow HTTPS to external domains
+          cat > src-tauri/gen/android/app/src/main/res/xml/network_security_config.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <network-security-config>
+            <base-config cleartextTrafficPermitted="false">
+              <trust-anchors>
+                <certificates src="system" />
+              </trust-anchors>
+            </base-config>
+          </network-security-config>
+          EOF
+
+          # Patch AndroidManifest.xml: add camera permission + network security config
+          node -e "
+            const fs = require('fs');
+            const file = 'src-tauri/gen/android/app/src/main/AndroidManifest.xml';
+            let content = fs.readFileSync(file, 'utf8');
+            // Add camera permissions before <application>
+            content = content.replace('<application', '<uses-permission android:name=\"android.permission.CAMERA\" />\n    <uses-feature android:name=\"android.hardware.camera\" android:required=\"false\" />\n    <application');
+            // Add networkSecurityConfig to <application> tag
+            content = content.replace('<application', '<application android:networkSecurityConfig=\"@xml/network_security_config\"');
+            fs.writeFileSync(file, content);
+          "
+
           pnpm tauri android build --apk --debug
 
       - name: Upload APK as Artifact
