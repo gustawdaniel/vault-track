@@ -57,17 +57,18 @@ async function nuclearReset() {
       resetResult.value = 'No group ID found (skipped server delete). ';
     }
 
-    // 2. Clear IndexedDB
+    // 2. Clear IndexedDB (sync event log)
     const dbs = await indexedDB.databases();
     for (const dbInfo of dbs) {
       if (dbInfo.name) indexedDB.deleteDatabase(dbInfo.name);
     }
 
-    // 3. Clear sync-related localStorage keys
-    const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('ocm-'));
+    // 3. Clear sync STATE keys but preserve identity (mnemonic + group-id)
+    const identityKeys = new Set(['ocm-mnemonic', 'ocm-sync-group-id']);
+    const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('ocm-') && !identityKeys.has(k));
     keysToRemove.forEach(k => localStorage.removeItem(k));
 
-    resetResult.value += `Local: cleared ${dbs.length} IndexedDB databases and ${keysToRemove.length} localStorage keys.`;
+    resetResult.value += `Local: cleared ${dbs.length} IndexedDB databases and ${keysToRemove.length} localStorage keys (mnemonic preserved).`;
 
     setTimeout(() => { window.location.reload(); }, 2000);
   } catch (e: unknown) {
@@ -290,13 +291,13 @@ function normalizeData() {
       <div v-if="pingResult" class="mt-3 rounded p-3"
         :class="pingResult.error ? 'bg-red-50 border border-red-300' : 'bg-green-50 border border-green-300'">
         <div v-if="pingResult.status !== null"><span class="text-gray-500">Status:</span> <strong>{{ pingResult.status
-        }}</strong></div>
+            }}</strong></div>
         <div><span class="text-gray-500">Duration:</span> <strong>{{ pingResult.duration }}ms</strong></div>
         <div><span class="text-gray-500">My origin:</span> <strong>{{ pingResult.origin }}</strong></div>
         <div v-if="pingResult.body"><span class="text-gray-500">Response:</span> <code
             class="break-all">{{ pingResult.body }}</code></div>
         <div v-if="pingResult.error" class="text-red-600"><span class="text-gray-500">Error:</span> {{ pingResult.error
-        }}</div>
+          }}</div>
       </div>
     </div>
 
