@@ -81,20 +81,20 @@ async function getEncryptionKey(): Promise<CryptoKey | null> {
 }
 
 export async function fetchRemoteEvents(
-  sinceTimestamp: number,
+  cursorValue: number,
   options?: SyncOptions,
-): Promise<AppEvent[]> {
+): Promise<{ events: AppEvent[], nextCursor: number }> {
   try {
     const groupId = await getGroupIdAsync();
-    if (!groupId) return [];
+    if (!groupId) return { events: [], nextCursor: cursorValue };
 
     const key = await getEncryptionKey();
-    if (!key) return []; // Cannot decrypt without key
+    if (!key) return { events: [], nextCursor: cursorValue }; // Cannot decrypt without key
 
     const backendUrl = getBackendUrl();
     const waitParam = options?.wait ? '&wait=true' : '';
     const response = await fetch(
-      `${backendUrl}/sync/pull?since=${sinceTimestamp}${waitParam}`,
+      `${backendUrl}/sync/pull?cursor=${cursorValue}${waitParam}`,
       {
         headers: {
           'X-Sync-Group-ID': groupId,
@@ -103,14 +103,18 @@ export async function fetchRemoteEvents(
     );
     if (!response.ok) {
       console.error('Sync pull failed', response.statusText);
-      return [];
+      return { events: [], nextCursor: cursorValue };
     }
     const data: SyncResponse = await response.json();
 
     // Decrypt events
     const plainEvents: AppEvent[] = [];
+    let nextCursor = cursorValue;
 
     for (const remoteEvent of data.events) {
+      if (remoteEvent.serverRowId !== undefined) {
+        nextCursor = Math.max(nextCursor, remoteEvent.serverRowId);
+      }
       // remoteEvent is TransportEvent. payload is ciphertext.
       try {
         // Decrypt the blob -> Full AppEvent object
@@ -134,10 +138,10 @@ export async function fetchRemoteEvents(
       }
     }
 
-    return plainEvents;
+    return { events: plainEvents, nextCursor };
   } catch (e) {
     console.error('Sync pull error', e);
-    return [];
+    return { events: [], nextCursor: cursorValue };
   }
 }
 
@@ -286,14 +290,33 @@ export async function syncWithServer(
   // 0. Get current server cursor
   const cursor = await getCursor(PEER_ID_SERVER);
   const lastTimestamp = cursor?.timestamp || 0;
-  console.log(`[Sync] Last server timestamp: ${lastTimestamp}`);
+  const lastServerRowId = cursor?.serverRowId || 0;
+  console.log(`[Sync] Last server timestamp: ${lastTimestamp}, rowId: ${lastServerRowId}`);
 
   // 1. Push implementation - only push events newer than last successful push
-  const { getLastPushedTimestamp, updatePushCursor } = await import('./cursor');
-  const lastPushed = await getLastPushedTimestamp();
+  const { getPushCursor, updatePushCursor } = await import('./cursor');
+  const pushCursor = await getPushCursor();
+  const lastPushedTimestamp = pushCursor?.timestamp || 0;
+  const lastPushedEventId = pushCursor?.lastEventId;
 
   const allLocalEvents = await getAllEvents();
-  const newEvents = allLocalEvents.filter((e) => e.timestamp >= lastPushed);
+
+  // To correctly identify new events even if they have the exact same millisecond timestamp,
+  // we sort by timestamp, find the last pushed event by ID, and slice from there.
+  // If lastPushedEventId isn't found (or 0 timestamp), we fallback to timestamp strict > filtering.
+  const sortedLocalEvents = [...allLocalEvents].sort((a, b) => a.timestamp - b.timestamp);
+  let newEvents: AppEvent[] = [];
+
+  if (lastPushedEventId) {
+    const lastPushedIndex = sortedLocalEvents.findIndex(e => e.eventId === lastPushedEventId);
+    if (lastPushedIndex !== -1) {
+      newEvents = sortedLocalEvents.slice(lastPushedIndex + 1);
+    } else {
+      newEvents = sortedLocalEvents.filter(e => e.timestamp > lastPushedTimestamp);
+    }
+  } else {
+    newEvents = sortedLocalEvents.filter(e => e.timestamp > lastPushedTimestamp);
+  }
 
   console.log(
     `[Sync] Found ${allLocalEvents.length} local events, ${newEvents.length} new since last push`,
@@ -302,17 +325,21 @@ export async function syncWithServer(
   if (newEvents.length > 0) {
     const pushSuccess = await pushLocalEvents(newEvents);
     if (pushSuccess) {
-      // Update push cursor to the latest event timestamp
-      const latestTimestamp = Math.max(...newEvents.map((e) => e.timestamp));
-      await updatePushCursor(latestTimestamp);
-      console.log(`[Sync] Push cursor updated to ${latestTimestamp}`);
+      // Update push cursor to the absolute latest event
+      const latestEvent = newEvents[newEvents.length - 1];
+      if (latestEvent) {
+        await updatePushCursor(latestEvent.timestamp, latestEvent.eventId);
+        console.log(`[Sync] Push cursor updated to ${latestEvent.timestamp} (${latestEvent.eventId})`);
+      }
     } else {
       console.warn('[Sync] Push failed, will retry on next sync');
     }
   }
 
   // 2. Pull
-  const remoteEvents = await fetchRemoteEvents(lastTimestamp, options);
+  const pullResult = await fetchRemoteEvents(lastServerRowId, options);
+  const remoteEvents = pullResult.events;
+  const nextServerRowId = pullResult.nextCursor;
   console.log(`[Sync] Fetched ${remoteEvents.length} remote events`);
 
   if (remoteEvents.length === 0) {
@@ -332,6 +359,7 @@ export async function syncWithServer(
   await updateCursor(PEER_ID_SERVER, {
     timestamp: maxTimestamp,
     lastEventId: remoteEvents[remoteEvents.length - 1]?.eventId,
+    serverRowId: nextServerRowId,
   });
 
   // 5. Replay

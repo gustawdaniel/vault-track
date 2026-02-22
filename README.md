@@ -4,9 +4,15 @@
 
 [![Vercel](https://deploy-badge.vercel.app/?app=vault-track)](https://vaulttrack.org)
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 VaultTrack is a modern, privacy-focused, offline-first personal finance application inspired by tools like YNAB and GNUCash. It helps you track accounts, transactions, and budgets with a seamless multi-device experience.
+
+<p align="center">
+  <img src="./apps/docs/public/images/receipt.png" alt="Receipt Scanning" width="49%">
+  <img src="./apps/docs/public/images/assertions.png" alt="Balance Assertions" width="49%">
+  <img src="./apps/docs/public/images/reports.png" alt="Reports" width="99%">
+</p>
 
 **[Live Demo](https://vaulttrack.org)** | **[Documentation](https://docs.vaulttrack.org)**
 
@@ -124,7 +130,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📄 License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
 
 ---
 
@@ -140,24 +146,3 @@ Our development focus is strictly prioritized on the following key pillars:
     *   A unique analytical layer that allows users to view their finances in **Real Terms** vs **Nominal Terms**.
     *   Analyze spending power relative to external economic metrics (e.g., Average Wage, Inflation/CPI baskets, Big Mac Index) rather than just raw currency numbers.
     *   "How much of the average national wage did I spend on groceries in 2015 vs today?"
-
-Sqlite
-
-```
-# Open the database
-sqlite3 apps/ui/local.db
-
-# List tables to verify
-.tables
-# Output should be: events
-
-# See data
-SELECT * FROM events;
-# (or nicer formatting)
-.mode column
-.headers on
-SELECT * FROM events LIMIT 5;
-
-# Exit
-.quit
-```

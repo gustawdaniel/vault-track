@@ -1,3 +1,4 @@
+import { EventEmitter } from 'events';
 import { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
@@ -11,6 +12,11 @@ interface TransportEvent {
     timestamp: number;
     payload: string;
 }
+
+// Global EventEmitter for sync notifications
+const syncEventEmitter = new EventEmitter();
+// Increase max listeners if many clients connect simultaneously
+syncEventEmitter.setMaxListeners(1000);
 
 export async function syncRoutes(fastify: FastifyInstance) {
     const app = fastify.withTypeProvider<ZodTypeProvider>();
@@ -36,18 +42,42 @@ export async function syncRoutes(fastify: FastifyInstance) {
         console.error('Failed to init sync table:', e);
     }
 
+    // Helper function to query the database
+    const getEvents = async (groupId: string, cursor: number) => {
+        const result = await db.execute({
+            sql: `SELECT rowid as id, event_id, device_id, counter, timestamp, payload FROM events 
+                  WHERE group_id = ? AND rowid > ? 
+                  ORDER BY rowid ASC 
+                  LIMIT 2000`,
+            args: [groupId, cursor],
+        });
+
+        if (result.rows.length > 0) {
+            return result.rows.map((row: any) => ({
+                serverRowId: row.id as number,
+                eventId: row.event_id as string,
+                deviceId: row.device_id as string,
+                counter: row.counter as number,
+                timestamp: row.timestamp as number,
+                payload: row.payload as string,
+            }));
+        }
+        return [];
+    };
+
     // Pull events
     app.get(
         '/pull',
         {
             schema: {
                 querystring: z.object({
-                    since: z.coerce.number().default(0),
+                    cursor: z.coerce.number().default(0),
                     wait: z.coerce.boolean().optional(),
                 }),
                 response: {
                     200: z.object({
                         events: z.array(z.object({
+                            serverRowId: z.number(),
                             eventId: z.string(),
                             deviceId: z.string(),
                             counter: z.number(),
@@ -66,42 +96,52 @@ export async function syncRoutes(fastify: FastifyInstance) {
                 return reply.code(400).send({ error: 'Missing X-Sync-Group-ID header' });
             }
 
-            const { since, wait } = req.query as { since: number; wait?: boolean };
-            const startTime = Date.now();
-            const TIMEOUT = 5000; // 5s long polling
+            const { cursor, wait } = req.query as { cursor: number; wait?: boolean };
+            const TIMEOUT = 30000; // 30s long polling timeout
 
-            // Polling loop
-            while (true) {
-                try {
-                    const result = await db.execute({
-                        sql: `SELECT event_id, device_id, counter, timestamp, payload FROM events 
-                              WHERE group_id = ? AND timestamp >= ? 
-                              ORDER BY timestamp ASC, counter ASC 
-                              LIMIT 2000`,
-                        args: [groupId, since],
-                    });
+            try {
+                // Initial check for immediate events
+                let events = await getEvents(groupId, cursor);
 
-                    if (result.rows.length > 0) {
-                        const events = result.rows.map((row: any) => ({
-                            eventId: row.event_id as string,
-                            deviceId: row.device_id as string,
-                            counter: row.counter as number,
-                            timestamp: row.timestamp as number,
-                            payload: row.payload as string,
-                        }));
-                        return { events };
-                    }
-                } catch (e: any) {
-                    console.error('Sync pull error:', e);
-                    return reply.code(500).send({ error: 'Database error: ' + e.message });
+                if (events.length > 0) {
+                    return { events };
                 }
 
-                if (!wait || (Date.now() - startTime > TIMEOUT)) {
+                if (!wait) {
                     return { events: [] };
                 }
 
-                // Wait 1s and retry
-                await new Promise((resolve) => setTimeout(resolve, 1000));
+                // Setup long-polling using Promise.race
+                const eventName = `push:${groupId}`;
+
+                let timeoutId: NodeJS.Timeout;
+                const timeoutPromise = new Promise<'timeout'>((resolve) => {
+                    timeoutId = setTimeout(() => resolve('timeout'), TIMEOUT);
+                });
+
+                const pushPromise = new Promise<'push'>((resolve) => {
+                    syncEventEmitter.once(eventName, () => resolve('push'));
+                });
+
+                // Wait for either a push event or timeout
+                const winner = await Promise.race([pushPromise, timeoutPromise]);
+
+                // Cleanup
+                clearTimeout(timeoutId!);
+                // If it timed out, the once listener is still hanging, remove it
+                if (winner === 'timeout') {
+                    syncEventEmitter.removeAllListeners(eventName); // simple cleanup, might affect others but `once` executes fast anyway, safer is to remove specific listener though it is `once`.
+                }
+
+                if (winner === 'push') {
+                    // Re-query database for the newly pushed events
+                    events = await getEvents(groupId, cursor);
+                }
+
+                return { events };
+            } catch (e: any) {
+                console.error('Sync pull error:', e);
+                return reply.code(500).send({ error: 'Database error: ' + e.message });
             }
         }
     );
@@ -157,6 +197,9 @@ export async function syncRoutes(fastify: FastifyInstance) {
 
                 // Execute in transaction
                 await db.batch(statements);
+
+                // Emitting the event to notify any long-polling `/pull` requests
+                syncEventEmitter.emit(`push:${groupId}`);
 
                 return { success: true, count: events.length };
             } catch (e: any) {
