@@ -138,13 +138,13 @@ onMounted(() => {
                         { header: 'ID', accessorKey: 'id', key: 'id', id: 'id' },
                         { header: 'Email', accessorKey: 'email', key: 'email', id: 'email' },
                         { header: 'Credits', accessorKey: 'credits', key: 'credits', id: 'credits' },
+                        { header: 'Events', accessorKey: 'event_count', key: 'event_count', id: 'event_count' },
                         { header: 'Created At', accessorKey: 'created_at', key: 'created_at', id: 'created_at' },
                         { header: 'Actions', key: 'actions', id: 'actions' },
                     ]" :data="users">
                         <template #id-cell="{ row }">
-                            <span class="font-mono text-xs" :title="row.original.id">
-                                {{ row.original.id.substring(0, 8) }}...{{
-                                    row.original.id.substring(row.original.id.length - 8) }}
+                            <span class="font-mono text-xs select-all break-all" :title="row.original.id">
+                                {{ row.original.id }}
                                 <UButton icon="i-heroicons-clipboard" size="2xs" variant="ghost" color="gray"
                                     class="ml-1" @click="navigator.clipboard.writeText(row.original.id)" />
                             </span>
