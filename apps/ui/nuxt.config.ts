@@ -3,6 +3,8 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 export default defineNuxtConfig({
   ssr: false,
+  telemetry: false,
+  devServer: { host: '0.0.0.0' },
   compatibilityDate: '2025-02-02',
   devtools: { enabled: false },
   modules: ['@nuxt/ui', '@pinia/nuxt', '@vueuse/nuxt', '@nuxtjs/robots', '@nuxt/eslint'],
@@ -35,6 +37,12 @@ export default defineNuxtConfig({
         },
       }),
     ],
+    // Tauri specific vite overrides
+    clearScreen: false,
+    envPrefix: ['VITE_', 'TAURI_'],
+    server: {
+      strictPort: true,
+    },
     optimizeDeps: {
       include: ['legacy-encoding', 'bip39'],
     },
