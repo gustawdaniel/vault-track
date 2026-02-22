@@ -51,6 +51,8 @@ const start = async () => {
                     // Tauri desktop apps use this origin
                     'tauri://localhost',
                     'https://tauri.localhost',
+                    // Tauri Android WebView uses http (not https)
+                    'http://tauri.localhost',
                 ];
                 // Android Tauri WebView sends null as origin - allow it
                 if (!origin || allowed.includes(origin)) {
