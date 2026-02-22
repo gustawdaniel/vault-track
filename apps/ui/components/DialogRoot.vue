@@ -13,12 +13,11 @@ const modalUi = computed(() => {
 </script>
 
 <template>
-  <UModal
-v-model:open="dialog.isDialogOpen" :title="dialog.title" :description="dialog.description"
+  <UModal v-model:open="dialog.isDialogOpen" :title="dialog.title" :description="dialog.description || 'Dialog'"
     :ui="modalUi">
     <template #body>
       <div :class="{ 'overflow-y-auto max-h-[calc(90vh-4rem)]': dialog.fullscreen }">
-        <component :is="dialog.dialogComponent" v-bind="dialog.dialogProps" @close="dialog.closeDialog" />
+        <component :is="dialog.dialogComponent" v-bind="dialog.dialogProps" />
       </div>
     </template>
   </UModal>
@@ -29,6 +28,7 @@ v-model:open="dialog.isDialogOpen" :title="dialog.title" :description="dialog.de
   .sm\:max-w-lg {
     max-width: 48rem;
   }
+
   .sm\:max-w-4xl {
     max-width: 56rem;
   }

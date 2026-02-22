@@ -53,8 +53,7 @@ function handleGenerate(filters: any) {
         <ReportsCategorySummaryChart :filters="generatedFilters" />
       </div>
 
-      <div
-v-else
+      <div v-else
         class="h-64 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
         <p class="text-gray-500 font-medium">
           Chart placeholder for {{ generatedFilters.reportType }}
@@ -74,7 +73,7 @@ v-else
           generatedFilters.projects.length +
           ' selected' : 'All' }}</p>
         <p><span class="font-medium">Type:</span> <span class="capitalize">{{ generatedFilters.type || 'expense'
-            }}</span></p>
+        }}</span></p>
         <p v-if="generatedFilters.excludeTransfers" class="text-orange-600 dark:text-orange-400 font-medium">Excluding
           Transfers</p>
       </div>
@@ -85,7 +84,7 @@ v-else
       <p>Configure filters and click "Generate Report" to see data.</p>
     </div>
 
-    <UDivider class="my-8" />
+    <USeparator class="my-8" />
     <ExchangeRatesViewer />
   </UContainer>
 </template>

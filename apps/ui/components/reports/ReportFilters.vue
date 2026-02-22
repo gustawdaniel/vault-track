@@ -107,60 +107,57 @@ function onGenerate() {
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <!-- Report Type -->
-      <UFormGroup label="Report Type">
+      <UFormField label="Report Type">
         <USelect v-model="filters.reportType" :items="reportTypes" class="w-full" />
-      </UFormGroup>
+      </UFormField>
 
       <!-- Date Range Preset -->
-      <UFormGroup label="Date Range">
+      <UFormField label="Date Range">
         <USelect v-model="filters.dateRange" :items="dateRangeOptions" class="w-full" />
-      </UFormGroup>
+      </UFormField>
 
       <!-- Custom Date Inputs -->
       <template v-if="filters.dateRange === 'custom'">
-        <UFormGroup label="Start Date">
+        <UFormField label="Start Date">
           <UInput v-model="filters.startDate" type="date" class="w-full" />
-        </UFormGroup>
-        <UFormGroup label="End Date">
+        </UFormField>
+        <UFormField label="End Date">
           <UInput v-model="filters.endDate" type="date" class="w-full" />
-        </UFormGroup>
+        </UFormField>
       </template>
 
       <!-- Accounts -->
-      <UFormGroup label="Accounts">
-        <USelect
-v-model="filters.accounts" :items="accountOptions" multiple placeholder="All Accounts"
+      <UFormField label="Accounts">
+        <USelect v-model="filters.accounts" :items="accountOptions" multiple placeholder="All Accounts"
           class="w-full" />
-      </UFormGroup>
+      </UFormField>
 
       <!-- Categories -->
-      <UFormGroup label="Categories">
-        <USelect
-v-model="filters.categories" :items="categoryOptions" multiple placeholder="All Categories"
+      <UFormField label="Categories">
+        <USelect v-model="filters.categories" :items="categoryOptions" multiple placeholder="All Categories"
           class="w-full" />
-      </UFormGroup>
+      </UFormField>
 
       <!-- Projects -->
-      <UFormGroup label="Projects">
-        <USelect
-v-model="filters.projects" :items="projectOptions" multiple placeholder="All Projects"
+      <UFormField label="Projects">
+        <USelect v-model="filters.projects" :items="projectOptions" multiple placeholder="All Projects"
           class="w-full" />
-      </UFormGroup>
+      </UFormField>
 
       <!-- Currency -->
-      <UFormGroup label="Currency">
+      <UFormField label="Currency">
         <USelect v-model="filters.currency" :items="currencies" class="w-full" />
-      </UFormGroup>
+      </UFormField>
 
       <!-- Transaction Type -->
-      <UFormGroup label="Transaction Type">
+      <UFormField label="Transaction Type">
         <USelect v-model="filters.type" :items="transactionTypeOptions" class="w-full" />
-      </UFormGroup>
+      </UFormField>
 
       <!-- Exclude Transfers -->
-      <UFormGroup label="Transfers">
+      <UFormField label="Transfers">
         <UCheckbox v-model="filters.excludeTransfers" label="Exclude Transfers" class="mt-2" />
-      </UFormGroup>
+      </UFormField>
     </div>
 
     <template #footer>
