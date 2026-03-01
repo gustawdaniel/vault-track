@@ -1,20 +1,19 @@
+import { getBackendUrl } from '~/utils/backendUrl';
+
 export default defineNuxtRouteMiddleware(async (to, from) => {
     // Skip if already on login page
     if (to.path === '/login') return;
 
-    const config = useRuntimeConfig();
-
     try {
-        // Simple check if user is authenticated via backend
-        // We can check /api/admin/me or similar, but for now we rely on the users fetch failing or succeeding.
-        // However, middleware runs before page load.
-        // Let's try to fetch a lightweight endpoint or check if we have a way to know auth status.
-        // Since we use httpOnly cookies, we must make a request to know.
+        const backendUrl = getBackendUrl();
 
         // Check dedicated auth status endpoint
-        const { loggedIn } = await $fetch<{ loggedIn: boolean }>(`${config.public.backendUrl}/admin/me`, {
-            credentials: 'include',
-            headers: { 'Accept': 'application/json' }
+        const token = import.meta.client ? localStorage.getItem('ocm-admin-token') : null;
+        const { loggedIn } = await $fetch<{ loggedIn: boolean }>(`${backendUrl}/admin/me`, {
+            headers: {
+                'Accept': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            }
         });
 
         if (!loggedIn) {

@@ -37,30 +37,7 @@ const start = async () => {
 
         // Plugins
         await server.register(cors, {
-            origin: (origin, cb) => {
-                const allowed = [
-                    'https://admin.vaulttrack.org',
-                    'https://www.vaulttrack.org',
-                    'https://vaulttrack.org',
-                    'http://localhost:3000',
-                    'http://localhost:4200',
-                    'http://localhost:5000',
-                    'http://127.0.0.1:3000',
-                    'http://127.0.0.1:4200',
-                    'http://127.0.0.1:5000',
-                    // Tauri desktop apps use this origin
-                    'tauri://localhost',
-                    'https://tauri.localhost',
-                    // Tauri Android WebView uses http (not https)
-                    'http://tauri.localhost',
-                ];
-                // Android Tauri WebView sends null as origin - allow it
-                if (!origin || allowed.includes(origin)) {
-                    cb(null, true);
-                } else {
-                    cb(new Error(`Not allowed by CORS: ${origin}`), false);
-                }
-            },
+            origin: true, // Reflects the origin to allow any frontend (even custom ngrok) while preserving credentials support
             credentials: true,
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
             allowedHeaders: [
