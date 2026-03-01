@@ -1,10 +1,36 @@
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { OAuth2Client } from 'google-auth-library';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { db } from '../../db/client';
+import crypto from 'node:crypto';
 
 const client = new OAuth2Client();
+
+function generateToken(email: string): string {
+    const secret = process.env.COOKIE_SECRET || 'changeme';
+    const hash = crypto.createHmac('sha256', secret).update(email).digest('hex');
+    return `${email}.${hash}`;
+}
+
+function verifyToken(token: string): string | null {
+    if (!token) return null;
+    const parts = token.split('.');
+    if (parts.length !== 2) return null;
+    const [email, hash] = parts;
+    const secret = process.env.COOKIE_SECRET || 'changeme';
+    const expectedHash = crypto.createHmac('sha256', secret).update(email).digest('hex');
+    if (hash === expectedHash && email === process.env.ADMIN_EMAIL) {
+        return email;
+    }
+    return null;
+}
+
+function extractBearerToken(req: FastifyRequest): string | null {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+    return authHeader.substring(7);
+}
 
 export async function adminRoutes(fastify: FastifyInstance) {
     const app = fastify.withTypeProvider<ZodTypeProvider>();
@@ -18,7 +44,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
                     token: z.string(),
                 }),
                 response: {
-                    200: z.object({ success: z.boolean(), email: z.string() }),
+                    200: z.object({ success: z.boolean(), email: z.string(), token: z.string() }),
                     403: z.object({ error: z.string() }),
                     401: z.object({ error: z.string() }),
                 },
@@ -40,15 +66,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
                     return reply.code(403).send({ error: 'Access denied. Only specific admin allowed.' });
                 }
 
-                // Set secure cookie
-                reply.setCookie('admin_session', email, {
-                    path: '/',
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    maxAge: 60 * 60 * 24 * 7, // 1 week
-                });
+                const sessionToken = generateToken(email);
 
-                return { success: true, email };
+                return { success: true, email, token: sessionToken };
             } catch (error) {
                 console.error('Google Auth Error:', error);
                 return reply.code(401).send({ error: 'Invalid token: ' + (error as Error).message });
@@ -74,8 +94,8 @@ export async function adminRoutes(fastify: FastifyInstance) {
                 },
             },
             preHandler: async (req, reply) => {
-                const adminEmail = req.cookies.admin_session;
-                if (adminEmail !== process.env.ADMIN_EMAIL) {
+                const token = extractBearerToken(req);
+                if (!token || !verifyToken(token)) {
                     reply.code(401).send({ error: 'Unauthorized' });
                 }
             },
@@ -99,22 +119,20 @@ export async function adminRoutes(fastify: FastifyInstance) {
     app.get(
         '/me',
         async (req, reply) => {
-            const email = req.cookies.admin_session;
-            if (email === process.env.ADMIN_EMAIL) {
+            const token = extractBearerToken(req);
+            const email = token ? verifyToken(token) : null;
+
+            if (email) {
                 return { loggedIn: true, email };
             }
             return { loggedIn: false };
         }
     );
 
-    // Check Auth Status (Simple loggedIn flag)
-
-
     // Logout
     app.post(
         '/logout',
         async (req, reply) => {
-            reply.clearCookie('admin_session');
             return { success: true };
         }
     );

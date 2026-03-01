@@ -71,13 +71,15 @@ const callback = async (response) => {
         const { credential } = response;
 
         const backendUrl = getBackendUrl();
-        const res = await $fetch(`${backendUrl}/admin/login`, {
+        const res: any = await $fetch(`${backendUrl}/admin/login`, {
             method: 'POST',
             body: { token: credential },
-            credentials: 'include', // Important for setting cookie
         });
 
-        if (res.success) {
+        if (res.success && res.token) {
+            if (import.meta.client) {
+                localStorage.setItem('ocm-admin-token', res.token);
+            }
             router.push('/');
         } else {
             console.log(res);

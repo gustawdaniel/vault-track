@@ -33,8 +33,9 @@ const fetchUsers = async () => {
     usersError.value = '';
     try {
         const backendUrl = getBackendUrl();
+        const token = import.meta.client ? localStorage.getItem('ocm-admin-token') : null;
         const data: any = await $fetch(`${backendUrl}/users`, {
-            credentials: 'include',
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
         });
         users.value = data;
     } catch (e: any) {
@@ -60,10 +61,11 @@ const saveCredits = async () => {
     savingCredits.value = true;
     try {
         const backendUrl = getBackendUrl();
+        const token = import.meta.client ? localStorage.getItem('ocm-admin-token') : null;
         await $fetch(`${backendUrl}/users/${editingUser.value.id}/credits`, {
             method: 'PUT',
             body: { credits: editCreditsValue.value },
-            credentials: 'include',
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
         });
         isEditModalOpen.value = false;
         await fetchUsers(); // Refresh list
@@ -81,10 +83,11 @@ const executeQuery = async () => {
 
     try {
         const backendUrl = getBackendUrl();
+        const token = import.meta.client ? localStorage.getItem('ocm-admin-token') : null;
         const res: any = await $fetch(`${backendUrl}/admin/query`, {
             method: 'POST',
             body: { query: sqlQuery.value },
-            credentials: 'include',
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
         });
         queryResult.value = res;
     } finally {
@@ -95,10 +98,14 @@ const executeQuery = async () => {
 const logout = async () => {
     try {
         const backendUrl = getBackendUrl();
+        const token = import.meta.client ? localStorage.getItem('ocm-admin-token') : null;
         await $fetch(`${backendUrl}/admin/logout`, {
             method: 'POST',
-            credentials: 'include',
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
         });
+        if (import.meta.client) {
+            localStorage.removeItem('ocm-admin-token');
+        }
         router.push('/login');
     } catch (e) {
         console.error('Logout failed', e);
