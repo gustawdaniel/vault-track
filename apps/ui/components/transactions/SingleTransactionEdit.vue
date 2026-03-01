@@ -33,6 +33,7 @@ import AppContainer from '~/components/shared/AppContainer.vue';
 import { uid } from 'uid';
 import { formatAmount } from '~/utils/formatAmount';
 import { getGroupIdAsync } from '~/sync/client';
+import { getBackendUrl } from '~/utils/backendUrl';
 
 const props = defineProps<{
   transaction: FullTransaction;
@@ -368,8 +369,7 @@ const uploadReceipt = async (event: Event) => {
 
   try {
     // Use backend URL from env or localhost for dev
-    const config = useRuntimeConfig();
-    const backendUrl = config.public.backendUrl;
+    const backendUrl = getBackendUrl();
     const response = await fetch(`${backendUrl}/receipts/analyze`, {
       method: 'POST',
       body: formData,

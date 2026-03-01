@@ -38,36 +38,32 @@ const accountStore = useAccountStore();
 <template>
   <div>
 
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="flex h-16 justify-between">
-          <NuxtLink class="flex" to="/">
-            <div class="flex flex-shrink-0 items-center">
-              <img height="10" width="10" alt="Logo" class="h-8 w-auto" src="/icon.png" />
-              <p class="ml-5">{{ routeName }}</p>
-            </div>
-          </NuxtLink>
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="flex h-16 justify-between">
+        <NuxtLink class="flex cursor-pointer" to="/">
+          <div class="flex flex-shrink-0 items-center">
+            <img height="10" width="10" alt="Logo" class="h-8 w-auto cursor-pointer" src="/icon.png" />
+            <p class="ml-5 cursor-pointer">{{ routeName }}</p>
+          </div>
+        </NuxtLink>
 
-          <ExpandableListNavigationButtons v-if="route.path === '/categories'" resource="category" />
-          <ExpandableListNavigationButtons v-if="route.path === '/projects'" resource="project" />
+        <ExpandableListNavigationButtons v-if="route.path === '/categories'" resource="category" />
+        <ExpandableListNavigationButtons v-if="route.path === '/projects'" resource="project" />
 
-          <div v-if="route.path === '/'" class="flex items-center">
-            <UButton
-:icon="accountStore.showHidden ? 'i-heroicons-eye-20-solid' : 'i-heroicons-eye-slash-20-solid'"
+        <div v-if="route.path === '/'" class="flex items-center">
+          <!-- make it visable only on small screen -->
+          <div class="md:hidden block">
+            <UButton :icon="accountStore.showHidden ? 'i-heroicons-eye-20-solid' : 'i-heroicons-eye-slash-20-solid'"
               color="neutral" variant="ghost" @click="accountStore.toggleShowHidden()" />
           </div>
+        </div>
 
-          <div class="flex items-center ml-auto gap-2">
-            <UButton
-              to="/reports"
-              icon="i-heroicons-chart-bar"
-              color="neutral"
-              variant="ghost"
-              aria-label="Reports"
-            />
-            <UButton to="/settings/sync" icon="i-heroicons-arrow-path" color="neutral" variant="ghost" />
-          </div>
+        <div class="flex items-center ml-auto gap-2">
+          <UButton to="/reports" icon="i-heroicons-chart-bar" color="neutral" variant="ghost" aria-label="Reports" />
+          <UButton to="/settings/sync" icon="i-heroicons-arrow-path" color="neutral" variant="ghost" />
         </div>
       </div>
+    </div>
 
 
     <slot />

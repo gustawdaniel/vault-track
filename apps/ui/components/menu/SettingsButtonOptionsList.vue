@@ -24,6 +24,11 @@ const options: MenuOption[] = [
     name: 'Debug',
     to: '/debug'
   },
+  {
+    id: 'backend',
+    name: 'Custom Backend',
+    to: '/backend'
+  }
 ];
 </script>
 

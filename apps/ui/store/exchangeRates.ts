@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { useLocalStorage } from '@vueuse/core';
 import dayjs from 'dayjs';
+import { getBackendUrl } from '~/utils/backendUrl';
 
 interface ExchangeRatesState {
     base: string;
@@ -34,7 +35,7 @@ export const useExchangeRateStore = defineStore('exchangeRates', () => {
             // Assuming there is a configured $fetch or similar.
 
             // Construct URL
-            const backendUrl = config.public.backendUrl;
+            const backendUrl = getBackendUrl();
             const url = `${backendUrl}/currency/rates?base=${base}`;
 
             const response = await fetch(url);

@@ -8,10 +8,10 @@ import { useDebugStore } from '~/store/debug';
 
 const debugStore = useDebugStore();
 import { deleteTransaction as syncDeleteTransaction } from '~/sync/manager';
+import { getBackendUrl } from '~/utils/backendUrl';
 
 // ---- Backend debug ----
-const config = useRuntimeConfig();
-const backendUrl = config.public.backendUrl;
+const backendUrl = getBackendUrl();
 
 const pingResult = ref<{ status: number | null, body: string, error: string, duration: number | null, origin: string } | null>(null);
 const pinging = ref(false);

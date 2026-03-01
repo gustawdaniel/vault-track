@@ -76,7 +76,6 @@ jobs:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
@@ -90,7 +89,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_KEY }}
-          envs: OPENAI_API_KEY,TURSO_DATABASE_URL,TURSO_AUTH_TOKEN,ADMIN_EMAIL,COOKIE_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GOOGLE_API_KEY,GEMINI_MODEL,IMAGE_NAME
+          envs: TURSO_DATABASE_URL,TURSO_AUTH_TOKEN,ADMIN_EMAIL,COOKIE_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GOOGLE_API_KEY,GEMINI_MODEL,IMAGE_NAME
           script: |
             cd ~/api.vaulttrack.org
             
@@ -100,7 +99,6 @@ jobs:
             # echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
             # Create .env file from secrets
-            echo "OPENAI_API_KEY=$OPENAI_API_KEY" > .env
             echo "TURSO_DATABASE_URL=$TURSO_DATABASE_URL" >> .env
             echo "TURSO_AUTH_TOKEN=$TURSO_AUTH_TOKEN" >> .env
             echo "ADMIN_EMAIL=$ADMIN_EMAIL" >> .env
