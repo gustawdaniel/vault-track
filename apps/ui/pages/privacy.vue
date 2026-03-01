@@ -97,24 +97,7 @@
         </p>
         <h2>Cookies</h2>
         <p>
-          The Website uses "cookies" to help personalize your online experience.
-          A cookie is a text file that is placed on your hard disk by a web page
-          server. Cookies cannot be used to run programs or deliver viruses to
-          your computer. Cookies are uniquely assigned to you, and can only be
-          read by a web server in the domain that issued the cookie to you. We
-          may use cookies to collect, store, and track information for
-          statistical purposes to operate our Website. You have the ability to
-          accept or decline cookies. Most web browsers automatically accept
-          cookies, but you can usually modify your browser setting to decline
-          cookies if you prefer.
-        </p>
-        <p>
-          In addition to using cookies and related technologies as described
-          above, we also may permit certain third-party companies to help us
-          tailor advertising that we think may be of interest to users and to
-          collect and use other data about user activities on the Website. These
-          companies may deliver ads that might also place cookies and otherwise
-          track user behavior.
+          The Website does not use "cookies".
         </p>
         <h2>Links to other websites</h2>
         <p>

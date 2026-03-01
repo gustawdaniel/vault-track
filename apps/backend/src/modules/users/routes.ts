@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { db, UserSchema, User } from '../../db/client';
+import { verifyToken, extractBearerToken } from '../../utils/adminToken';
 
 export async function usersRoutes(fastify: FastifyInstance) {
     const app = fastify.withTypeProvider<ZodTypeProvider>();
@@ -70,8 +71,8 @@ export async function usersRoutes(fastify: FastifyInstance) {
                 },
             },
             preHandler: async (req, reply) => {
-                const adminEmail = req.cookies.admin_session;
-                if (adminEmail !== process.env.ADMIN_EMAIL) {
+                const token = extractBearerToken(req);
+                if (!token || !verifyToken(token)) {
                     reply.code(401).send({ error: 'Unauthorized' });
                 }
             },
@@ -104,8 +105,8 @@ export async function usersRoutes(fastify: FastifyInstance) {
                 },
             },
             preHandler: async (req, reply) => {
-                const adminEmail = req.cookies.admin_session;
-                if (adminEmail !== process.env.ADMIN_EMAIL) {
+                const token = extractBearerToken(req);
+                if (!token || !verifyToken(token)) {
                     reply.code(401).send({ error: 'Unauthorized' });
                 }
             },

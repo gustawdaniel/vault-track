@@ -3,34 +3,9 @@ import { z } from 'zod';
 import { OAuth2Client } from 'google-auth-library';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { db } from '../../db/client';
-import crypto from 'node:crypto';
+import { generateToken, verifyToken, extractBearerToken } from '../../utils/adminToken';
 
 const client = new OAuth2Client();
-
-function generateToken(email: string): string {
-    const secret = process.env.COOKIE_SECRET || 'changeme';
-    const hash = crypto.createHmac('sha256', secret).update(email).digest('hex');
-    return `${email}.${hash}`;
-}
-
-function verifyToken(token: string): string | null {
-    if (!token) return null;
-    const parts = token.split('.');
-    if (parts.length !== 2) return null;
-    const [email, hash] = parts;
-    const secret = process.env.COOKIE_SECRET || 'changeme';
-    const expectedHash = crypto.createHmac('sha256', secret).update(email).digest('hex');
-    if (hash === expectedHash && email === process.env.ADMIN_EMAIL) {
-        return email;
-    }
-    return null;
-}
-
-function extractBearerToken(req: FastifyRequest): string | null {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
-    return authHeader.substring(7);
-}
 
 export async function adminRoutes(fastify: FastifyInstance) {
     const app = fastify.withTypeProvider<ZodTypeProvider>();

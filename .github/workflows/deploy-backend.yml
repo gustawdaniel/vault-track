@@ -79,7 +79,7 @@ jobs:
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
-          COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
+          ADMIN_TOKEN_SECRET: ${{ secrets.ADMIN_TOKEN_SECRET }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
@@ -89,7 +89,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_KEY }}
-          envs: TURSO_DATABASE_URL,TURSO_AUTH_TOKEN,ADMIN_EMAIL,COOKIE_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GOOGLE_API_KEY,GEMINI_MODEL,IMAGE_NAME
+          envs: TURSO_DATABASE_URL,TURSO_AUTH_TOKEN,ADMIN_EMAIL,ADMIN_TOKEN_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GOOGLE_API_KEY,GEMINI_MODEL,IMAGE_NAME
           script: |
             cd ~/api.vaulttrack.org
             
@@ -102,7 +102,7 @@ jobs:
             echo "TURSO_DATABASE_URL=$TURSO_DATABASE_URL" >> .env
             echo "TURSO_AUTH_TOKEN=$TURSO_AUTH_TOKEN" >> .env
             echo "ADMIN_EMAIL=$ADMIN_EMAIL" >> .env
-            echo "COOKIE_SECRET=$COOKIE_SECRET" >> .env
+            echo "ADMIN_TOKEN_SECRET=$ADMIN_TOKEN_SECRET" >> .env
             echo "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" >> .env
             echo "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" >> .env
             echo "GOOGLE_API_KEY=$GOOGLE_API_KEY" >> .env
