@@ -17,7 +17,6 @@
         "query": "tsx query.ts"
     },
     "dependencies": {
-        "@fastify/cookie": "^11.0.2",
         "@fastify/cors": "^11.2.0",
         "@fastify/multipart": "^9.4.0",
         "@fastify/swagger": "^9.7.0",

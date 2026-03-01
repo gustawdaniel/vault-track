@@ -2,7 +2,6 @@ import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
-import fastifyCookie from '@fastify/cookie';
 import fastifyMultipart from '@fastify/multipart';
 import { jsonSchemaTransform, serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { currencyRoutes } from './modules/currency/routes';
@@ -48,11 +47,6 @@ const start = async () => {
                 'Origin',
                 'x-sync-group-id'
             ],
-        });
-
-        await server.register(fastifyCookie, {
-            secret: process.env.COOKIE_SECRET || 'changeme',
-            parseOptions: {}, // options for parsing cookies
         });
 
         await server.register(fastifyMultipart, {
