@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRuntimeConfig, useRouter } from '#app';
+import { getBackendUrl } from '~/utils/backendUrl';
 
 const users = ref<any[]>([]);
 const loadingUsers = ref(false);
@@ -31,7 +32,8 @@ const fetchUsers = async () => {
     loadingUsers.value = true;
     usersError.value = '';
     try {
-        const data: any = await $fetch(`${config.public.backendUrl}/users`, {
+        const backendUrl = getBackendUrl();
+        const data: any = await $fetch(`${backendUrl}/users`, {
             credentials: 'include',
         });
         users.value = data;
@@ -57,7 +59,8 @@ const saveCredits = async () => {
 
     savingCredits.value = true;
     try {
-        await $fetch(`${config.public.backendUrl}/users/${editingUser.value.id}/credits`, {
+        const backendUrl = getBackendUrl();
+        await $fetch(`${backendUrl}/users/${editingUser.value.id}/credits`, {
             method: 'PUT',
             body: { credits: editCreditsValue.value },
             credentials: 'include',
@@ -77,7 +80,8 @@ const executeQuery = async () => {
     queryResult.value = null;
 
     try {
-        const res: any = await $fetch(`${config.public.backendUrl}/admin/query`, {
+        const backendUrl = getBackendUrl();
+        const res: any = await $fetch(`${backendUrl}/admin/query`, {
             method: 'POST',
             body: { query: sqlQuery.value },
             credentials: 'include',
@@ -90,7 +94,8 @@ const executeQuery = async () => {
 
 const logout = async () => {
     try {
-        await $fetch(`${config.public.backendUrl}/admin/logout`, {
+        const backendUrl = getBackendUrl();
+        await $fetch(`${backendUrl}/admin/logout`, {
             method: 'POST',
             credentials: 'include',
         });
@@ -108,10 +113,18 @@ onMounted(() => {
 
 <template>
     <div class="container mx-auto p-6 max-w-6xl">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold">Admin Dashboard</h1>
-            <UButton @click="logout" variant="ghost" color="red" icon="i-heroicons-arrow-right-start-on-rectangle">
-                Logout</UButton>
+        <div class="flex flex-col gap-2 mb-6">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold">Admin Dashboard</h1>
+                <UButton @click="logout" variant="ghost" color="red" icon="i-heroicons-arrow-right-start-on-rectangle">
+                    Logout</UButton>
+            </div>
+            <div class="flex justify-end items-center gap-2 text-xs text-gray-500 border-b pb-2">
+                <span>Backend URL: <code
+                        class="bg-gray-100 px-1 py-0.5 rounded text-blue-600">{{ getBackendUrl() }}</code></span>
+                <UButton size="2xs" variant="ghost" color="gray" icon="i-heroicons-pencil-square" to="/login"
+                    title="Go to login page to change backend settings" />
+            </div>
         </div>
 
         <UTabs :items="items" v-model="activeTab" class="w-full">

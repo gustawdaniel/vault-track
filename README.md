@@ -60,6 +60,7 @@ VaultTrack is a modern, privacy-focused, offline-first personal finance applicat
 *   **AI Engine**: [Google Gemini](https://deepmind.google/technologies/gemini/) (Generative AI)
 *   **State Management**: [Pinia](https://pinia.vuejs.org)
 *   **Sync Engine**: Custom Event Sourcing with Long Polling.
+*   **Self-Hosting**: You can host your own backend for maximum privacy! See the [Self-Hosting Guide](https://docs.vaulttrack.org/developer-guide/self-hosting).
 *   **Testing**: Vitest
 
 ## 📦 Getting Started

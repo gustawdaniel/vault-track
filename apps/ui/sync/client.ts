@@ -5,16 +5,13 @@ import { getAllEvents, addEvent } from './db';
 import { mergeRemoteEvents } from './merger';
 import { sortEvents } from './ordering';
 import { replay } from './reducer';
+import { getBackendUrl } from '~/utils/backendUrl';
 
 // Configuration
 // const SYNC_API_URL = '/api/sync'; // Removed in favor of runtime config
 const PEER_ID_SERVER = 'server';
 
-// Helper to get backend URL
-function getBackendUrl() {
-  const config = useRuntimeConfig();
-  return config.public.backendUrl;
-}
+
 
 export interface SyncResponse {
   events: TransportEvent[];
