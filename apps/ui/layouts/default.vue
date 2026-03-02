@@ -33,6 +33,12 @@ useHead({
 
 const dialog = useDialog();
 const accountStore = useAccountStore();
+
+import { hasAppAnySavedData } from '~/utils/hasAppAnySavedData';
+
+const isEmpty = computed<boolean>(() => {
+  return !hasAppAnySavedData();
+});
 </script>
 
 <template>
@@ -58,7 +64,7 @@ const accountStore = useAccountStore();
           </div>
         </div>
 
-        <div class="flex items-center ml-auto gap-2">
+        <div v-if="!isEmpty" class="flex items-center ml-auto gap-2">
           <UButton to="/reports" icon="i-heroicons-chart-bar" color="neutral" variant="ghost" aria-label="Reports" />
           <UButton to="/settings/sync" icon="i-heroicons-arrow-path" color="neutral" variant="ghost" />
         </div>

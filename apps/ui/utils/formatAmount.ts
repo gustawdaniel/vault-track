@@ -1,7 +1,11 @@
-export function formatAmount(num: number = 0): string {
+import { getCurrencyDigits, type Currency } from '~/store/currency';
+
+export function formatAmount(num: number = 0, currency?: Currency): string {
+  const digits = getCurrencyDigits(currency || 'USD');
+
   return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
     useGrouping: true,
   })
     .format(num)

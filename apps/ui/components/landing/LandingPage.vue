@@ -96,25 +96,25 @@ const faqs = [
     id: 1,
     question: 'Why does this app exist?',
     answer:
-      'There are plenty of great alternatives, but I created this app mainly because other apps were saving data on their servers, had problems with the web & mobile versions, or lacked proper data export/import via API.',
+      'There are plenty of great alternatives, but I created this app mainly because other apps store data on their servers, have issues with web and mobile versions, or lack proper API-based data export and import.',
   },
   {
     id: 2,
     question: 'Why should I use it?',
     answer:
-      'You don\'t necessarily have to. Tracking finances is generally a tradeoff. You sacrifice a portion of your willpower to do it systematically, and in return, you gain knowledge about your spending that allows for better decisions. You can achieve this just as well with Excel or a pen and notebook.',
+      'You don’t necessarily have to. Tracking finances is generally a trade-off. You sacrifice a portion of your willpower to do it consistently, and in return, you gain insight into your spending that allows you to make better decisions. You can achieve the same result with Excel or even just a pen and notebook.',
   },
   {
     id: 3,
     question: 'Is my data safe?',
     answer:
-      'Your data is stored in LocalStorage (your browser\'s memory). I do not have access to it, but keep in mind it is not encrypted. You are responsible for setting a password on your operating system to protect it.',
+      'Your data is stored in your browser’s LocalStorage. I do not have access to it. However, please note that on device, data are not encrypted. You are responsible for securing your device, for example by setting a password on your operating system. If you sync devices server possess timestamps, device ids, group id and encrypted blobs with your operations.',
   },
   {
     id: 4,
     question: 'Can I recover lost data?',
     answer:
-      'No. However, you can make regular backups in the "Database" view accessible from the settings menu. If you lose the device with your browser and have no backup, it is impossible to recover your data.',
+      'VaultTracker stores data locally in your browser (IndexedDB). You can export full backups anytime (JSON recommended, QIF supported) from the Backup page and restore them later. Without a backup, lost data cannot be recovered. Optional encrypted device sync is available if the backend is configured.',
   },
   {
     id: 5,
@@ -552,7 +552,6 @@ const footerNavigation = {
       <footer aria-labelledby="footer-heading" class="relative border-t border-gray-900/10 py-24 sm:mt-56 sm:py-32">
         <h2 id="footer-heading" class="sr-only">Footer</h2>
         <div class="xl:grid xl:grid-cols-3 xl:gap-8">
-          <img width="10" height="10" alt="Company name" class="h-7" src="/icon.png" />
           <div class="mt-16 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0">
             <div class="md:grid md:grid-cols-2 md:gap-8">
               <div>
