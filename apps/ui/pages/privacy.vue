@@ -15,7 +15,7 @@
     </div>
     <div class="relative px-4 sm:px-6 lg:px-8">
       <div
-        class="mx-auto max-w-[40rem] prose-sm prose prose-slate prose-a:font-semibold prose-a:text-sky-500 hover:prose-a:text-sky-600">
+        class="mx-auto max-w-[40rem] prose-sm prose prose-slate dark:prose-invert prose-a:font-semibold prose-a:text-sky-500 hover:prose-a:text-sky-600">
         <p>
           This privacy policy ("Policy") describes how Open Cash Manger ("App",
           "we", "us" or "our") collects, protects and uses the personally
