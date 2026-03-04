@@ -34,7 +34,7 @@ const dateRangeOptions = [
   { label: 'Custom', value: 'custom' },
 ];
 
-const accountOptions = computed(() => accountStore.accounts.map(a => ({
+const accountOptions = computed(() => accountStore.sortedAccounts.map(a => ({
   label: a.name,
   value: a.id,
   accountType: a.type

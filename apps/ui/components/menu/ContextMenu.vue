@@ -4,6 +4,7 @@ import { useCategoryStore } from '~/store/category';
 import ConfirmDelete from '~/components/dialog/ConfirmDelete.vue';
 import { useTransactionStore } from '~/store/transaction';
 import AssertEditDialog from '~/components/dialog/AssertEditDialog.vue';
+import { useAccountStore } from '~/store/account';
 // import { useContextMenuStore } from '~/store/contextMenu';
 
 // const contextMenuStore = useContextMenuStore();
@@ -84,7 +85,8 @@ const options = computed(() => {
       );
       break;
     }
-    case 'account':
+    case 'account': {
+      const accountStore = useAccountStore();
       opts.push(
         {
           label: 'Edit account',
@@ -101,9 +103,24 @@ const options = computed(() => {
               description: 'Are you sure you want to delete this account?'
             });
           },
+        },
+        {
+          label: 'Move up',
+          icon: 'i-heroicons-arrow-up',
+          onSelect: () => {
+            accountStore.changeAccountOrder(props.id, 'up');
+          },
+        },
+        {
+          label: 'Move down',
+          icon: 'i-heroicons-arrow-down',
+          onSelect: () => {
+            accountStore.changeAccountOrder(props.id, 'down');
+          },
         }
       );
       break;
+    }
     case 'transaction':
       opts.push(
         {

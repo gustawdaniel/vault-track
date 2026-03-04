@@ -5,7 +5,6 @@ import type { ExpandableListResourceName } from '~/components/expandableList/typ
 import CategoryColorBox from '~/components/transactions/CategoryColorBox.vue';
 import ContextMenu from '~/components/menu/ContextMenu.vue';
 import { getNameFromExtendableListItem } from '~/utils/getNameFromExtendableListItem';
-import draggable from 'vuedraggable';
 
 const categoryStore = useCategoryStore();
 const projectStore = useProjectStore();
@@ -41,22 +40,11 @@ function getName(item: { category: string } | { project: string }): string {
   <Debug>{{ tree }}</Debug>
 
   <nav aria-label="Sidebar" class="flex flex-1 flex-col">
-    <draggable 
-      v-model="tree" 
-      tag="ul" 
-      item-key="id"
-      class="-mx-2 space-y-0.5" 
-      group="categories"
-      :disabled="resource !== 'category'"
-    >
-      <template #item="{ element: item }">
-        <ExpandableListItem
-          :key="item.id"
-          :item="item"
-          :resource="resource"
-        />
-      </template>
-    </draggable>
+    <ul class="-mx-2 space-y-0.5">
+      <li v-for="item in tree" :key="item.id">
+        <ExpandableListItem :item="item" :resource="resource" />
+      </li>
+    </ul>
   </nav>
 </template>
 
