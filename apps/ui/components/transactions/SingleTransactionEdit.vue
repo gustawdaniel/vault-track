@@ -524,7 +524,7 @@ v-else-if="state.type === 'transfer'" v-model="state.fromAbsoluteAmount"
                 'text-red-500': Math.abs(splitRemaining) > 0.01,
                 'text-green-500': Math.abs(splitRemaining) <= 0.01,
               }">
-                Remaining: {{ formatAmount(splitRemaining) }}
+                Remaining: {{ formatAmount(splitRemaining, currentNormalAccount?.currency) }}
                 {{ currentNormalAccount?.currency }}
               </span>
             </div>
