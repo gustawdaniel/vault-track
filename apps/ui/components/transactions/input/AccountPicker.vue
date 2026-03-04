@@ -4,7 +4,7 @@ import { type Account, useAccountStore } from '~/store/account';
 const accounts = computed<Array<Pick<Account, 'id' | 'name' | 'currency'>>>(
   () => {
     const accountStore = useAccountStore();
-    return accountStore.accounts.map((a) => ({
+    return accountStore.sortedAccounts.map((a) => ({
       id: a.id,
       name: a.name,
       currency: a.currency,

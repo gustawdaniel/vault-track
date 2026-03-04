@@ -5,7 +5,6 @@ import type { ExpandableListResourceName } from '~/components/expandableList/typ
 import CategoryColorBox from '~/components/transactions/CategoryColorBox.vue';
 import ContextMenu from '~/components/menu/ContextMenu.vue';
 import { getNameFromExtendableListItem } from '~/utils/getNameFromExtendableListItem';
-import draggable from 'vuedraggable';
 
 const props = defineProps<{
   item: CategoryTree[number] | ProjectTree[number] | PersistedProject;
@@ -43,42 +42,21 @@ const children = computed({
 <template>
   <li class="block">
     <ContextMenu :id="item.id" :resource="resource">
-      <NuxtLink
-        :to="`/${resource}/${item.id}`"
-        :class="[
-          'text-gray-700 hover:text-indigo-600 hover:bg-gray-50',
-          'group flex gap-x-3 rounded-md p-1 pl-3 text-sm leading-6 font-semibold',
-          'items-center cursor-pointer',
-        ]"
-        :style="{ marginLeft: `${currentDepth * 1.5}rem` }"
-      >
-        <CategoryColorBox
-          v-if="'color' in item"
-          :color="item.color"
-          :extended="false"
-        />
+      <NuxtLink :to="`/${resource}/${item.id}`" :class="[
+        'text-gray-700 hover:text-indigo-600 hover:bg-gray-50',
+        'group flex gap-x-3 rounded-md p-1 pl-3 text-sm leading-6 font-semibold',
+        'items-center cursor-pointer',
+      ]" :style="{ marginLeft: `${currentDepth * 1.5}rem` }">
+        <CategoryColorBox v-if="'color' in item" :color="item.color" :extended="false" />
         <span>{{ getName(item) }}</span>
       </NuxtLink>
     </ContextMenu>
 
-    <draggable
-      v-if="children.length > 0"
-      v-model="children"
-      tag="ul"
-      item-key="id"
-      class="space-y-0.5"
-      group="categories"
-      :disabled="resource !== 'category'"
-    >
-      <template #item="{ element: child }">
-        <ExpandableListItem
-          :key="child.id"
-          :item="child"
-          :resource="resource"
-          :depth="currentDepth + 1"
-        />
-      </template>
-    </draggable>
+    <ul v-if="children.length > 0" class="space-y-0.5">
+      <li v-for="child in children" :key="child.id">
+        <ExpandableListItem :item="child" :resource="resource" :depth="currentDepth + 1" />
+      </li>
+    </ul>
   </li>
 </template>
 

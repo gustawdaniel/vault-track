@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import mitt from 'mitt';
-import draggable from 'vuedraggable';
 import dayjs, { extend } from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import type { ComputedAccount } from '~/store/account';
@@ -43,7 +42,7 @@ function removeRow(index: number): void {
   csvTable.value.splice(index, 1);
 }
 
-const possibleHeaders = ref<Array<{ name: UploadTransactionsHeaderType }>>([
+const allPossibleHeaders: Array<{ name: UploadTransactionsHeaderType }> = [
   { name: 'amount' },
   { name: 'in' },
   { name: 'out' },
@@ -53,7 +52,7 @@ const possibleHeaders = ref<Array<{ name: UploadTransactionsHeaderType }>>([
   { name: 'memo' },
   { name: 'fee' },
   { name: 'clearedStatus' },
-]);
+];
 
 function log(...args: any) {
   console.log(args);
@@ -141,7 +140,6 @@ function moveKeyToHeaderIndex(
   key: UploadTransactionsHeaderType,
   index: number,
 ): void {
-  possibleHeaders.value = possibleHeaders.value.filter((v) => v.name !== key);
   const assigned = headers.value.find((headersInColumn) =>
     headersInColumn.some((header) => header.name === key),
   );
@@ -261,14 +259,12 @@ function guessDateFormat() {
 
 
 
-    <UModal
-v-model:open="isOpen" fullscreen :title="`Upload transactions to ${account.name}`"
+    <UModal v-model:open="isOpen" fullscreen :title="`Upload transactions to ${account.name}`"
       description="Upload and parse CSV or XLSX file to import transactions" :ui="{
         content: 'h-full flex flex-col',
         body: 'grow overflow-auto p-4'
       }">
-      <UButton
-icon="i-heroicons-document-arrow-down" size="xs" label="Import transactions" class="mt-4 mx-3"
+      <UButton icon="i-heroicons-document-arrow-down" size="xs" label="Import transactions" class="mt-4 mx-3"
         @click="isOpen = true" />
 
       <template #body>
@@ -282,40 +278,19 @@ icon="i-heroicons-document-arrow-down" size="xs" label="Import transactions" cla
           </div>
 
           <div v-if="csvTable.length && !readyToReview">
-            <div class="flex">
-              <draggable class="list-group" :list="possibleHeaders" group="people" item-key="name" @change="log">
-                <template #item="{ element }">
-                  <UBadge color="neutral" variant="solid" class="cursor-grab">
-                    {{ element.name }}
-                  </UBadge>
-                </template>
-              </draggable>
-            </div>
-
-            <Debug>{{ headers }}</Debug>
-
             <table class="table-fixed text-xs break-all hover:table-fixed border-spacing-2 border-separate">
               <thead>
                 <tr>
                   <th />
-                  <th
-v-for="(col, colIndex) in csvTable[0]" :key="colIndex"
+                  <th v-for="(col, colIndex) in csvTable[0]" :key="colIndex"
                     class="border border-dashed border-gray-900/10">
-                    <draggable
-class="list-group" :list="headers[colIndex]" group="people" item-key="name"
-                      @change="log">
-                      <template #item="{ element }">
-                        <UBadge color="neutral" variant="solid" class="cursor-grab">
-                          {{ element.name }}
-                        </UBadge>
-                      </template>
-                    </draggable>
+                    <USelectMenu v-model="headers[colIndex]" :items="allPossibleHeaders" multiple label-key="name"
+                      class="min-w-24 font-normal" />
                   </th>
                 </tr>
               </thead>
               <tbody>
-                <tr
-v-for="(row, rowIndex) in csvTable" :key="rowIndex" :class="isValidRow(row, headers) ? '' : 'bg-gray-100 text-gray-400'
+                <tr v-for="(row, rowIndex) in csvTable" :key="rowIndex" :class="isValidRow(row, headers) ? '' : 'bg-gray-100 text-gray-400'
                   ">
                   <td>
                     <button @click="removeRow(rowIndex)">x</button>
@@ -332,8 +307,7 @@ v-for="(row, rowIndex) in csvTable" :key="rowIndex" :class="isValidRow(row, head
             <Debug v-if="transactions.length">{{ transactions }}</Debug>
           </div>
 
-          <UploadTransactionAcceptance
-v-if="readyToReview" :transactions-to-import="transactions" :account="account"
+          <UploadTransactionAcceptance v-if="readyToReview" :transactions-to-import="transactions" :account="account"
             @close="close" />
         </div>
       </template>

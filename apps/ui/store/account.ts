@@ -177,6 +177,23 @@ export const useAccountStore = defineStore('account', {
       if (!acc) throw new Error(`Account not found`);
       return acc.id;
     },
+    changeAccountOrder(accountId: string, direction: 'up' | 'down') {
+      const sorted = this.sortedAccounts;
+      const index = sorted.findIndex((a) => a.id === accountId);
+      if (index === -1) return;
+
+      if (direction === 'up' && index > 0) {
+        const temp = sorted[index - 1]!;
+        sorted[index - 1] = sorted[index]!;
+        sorted[index] = temp;
+        this.reorder(sorted);
+      } else if (direction === 'down' && index < sorted.length - 1) {
+        const temp = sorted[index + 1]!;
+        sorted[index + 1] = sorted[index]!;
+        sorted[index] = temp;
+        this.reorder(sorted);
+      }
+    },
     reorder(reorderedAccounts: Account[]) {
       // Get the current order values of the visible accounts and sort them
       const currentOrders = reorderedAccounts
