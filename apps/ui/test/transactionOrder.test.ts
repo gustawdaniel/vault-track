@@ -116,4 +116,33 @@ describe('transaction.ts changeTransactionOrder', () => {
         expect(store.getById('3')!.order).toBe(1);
         expect(store.getById('4')!.order).toBe(2);
     });
+
+    it('keeps splits together and skips correctly', async () => {
+        const store = useTransactionStore();
+
+        // Tx1 (normal), Tx2 & Tx3 (split), Tx4 (normal)
+        store.$state.transactions = [
+            { id: '1', accountId: 'acc-1', account: 'Account 1', amount: 10, date: '2023-01-01' } as any,
+            { id: '2', accountId: 'acc-1', account: 'Account 1', amount: -20, date: '2023-01-01', splitId: 'splitxyz' } as any,
+            { id: '3', accountId: 'acc-1', account: 'Account 1', amount: -30, date: '2023-01-01', splitId: 'splitxyz' } as any,
+            { id: '4', accountId: 'acc-1', account: 'Account 1', amount: 30, date: '2023-01-01' } as any,
+        ];
+
+        // Move split portion (Tx2) "up" (index + 1). 
+        // It should skip Tx3 (same split) and swap with Tx4.
+        await store.changeTransactionOrder('2', 'up');
+
+        expect(store.getById('1')!.order).toBe(0);
+        expect(store.getById('2')!.order).toBe(2);
+        expect(store.getById('3')!.order).toBe(2);
+        expect(store.getById('4')!.order).toBe(1);
+
+        // Swap back - cohesive "down" (index - 1). Should skip Tx3, swap with Tx4 (which is now at order 1, so index 1 in the sorted list).
+        await store.changeTransactionOrder('2', 'down');
+
+        expect(store.getById('1')!.order).toBe(0);
+        expect(store.getById('2')!.order).toBe(1);
+        expect(store.getById('3')!.order).toBe(1);
+        expect(store.getById('4')!.order).toBe(2);
+    });
 });

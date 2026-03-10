@@ -236,6 +236,7 @@ export const useTransactionStore = defineStore('transaction', {
       // Ensure all sameDateTransactions have an explicit sequential order
       let nextOrder = 0;
       const transferOrderMap = new Map<string, number>();
+      const splitOrderMap = new Map<string, number>();
 
       for (let i = 0; i < sameDateTransactions.length; i++) {
         const t = sameDateTransactions[i]!;
@@ -246,6 +247,13 @@ export const useTransactionStore = defineStore('transaction', {
             expectedOrder = transferOrderMap.get(t.transferHash)!;
           } else {
             transferOrderMap.set(t.transferHash, nextOrder);
+            nextOrder++;
+          }
+        } else if (t.splitId) {
+          if (splitOrderMap.has(t.splitId)) {
+            expectedOrder = splitOrderMap.get(t.splitId)!;
+          } else {
+            splitOrderMap.set(t.splitId, nextOrder);
             nextOrder++;
           }
         } else {
@@ -281,6 +289,9 @@ export const useTransactionStore = defineStore('transaction', {
         if (txFinal.transferHash && candidate.transferHash === txFinal.transferHash) {
           continue; // Skip the other half of the same transfer block
         }
+        if (txFinal.splitId && candidate.splitId === txFinal.splitId) {
+          continue; // Skip other splits of the same block
+        }
 
         // Skip invisible items if we are in a specific account context
         if (contextAccountId) {
@@ -302,12 +313,18 @@ export const useTransactionStore = defineStore('transaction', {
         if (txFinal.transferHash) {
           const rev = this.getReverseByIdAndHash(txFinal.id, txFinal.transferHash);
           if (rev) idsToUpdateToSiblingOrder.push(rev.id);
+        } else if (txFinal.splitId) {
+          const siblings = this.getSiblingsBySplitId(txFinal.splitId);
+          idsToUpdateToSiblingOrder.push(...siblings.map((s) => s.id).filter((sid) => sid !== txFinal.id));
         }
 
         const idsToUpdateToTempOrder = [siblingFinal.id];
         if (siblingFinal.transferHash) {
           const rev = this.getReverseByIdAndHash(siblingFinal.id, siblingFinal.transferHash);
           if (rev) idsToUpdateToTempOrder.push(rev.id);
+        } else if (siblingFinal.splitId) {
+          const siblings = this.getSiblingsBySplitId(siblingFinal.splitId);
+          idsToUpdateToTempOrder.push(...siblings.map((s) => s.id).filter((sid) => sid !== siblingFinal.id));
         }
 
         for (const updateId of idsToUpdateToSiblingOrder) {
