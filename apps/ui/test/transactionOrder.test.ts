@@ -128,7 +128,7 @@ describe('transaction.ts changeTransactionOrder', () => {
             { id: '4', accountId: 'acc-1', account: 'Account 1', amount: 30, date: '2023-01-01' } as any,
         ];
 
-        // Move split portion (Tx2) "up" (index + 1). 
+        // Move split portion (Tx2) "up" (index + 1).
         // It should skip Tx3 (same split) and swap with Tx4.
         await store.changeTransactionOrder('2', 'up');
 

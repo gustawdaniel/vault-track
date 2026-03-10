@@ -128,7 +128,7 @@ export const useTransactionStore = defineStore('transaction', {
             oldTrx.data.transferHash,
           );
           if (reverseIndex !== -1) {
-            const reverse = newTransactions[reverseIndex]; // Use newTransactions to look up? No, indices shift if we spliced? 
+            const reverse = newTransactions[reverseIndex]; // Use newTransactions to look up? No, indices shift if we spliced?
             // Wait, I am using direct index assignment above, so indices are stable.
             // But if I splice below, it changes.
             // If I use splice to remove reverse:
@@ -143,9 +143,9 @@ export const useTransactionStore = defineStore('transaction', {
         this.$state.transactions = newTransactions;
         await syncUpdateTransaction(newTrx.json);
       } else {
-        // Fallback for creating if not found? 
+        // Fallback for creating if not found?
         // Original code called create. If partial, create might fail if missing fields.
-        // Assuming create needs full objects or defaults. 
+        // Assuming create needs full objects or defaults.
         // If transaction is Partial, we can't really create a valid transaction easily without defaults.
         // But getNew() exists?
         // Let's keep original behavior but warn it might be incomplete if transaction is partial.

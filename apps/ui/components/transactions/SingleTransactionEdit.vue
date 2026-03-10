@@ -1,18 +1,18 @@
 <script lang="ts" setup>
-import { ref } from 'vue';
-import type { FormError, FormSubmitEvent } from '@nuxt/ui';
+import { ref, computed } from 'vue';
+import type { FormError, FormSubmitEvent } from '#ui/types';
 import type {
   ComputedNormalAccount,
   ComputedTransferAccounts,
   TransactionContext,
   SplitContext,
 } from './edit/types';
-import type {
-  FullTransaction,
-  NormalTransactionContextType,
-  Transaction,
-} from '~/store/transaction.model';
-import { useTransactionStore } from '~/store/transaction';
+import {
+  type FullTransaction,
+  type NormalTransactionContextType,
+  useTransactionStore,
+  type Transaction,
+} from '~/store/transaction';
 import { useAccountStore } from '~/store/account';
 import CategoryPicker from '~/components/category/CategoryPicker.vue';
 import AmountInput from '~/components/transactions/input/AmountInput.vue';
