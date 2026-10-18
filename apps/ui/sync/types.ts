@@ -131,5 +131,7 @@ export interface AppState {
 
 export interface TransportEvent extends BaseEvent {
     serverRowId?: number; // Added from server for pagination
-    payload: string; // Encrypted ciphertext (iv:base64) of the FULL AppEvent JSON
+    type?: AppEvent['type'];
+    payload: string | EventPayload; // Plaintext JSON string of AppEvent or parsed payload
 }
+

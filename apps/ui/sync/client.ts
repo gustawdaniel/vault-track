@@ -1,4 +1,3 @@
-import { deriveKey, encryptEvent, decryptEvent } from './crypto';
 import type { AppEvent, AppState, TransportEvent } from './types';
 import { getCursor, updateCursor } from './cursor';
 import { getAllEvents, addEvent } from './db';
@@ -7,8 +6,6 @@ import { sortEvents } from './ordering';
 import { replay } from './reducer';
 import { getBackendUrl } from '~/utils/backendUrl';
 
-// Configuration
-// const SYNC_API_URL = '/api/sync'; // Removed in favor of runtime config
 const PEER_ID_SERVER = 'server';
 
 
@@ -22,8 +19,7 @@ export interface SyncOptions {
   wait?: boolean;
 }
 
-// Initialize Group ID (simplified: get from localStorage or default)
-// In a real app, this would be injected or managed by a store.
+// Initialize Group ID from localStorage or derive from mnemonic
 export async function getGroupIdAsync(): Promise<string | null> {
   if (typeof localStorage === 'undefined') return null;
 
@@ -33,7 +29,7 @@ export async function getGroupIdAsync(): Promise<string | null> {
   if (!gid) {
     const mnemonic = localStorage.getItem('ocm-mnemonic');
     if (mnemonic) {
-      console.log('[Sync] Migrating: Deriving group ID from mnemonic');
+      console.log('[Sync] Deriving group ID from mnemonic');
       const { deriveGroupId } = await import('./crypto');
       gid = await deriveGroupId(mnemonic);
       localStorage.setItem('ocm-sync-group-id', gid);
@@ -46,37 +42,6 @@ export async function getGroupIdAsync(): Promise<string | null> {
   return gid;
 }
 
-// Sync version for backwards compatibility
-function getGroupId(): string | null {
-  if (typeof localStorage !== 'undefined') {
-    return localStorage.getItem('ocm-sync-group-id');
-  }
-  return null;
-}
-
-// Key management
-// In a real app, this should be in a secure store.
-// We'll read the mnemonic from localStorage as per plan.
-async function getEncryptionKey(): Promise<CryptoKey | null> {
-  if (typeof localStorage === 'undefined') return null;
-
-  // Check for existing mnemonic
-  const mnemonic = localStorage.getItem('ocm-mnemonic');
-
-  if (!mnemonic) {
-    // Warning: This auto-generation is for convenience in this dev phase.
-    // In prod, UI should prompt user. But as per "Delete All Data" cycle,
-    // we can generate one if missing?
-    // Let's assume the UI (Settings) handles generation.
-    // If no mnemonic, we can't sync encrypted.
-    // Ideally we throw or return null to stop sync.
-    console.warn('No encryption key (mnemonic) found. Sync disabled.');
-    return null;
-  }
-
-  return deriveKey(mnemonic);
-}
-
 export async function fetchRemoteEvents(
   cursorValue: number,
   options?: SyncOptions,
@@ -85,8 +50,6 @@ export async function fetchRemoteEvents(
     const groupId = await getGroupIdAsync();
     if (!groupId) return { events: [], nextCursor: cursorValue };
 
-    const key = await getEncryptionKey();
-    if (!key) return { events: [], nextCursor: cursorValue }; // Cannot decrypt without key
 
     const backendUrl = getBackendUrl();
     const waitParam = options?.wait ? '&wait=true' : '';
@@ -104,36 +67,39 @@ export async function fetchRemoteEvents(
     }
     const data: SyncResponse = await response.json();
 
-    // Decrypt events
     const plainEvents: AppEvent[] = [];
     let nextCursor = cursorValue;
 
     for (const remoteEvent of data.events) {
-      // remoteEvent is TransportEvent. payload is ciphertext.
       try {
-        // Decrypt the blob -> Full AppEvent object
-        const decryptedEvent = await decryptEvent<AppEvent>(
-          remoteEvent.payload,
-          key,
-        );
-
-        // Verification: ensuring the ID matches the wrapper (optional but good sanity check)
-        if (decryptedEvent.eventId !== remoteEvent.eventId) {
-          console.warn(
-            'Event ID mismatch during decryption',
-            remoteEvent.eventId,
-          );
+        if (typeof remoteEvent.payload === 'string') {
+          const trimmed = remoteEvent.payload.trim();
+          // Skip legacy encrypted blobs (iv:ciphertext)
+          if (!trimmed.startsWith('{')) {
+            continue;
+          }
+          const parsed = JSON.parse(trimmed);
+          if (parsed && parsed.type && parsed.payload && parsed.eventId) {
+            plainEvents.push(parsed as AppEvent);
+          } else if (remoteEvent.type && parsed) {
+            plainEvents.push({
+              eventId: remoteEvent.eventId,
+              deviceId: remoteEvent.deviceId,
+              counter: remoteEvent.counter,
+              timestamp: remoteEvent.timestamp,
+              type: remoteEvent.type,
+              payload: parsed,
+            } as AppEvent);
+          }
+        } else if (remoteEvent.type && remoteEvent.payload) {
+          plainEvents.push(remoteEvent as unknown as AppEvent);
         }
-
-        plainEvents.push(decryptedEvent);
-        // Only advance cursor for successfully decrypted events
+        // Advance the cursor only after a successfully parsed event.
         if (remoteEvent.serverRowId !== undefined) {
           nextCursor = Math.max(nextCursor, remoteEvent.serverRowId);
         }
       } catch (e) {
-        console.error('Decryption failed for event', remoteEvent.eventId, e);
-        // Do NOT advance cursor — keep it at last-known-good position
-        // so the next sync will retry from there with correct key
+        console.error('Failed to parse remote event', remoteEvent.eventId, e);
       }
     }
 
@@ -145,7 +111,6 @@ export async function fetchRemoteEvents(
 }
 
 export async function pushLocalEvents(events: AppEvent[]): Promise<boolean> {
-  // Check group ID first
   const groupId = await getGroupIdAsync();
   if (!groupId) return false;
 
@@ -157,23 +122,11 @@ export async function pushLocalEvents(events: AppEvent[]): Promise<boolean> {
   console.log(`[Sync] Pushing ${events.length} local events to server...`);
 
   try {
-    console.log(`[Sync] Group ID: ${groupId.substring(0, 16)}...`);
-
-    const key = await getEncryptionKey();
-    if (!key) {
-      console.error('[Sync] Push failed: No encryption key found');
-      return false;
-    }
-    console.log('[Sync] Encryption key obtained');
-
-    // Filter out any events with invalid structure (legacy format)
     const validEvents = events.filter((e) => {
-      // Check if event has proper structure
       if (!e.type || !e.payload || !e.eventId) {
         console.warn('[Sync] Skipping invalid event:', e.eventId);
         return false;
       }
-      // Check if payload is already a string (broken legacy event)
       if (typeof e.payload === 'string') {
         console.warn(
           '[Sync] Skipping legacy event with string payload:',
@@ -184,49 +137,14 @@ export async function pushLocalEvents(events: AppEvent[]): Promise<boolean> {
       return true;
     });
 
-    if (validEvents.length < events.length) {
-      console.warn(
-        `[Sync] Filtered out ${events.length - validEvents.length} invalid/legacy events`,
-      );
-    }
-
-    // Encrypt events before sending
-    // We encrypt the ENTIRE event object now.
-    const encryptedEvents = await Promise.all(
-      validEvents.map(async (e) => {
-        // Encrypt the full AppEvent
-        const ciphertext = await encryptEvent(e, key);
-
-        // Validation: ensure ciphertext is a string
-        if (typeof ciphertext !== 'string' || !ciphertext.includes(':')) {
-          console.error(
-            '[Sync] Encryption failed for event:',
-            e.eventId,
-            'ciphertext:',
-            ciphertext,
-          );
-          throw new Error(`Invalid ciphertext for event ${e.eventId}`);
-        }
-
-        // Construct TransportEvent
-        // We duplicate the metadata for the server's columns/indexing
-        return {
-          eventId: e.eventId,
-          deviceId: e.deviceId,
-          counter: e.counter,
-          timestamp: e.timestamp,
-          payload: ciphertext, // The encrypted blob of everything
-        };
-      }),
-    );
-
-    // Log first event payload sample for debugging
-    if (encryptedEvents.length > 0) {
-      const sample = encryptedEvents[0]!.payload;
-      console.log(
-        `[Sync] Sample encrypted payload: ${sample.substring(0, 50)}...`,
-      );
-    }
+    const transportEvents = validEvents.map((e) => ({
+      eventId: e.eventId,
+      deviceId: e.deviceId,
+      counter: e.counter,
+      timestamp: e.timestamp,
+      type: e.type,
+      payload: JSON.stringify(e),
+    }));
 
     const backendUrl = getBackendUrl();
     const response = await fetch(`${backendUrl}/sync/push`, {
@@ -235,12 +153,12 @@ export async function pushLocalEvents(events: AppEvent[]): Promise<boolean> {
         'Content-Type': 'application/json',
         'X-Sync-Group-ID': groupId,
       },
-      body: JSON.stringify({ events: encryptedEvents }),
+      body: JSON.stringify({ events: transportEvents }),
     });
 
     if (response.ok) {
       console.log(
-        `[Sync] Successfully pushed ${events.length} events to server`,
+        `[Sync] Successfully pushed ${validEvents.length} events to server`,
       );
     } else {
       const errorText = await response.text();

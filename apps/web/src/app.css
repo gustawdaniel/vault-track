@@ -1,0 +1,148 @@
+:root,
+[data-theme='light'] {
+  --bg-canvas: #f4f6f9;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f1f5f9;
+  --bg-hover: #e2e8f0;
+  --bg-active: #e0f2fe;
+
+  --border-subtle: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --border-focus: #0284c7;
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+
+  --accent-primary: #0284c7;
+  --accent-primary-hover: #0369a1;
+  --accent-primary-fg: #ffffff;
+  --accent-primary-bg: rgba(2, 132, 199, 0.1);
+
+  --income: #059669;
+  --income-bg: rgba(5, 150, 105, 0.1);
+  --expense: #e11d48;
+  --expense-bg: rgba(225, 29, 72, 0.09);
+  --warning: #d97706;
+  --warning-bg: rgba(217, 119, 6, 0.12);
+
+  --nw-gradient: linear-gradient(180deg, #f8fafc 0%, #eff6ff 100%);
+  --reconcile-banner-bg: #fff1f2;
+  --reconcile-banner-border: #fecdd3;
+  --reconcile-header-fg: #be123c;
+  --reconcile-item-bg: #ffffff;
+  --backdrop-bg: rgba(15, 23, 42, 0.35);
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
+
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+
+[data-theme='dark'] {
+  --bg-canvas: #0a0e17;
+  --bg-surface: #111726;
+  --bg-elevated: #172033;
+  --bg-hover: #1e2942;
+  --bg-active: #253352;
+
+  --border-subtle: #1e293b;
+  --border-strong: #334155;
+  --border-focus: #38bdf8;
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  --accent-primary: #38bdf8;
+  --accent-primary-hover: #7dd3fc;
+  --accent-primary-fg: #06101e;
+  --accent-primary-bg: rgba(56, 189, 248, 0.12);
+
+  --income: #10b981;
+  --income-bg: rgba(16, 185, 129, 0.12);
+  --expense: #f43f5e;
+  --expense-bg: rgba(244, 63, 94, 0.12);
+  --warning: #f59e0b;
+  --warning-bg: rgba(245, 158, 11, 0.14);
+
+  --nw-gradient: linear-gradient(180deg, rgba(23, 32, 51, 0.7) 0%, rgba(17, 23, 38, 0.3) 100%);
+  --reconcile-banner-bg: rgba(244, 63, 94, 0.08);
+  --reconcile-banner-border: rgba(244, 63, 94, 0.28);
+  --reconcile-header-fg: #fda4af;
+  --reconcile-item-bg: rgba(17, 23, 38, 0.75);
+  --backdrop-bg: rgba(5, 8, 15, 0.65);
+  --scrollbar-thumb: #28354e;
+  --scrollbar-thumb-hover: #3b4d6e;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+::selection {
+  background: var(--accent-primary-bg);
+  color: var(--accent-primary);
+}
+
+html,
+body {
+  height: 100%;
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-canvas);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}

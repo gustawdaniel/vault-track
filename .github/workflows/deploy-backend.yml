@@ -78,8 +78,10 @@ jobs:
         env:
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
           ADMIN_TOKEN_SECRET: ${{ secrets.ADMIN_TOKEN_SECRET }}
+          COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
@@ -89,7 +91,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_KEY }}
-          envs: TURSO_DATABASE_URL,TURSO_AUTH_TOKEN,ADMIN_EMAIL,ADMIN_TOKEN_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GOOGLE_API_KEY,GEMINI_MODEL,IMAGE_NAME
+          envs: TURSO_DATABASE_URL,TURSO_AUTH_TOKEN,OPENAI_API_KEY,ADMIN_EMAIL,ADMIN_TOKEN_SECRET,COOKIE_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GOOGLE_API_KEY,GEMINI_MODEL,IMAGE_NAME
           script: |
             cd ~/api.vaulttrack.org
             
@@ -98,15 +100,25 @@ jobs:
             # If private, user needs to add login step here or use existing auth.
             # echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
-            # Create .env file from secrets
-            echo "TURSO_DATABASE_URL=$TURSO_DATABASE_URL" >> .env
-            echo "TURSO_AUTH_TOKEN=$TURSO_AUTH_TOKEN" >> .env
-            echo "ADMIN_EMAIL=$ADMIN_EMAIL" >> .env
-            echo "ADMIN_TOKEN_SECRET=$ADMIN_TOKEN_SECRET" >> .env
-            echo "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" >> .env
-            echo "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" >> .env
-            echo "GOOGLE_API_KEY=$GOOGLE_API_KEY" >> .env
-            echo "GEMINI_MODEL=$GEMINI_MODEL" >> .env
+            # Update .env without wiping unrelated keys (e.g. ADMIN_TOKEN_SECRET).
+            touch .env
+            update_env() {
+              key="$1"
+              val="$2"
+              if grep -q "^${key}=" .env; then
+                sed -i "s|^${key}=.*|${key}=${val}|" .env
+              else
+                echo "${key}=${val}" >> .env
+              fi
+            }
+            update_env OPENAI_API_KEY "$OPENAI_API_KEY"
+            update_env ADMIN_EMAIL "$ADMIN_EMAIL"
+            update_env ADMIN_TOKEN_SECRET "$ADMIN_TOKEN_SECRET"
+            update_env COOKIE_SECRET "$COOKIE_SECRET"
+            update_env GOOGLE_CLIENT_ID "$GOOGLE_CLIENT_ID"
+            update_env GOOGLE_CLIENT_SECRET "$GOOGLE_CLIENT_SECRET"
+            update_env GOOGLE_API_KEY "$GOOGLE_API_KEY"
+            update_env GEMINI_MODEL "$GEMINI_MODEL"
             
             # Pull and restart
             docker compose pull

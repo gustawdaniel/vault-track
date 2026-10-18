@@ -6,16 +6,22 @@ services:
     ports:
       - "4500:4500"
     volumes:
+      # Persist SQLite and the Enable Banking private key outside the image.
       - ./:/data
     environment:
       - PORT=4500
       - TURSO_DATABASE_URL=file:/data/db.sqlite
       - TURSO_AUTH_TOKEN=
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ADMIN_EMAIL=${ADMIN_EMAIL}
       - ADMIN_TOKEN_SECRET=${ADMIN_TOKEN_SECRET}
+      - COOKIE_SECRET=${COOKIE_SECRET}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - GEMINI_MODEL=${GEMINI_MODEL}
+      - ENABLE_BANKING_APP_ID=bdd4e33f-494a-469b-ac5c-5f269c4f4410
+      - ENABLE_BANKING_PRIVATE_KEY_PATH=/data/secrets/enablebanking/bdd4e33f-494a-469b-ac5c-5f269c4f4410.pem
+      - ENABLE_BANKING_REDIRECT_URL=https://api.vaulttrack.org/api/connectors/enablebanking/callback
     extra_hosts:
       - "host.docker.internal:host-gateway"

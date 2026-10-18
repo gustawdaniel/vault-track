@@ -98,4 +98,14 @@ describe('Offline Sync Simulation', () => {
         expect(Object.keys(state.projects)).toHaveLength(1);
         expect(state.projects['proj1']?.project).toBe('Renovation');
     });
+
+    it('should derive deterministic SHA-256 groupId from 12-word mnemonic without encryption keys', async () => {
+        const { deriveGroupId } = await import('./crypto');
+        const phrase = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
+        const gid1 = await deriveGroupId(phrase);
+        const gid2 = await deriveGroupId('  ' + phrase + '  ');
+        expect(gid1).toBe(gid2);
+        expect(gid1).toHaveLength(64);
+    });
 });
+

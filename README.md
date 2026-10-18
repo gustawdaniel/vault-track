@@ -6,7 +6,7 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-VaultTrack is a modern, privacy-focused, offline-first personal finance application inspired by tools like YNAB and GNUCash. It helps you track accounts, transactions, and budgets with a seamless multi-device experience.
+VaultTrack is a modern, high-performance, local-first personal finance application inspired by CashDroid Pro, YNAB, and GNUCash. It combines instant in-browser responsiveness with structured backend synchronization for LLM/MCP tools and automated bank connectors.
 
 <p align="center">
   <img src="./apps/docs/public/images/receipt.png" alt="Receipt Scanning" width="49%">
@@ -20,15 +20,14 @@ VaultTrack is a modern, privacy-focused, offline-first personal finance applicat
 
 ## 🚀 Key Features
 
-*   **Artificial Intelligence**:
+*   **AI & MCP Native**:
+    *   **MCP & LLM Interface**: Query, categorize, and reconcile your finances directly via LLM tools over structured SQL tables.
     *   **Receipt Scanning**: Instantly extract data from receipts using Google Gemini AI.
     *   **Smart Categorization**: Automatically suggests categories based on payee and items.
-*   **Offline-First & Real-Time Sync**: 
-    *   Works completely offline using `IndexedDB`.
-    *   Synchronizes data between devices in near real-time.
-    *   Conflict-free data merging using CRDT-inspired Event Sourcing.
-*   **Multi-Device**: Seamlessly switch between desktop and mobile.
-*   **Privacy Focused**: Your data belongs to you. No third-party tracking.
+*   **Local-First & Real-Time Sync**: 
+    *   Instant 0ms UI navigation powered by local `IndexedDB` and `Pinia`.
+    *   Synchronizes plaintext JSON events and materialized relational tables across devices and background bank connectors using a 12-word pairing key.
+*   **Multi-Device**: Seamlessly switch between desktop, mobile, and CLI/MCP.
 *   **Comprehensive Tracking**:
     *   Manage multiple accounts (Cash, Bank, Investment, etc.).
     *   Track income, expenses, and transfers.

@@ -1,77 +1,72 @@
 import { EventEmitter } from 'events';
-import { FastifyInstance, FastifyRequest } from 'fastify';
+import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { db } from '../../db/client';
+import { db, initDB } from '../../db/client';
+import {
+    buildEventMaterializeStatements,
+    executeInChunks,
+    getMaterializedSnapshot,
+    importBackupToGroup,
+} from './materializer';
 
-// Define TransportEvent type locally to match what client expects
-interface TransportEvent {
-    eventId: string;
-    deviceId: string;
-    counter: number;
-    timestamp: number;
-    payload: string;
-}
-
-// Global EventEmitter for sync notifications
+// Notify long-polling `/pull` requests when a client pushes new events.
 const syncEventEmitter = new EventEmitter();
-// Increase max listeners if many clients connect simultaneously
 syncEventEmitter.setMaxListeners(1000);
 
 export async function syncRoutes(fastify: FastifyInstance) {
     const app = fastify.withTypeProvider<ZodTypeProvider>();
 
-    // Init schema if needed (simple check)
     try {
-        await db.execute(`
-            CREATE TABLE IF NOT EXISTS events (
-                group_id TEXT NOT NULL,
-                event_id TEXT NOT NULL,
-                device_id TEXT NOT NULL,
-                counter INTEGER,
-                timestamp INTEGER NOT NULL,
-                payload TEXT NOT NULL,
-                created_at INTEGER DEFAULT (unixepoch('now')),
-                PRIMARY KEY (group_id, event_id)
-            );
-        `);
-        await db.execute(`
-            CREATE INDEX IF NOT EXISTS idx_events_group_time ON events(group_id, timestamp);
-        `);
+        await initDB();
     } catch (e) {
-        console.error('Failed to init sync table:', e);
+        console.error('Failed to init sync tables:', e);
     }
 
-    // Helper function to query the database
-    const getEvents = async (groupId: string, cursor: number) => {
-        const result = await db.execute({
-            sql: `SELECT rowid as id, event_id, device_id, counter, timestamp, payload FROM events 
-                  WHERE group_id = ? AND rowid > ? 
-                  ORDER BY rowid ASC 
-                  LIMIT 2000`,
-            args: [groupId, cursor],
-        });
+    /**
+     * Supports both clients:
+     * - cursor-based (legacy Nuxt UI): rowid > cursor
+     * - timestamp-based (Svelte cockpit): timestamp >= since
+     */
+    const getEvents = async (groupId: string, cursor: number, since: number) => {
+        const result = cursor > 0
+            ? await db.execute({
+                sql: `SELECT rowid as id, event_id, device_id, counter, timestamp, payload FROM events
+                      WHERE group_id = ? AND rowid > ?
+                      ORDER BY rowid ASC
+                      LIMIT 2000`,
+                args: [groupId, cursor],
+            })
+            : await db.execute({
+                sql: `SELECT rowid as id, event_id, device_id, counter, timestamp, payload FROM events
+                      WHERE group_id = ? AND timestamp >= ?
+                      ORDER BY timestamp ASC, counter ASC
+                      LIMIT 2000`,
+                args: [groupId, since],
+            });
 
-        if (result.rows.length > 0) {
-            return result.rows.map((row: any) => ({
-                serverRowId: row.id as number,
+        return result.rows
+            .filter((row: any) =>
+                typeof row.payload === 'string' && row.payload.trim().startsWith('{'),
+            )
+            .map((row: any) => ({
+                serverRowId: Number(row.id),
                 eventId: row.event_id as string,
                 deviceId: row.device_id as string,
-                counter: row.counter as number,
-                timestamp: row.timestamp as number,
+                counter: Number(row.counter ?? 0),
+                timestamp: Number(row.timestamp),
                 payload: row.payload as string,
             }));
-        }
-        return [];
     };
 
-    // Pull events
+    // Pull events (plaintext JSON).
     app.get(
         '/pull',
         {
             schema: {
                 querystring: z.object({
                     cursor: z.coerce.number().default(0),
+                    since: z.coerce.number().default(0),
                     wait: z.coerce.boolean().optional(),
                 }),
                 response: {
@@ -96,46 +91,38 @@ export async function syncRoutes(fastify: FastifyInstance) {
                 return reply.code(400).send({ error: 'Missing X-Sync-Group-ID header' });
             }
 
-            const { cursor, wait } = req.query as { cursor: number; wait?: boolean };
-            const TIMEOUT = 30000; // 30s long polling timeout
+            const { cursor, since, wait } = req.query as {
+                cursor: number;
+                since: number;
+                wait?: boolean;
+            };
+            const TIMEOUT = 30000;
 
             try {
-                // Initial check for immediate events
-                let events = await getEvents(groupId, cursor);
-
+                let events = await getEvents(groupId, cursor, since);
                 if (events.length > 0) {
                     return { events };
                 }
-
                 if (!wait) {
                     return { events: [] };
                 }
 
-                // Setup long-polling using Promise.race
                 const eventName = `push:${groupId}`;
-
                 let timeoutId: NodeJS.Timeout;
                 const timeoutPromise = new Promise<'timeout'>((resolve) => {
                     timeoutId = setTimeout(() => resolve('timeout'), TIMEOUT);
                 });
-
                 const pushPromise = new Promise<'push'>((resolve) => {
                     syncEventEmitter.once(eventName, () => resolve('push'));
                 });
 
-                // Wait for either a push event or timeout
                 const winner = await Promise.race([pushPromise, timeoutPromise]);
-
-                // Cleanup
                 clearTimeout(timeoutId!);
-                // If it timed out, the once listener is still hanging, remove it
-                if (winner === 'timeout') {
-                    syncEventEmitter.removeAllListeners(eventName); // simple cleanup, might affect others but `once` executes fast anyway, safer is to remove specific listener though it is `once`.
-                }
 
-                if (winner === 'push') {
-                    // Re-query database for the newly pushed events
-                    events = await getEvents(groupId, cursor);
+                if (winner === 'timeout') {
+                    syncEventEmitter.removeAllListeners(eventName);
+                } else {
+                    events = await getEvents(groupId, cursor, since);
                 }
 
                 return { events };
@@ -143,10 +130,10 @@ export async function syncRoutes(fastify: FastifyInstance) {
                 console.error('Sync pull error:', e);
                 return reply.code(500).send({ error: 'Database error: ' + e.message });
             }
-        }
+        },
     );
 
-    // Push events
+    // Push events. Writes the event log and materializes relational SQL tables.
     app.post(
         '/push',
         {
@@ -157,7 +144,8 @@ export async function syncRoutes(fastify: FastifyInstance) {
                         deviceId: z.string(),
                         counter: z.number(),
                         timestamp: z.number(),
-                        payload: z.string(),
+                        type: z.string().optional(),
+                        payload: z.any(),
                     })),
                 }),
                 response: {
@@ -179,36 +167,87 @@ export async function syncRoutes(fastify: FastifyInstance) {
             }
 
             try {
-                // Batch insert using txn if possible, or simple loop/batch
-                // LibSQL/Turso client supports batch
-                const statements = events.map((e: any) => ({
-                    sql: `INSERT INTO events (group_id, event_id, device_id, counter, timestamp, payload) 
-                          VALUES (?, ?, ?, ?, ?, ?)
-                          ON CONFLICT(group_id, event_id) DO NOTHING`,
-                    args: [
-                        groupId,
-                        e.eventId,
-                        e.deviceId,
-                        e.counter,
-                        e.timestamp,
-                        e.payload,
-                    ],
-                }));
-
-                // Execute in transaction
-                await db.batch(statements);
-
-                // Emitting the event to notify any long-polling `/pull` requests
+                const statements = buildEventMaterializeStatements(groupId, events);
+                await executeInChunks(db, statements);
                 syncEventEmitter.emit(`push:${groupId}`);
-
                 return { success: true, count: events.length };
             } catch (e: any) {
                 console.error('Sync push error:', e);
                 return reply.code(500).send({ error: 'Database error: ' + e.message });
             }
-        }
+        },
     );
-    // Delete ALL events for a group (nuclear reset option)
+
+    // Materialized snapshot for fast bootstrap on a new device.
+    app.get(
+        '/snapshot',
+        {
+            schema: {
+                response: {
+                    200: z.object({
+                        accounts: z.array(z.any()),
+                        transactions: z.array(z.any()),
+                        categories: z.array(z.any()),
+                        projects: z.array(z.any()),
+                        asserts: z.array(z.any()),
+                        timestamp: z.number(),
+                    }),
+                    400: z.object({ error: z.string() }),
+                    500: z.object({ error: z.string() }),
+                },
+            },
+        },
+        async (req, reply) => {
+            const groupId = req.headers['x-sync-group-id'] as string;
+            if (!groupId) {
+                return reply.code(400).send({ error: 'Missing X-Sync-Group-ID header' });
+            }
+
+            try {
+                return await getMaterializedSnapshot(db, groupId);
+            } catch (e: any) {
+                console.error('Snapshot fetch error:', e);
+                return reply.code(500).send({ error: 'Database error: ' + e.message });
+            }
+        },
+    );
+
+    // Import a full JSON backup into events + relational tables.
+    app.post(
+        '/import-backup',
+        {
+            schema: {
+                body: z.object({
+                    accounts: z.array(z.any()).optional(),
+                    transactions: z.array(z.any()).optional(),
+                    categories: z.array(z.any()).optional(),
+                    projects: z.array(z.any()).optional(),
+                    asserts: z.array(z.any()).optional(),
+                }),
+                response: {
+                    200: z.object({ success: z.boolean(), eventsCount: z.number() }),
+                    400: z.object({ error: z.string() }),
+                    500: z.object({ error: z.string() }),
+                },
+            },
+        },
+        async (req, reply) => {
+            const groupId = req.headers['x-sync-group-id'] as string;
+            if (!groupId) {
+                return reply.code(400).send({ error: 'Missing X-Sync-Group-ID header' });
+            }
+
+            try {
+                const result = await importBackupToGroup(db, groupId, req.body as any);
+                return { success: true, eventsCount: result.eventsCount };
+            } catch (e: any) {
+                console.error('Import backup error:', e);
+                return reply.code(500).send({ error: 'Database error: ' + e.message });
+            }
+        },
+    );
+
+    // Delete all events for a group (nuclear reset).
     app.delete(
         '/events',
         {
@@ -238,6 +277,6 @@ export async function syncRoutes(fastify: FastifyInstance) {
                 console.error('Sync delete error:', e);
                 return reply.code(500).send({ error: 'Database error: ' + e.message });
             }
-        }
+        },
     );
 }

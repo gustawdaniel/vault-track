@@ -1,24 +1,19 @@
 import { defineStore } from 'pinia';
-import { deriveKey } from '~/sync/crypto';
+import { deriveGroupId } from '~/sync/crypto';
 import { syncWithServer } from '~/sync/client';
 
 export const useSyncStore = defineStore('sync', () => {
     const isSyncing = ref(false);
     const lastSyncTime = ref<number | null>(null);
-    const encryptionKey = ref<CryptoKey | null>(null);
+    const groupId = ref<string | null>(null);
     const mnemonic = ref<string | null>(null);
 
-    // Initialize key from local storage on mount
     async function init() {
         if (import.meta.client) {
             const stored = localStorage.getItem('ocm-mnemonic');
             if (stored) {
                 mnemonic.value = stored;
-                try {
-                    encryptionKey.value = await deriveKey(stored);
-                } catch (e) {
-                    console.error('Failed to derive key from stored mnemonic', e);
-                }
+                groupId.value = await deriveGroupId(stored);
             }
         }
     }
@@ -29,13 +24,16 @@ export const useSyncStore = defineStore('sync', () => {
 
         localStorage.setItem('ocm-mnemonic', phrase);
         mnemonic.value = phrase;
-        encryptionKey.value = await deriveKey(phrase);
+        const gid = await deriveGroupId(phrase);
+        localStorage.setItem('ocm-sync-group-id', gid);
+        groupId.value = gid;
     }
 
     async function clear() {
         localStorage.removeItem('ocm-mnemonic');
+        localStorage.removeItem('ocm-sync-group-id');
         mnemonic.value = null;
-        encryptionKey.value = null;
+        groupId.value = null;
     }
 
     async function triggerSync(force = false) {
@@ -43,9 +41,6 @@ export const useSyncStore = defineStore('sync', () => {
 
         isSyncing.value = true;
         try {
-            // We don't pass key here, client.ts reads from localStorage internally
-            // BUT ideally client.ts should accept key as param to avoid reading LS every time.
-            // For now, client.ts reads LS. Improvements typical for future refactor.
             await syncWithServer();
             lastSyncTime.value = Date.now();
         } catch (e) {
@@ -58,7 +53,7 @@ export const useSyncStore = defineStore('sync', () => {
     return {
         isSyncing,
         lastSyncTime,
-        encryptionKey,
+        groupId,
         mnemonic,
         init,
         setMnemonic,
@@ -66,3 +61,4 @@ export const useSyncStore = defineStore('sync', () => {
         triggerSync
     };
 });
+

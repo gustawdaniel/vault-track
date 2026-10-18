@@ -21,11 +21,12 @@ vi.mock('~/sync/ordering', () => ({
 
 vi.mock('~/sync/reducer', () => ({
     replay: (events: any[]) => ({
-        accounts: [], transactions: [], categories: [], projects: []
+        accounts: {}, transactions: {}, categories: {}, projects: {}, asserts: {}
     }),
-    replayAsync: async (events: any[]) => ({
-        accounts: [], transactions: [], categories: [], projects: []
+    replayAsync: (events: any[]) => Promise.resolve({
+        accounts: {}, transactions: {}, categories: {}, projects: {}, asserts: {}
     }),
+    reduceEventMutable: vi.fn(),
 }));
 
 // We want to SPY on addEvent to see what it receives

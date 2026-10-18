@@ -10,11 +10,9 @@
                 <div class="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                     <UIcon name="i-heroicons-cloud" class="text-3xl text-gray-400" />
                 </div>
-                <h3 class="text-lg font-semibold">Enable Synchronization</h3>
+                <h3 class="text-lg font-semibold">Enable Synchronization & Connectors</h3>
                 <p class="text-gray-600 max-w-md mx-auto">
-                    Sync is disabled by default to protect your data. To sync between devices, you need to create or
-                    enter a
-                    <strong>Pairing Code</strong>.
+                    Use a 12-word <strong>Pairing Code</strong> to sync across devices and connect MCP / Bank Connectors.
                 </p>
 
                 <div class="max-w-md mx-auto mt-6 p-4 bg-gray-50 rounded-lg border border-gray-100 text-left">
@@ -36,7 +34,7 @@ color="neutral" variant="ghost" icon="i-heroicons-qr-code"
                         </UButton>
                     </div>
                     <p class="text-xs text-gray-500 mt-2">
-                        Treat this code like a password. Use the <strong>exact same code</strong> on all your devices.
+                        Treat this code like an API key. Use the <strong>exact same code</strong> on all your devices and connectors.
                     </p>
 
                     <!-- QR Code Display -->
@@ -48,7 +46,6 @@ color="neutral" variant="ghost" icon="i-heroicons-qr-code"
                     </div>
                 </div>
 
-                <!-- Scanner Modal -->
                 <!-- Scanner Modal -->
                 <UModal v-model:open="showScanner" title="Scan Pairing Code" :ui="{ content: 'max-w-sm' }">
                     <template #body>
@@ -96,6 +93,10 @@ color="neutral" variant="ghost" icon="i-heroicons-qr-code"
                                 <span>Projects:</span>
                                 <span class="font-mono font-bold">{{ localStats.projects }}</span>
                             </div>
+                            <div class="flex justify-between text-sm">
+                                <span>Asserts:</span>
+                                <span class="font-mono font-bold">{{ localStats.asserts }}</span>
+                            </div>
                         </div>
                         <div class="p-3 bg-gray-50 rounded border">
                             <h4 class="text-xs font-bold text-gray-500 uppercase">Synced (DB)</h4>
@@ -114,6 +115,10 @@ color="neutral" variant="ghost" icon="i-heroicons-qr-code"
                             <div class="flex justify-between text-sm">
                                 <span>Projects:</span>
                                 <span class="font-mono font-bold">{{ syncStats.projects }}</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span>Asserts:</span>
+                                <span class="font-mono font-bold">{{ syncStats.asserts }}</span>
                             </div>
                         </div>
                     </div>
@@ -224,6 +229,7 @@ import { useAccountStore } from '~/store/account';
 import { useTransactionStore } from '~/store/transaction';
 import { useCategoryStore } from '~/store/category';
 import { useProjectStore } from '~/store/project';
+import { useAssertStore } from '~/store/assert';
 import { createAccount, createTransaction, createCategory, createProject, importLocalData } from '~/sync/manager';
 import { hydratePinia } from '~/sync/hydration';
 
@@ -249,15 +255,17 @@ const localStats = computed(() => {
     const transactionStore = useTransactionStore();
     const categoryStore = useCategoryStore();
     const projectStore = useProjectStore();
+    const assertStore = useAssertStore();
     return {
         accounts: accountStore.accounts.length,
         transactions: transactionStore.transactions.length,
         categories: categoryStore.categories.length,
-        projects: projectStore.projects.length
+        projects: projectStore.projects.length,
+        asserts: assertStore.asserts.length
     };
 });
 
-const syncStats = ref({ accounts: 0, transactions: 0, categories: 0, projects: 0 });
+const syncStats = ref({ accounts: 0, transactions: 0, categories: 0, projects: 0, asserts: 0 });
 
 const fileInput = ref<HTMLInputElement | null>(null);
 const { copy } = useClipboard();
@@ -272,7 +280,8 @@ async function updateSyncStats() {
             accounts: Object.keys(state.accounts).length,
             transactions: Object.keys(state.transactions).length,
             categories: Object.keys(state.categories).length,
-            projects: Object.keys(state.projects).length
+            projects: Object.keys(state.projects).length,
+            asserts: Object.keys(state.asserts).length
         };
         console.log('Sync stats updated.');
     } catch (e) {
@@ -287,7 +296,6 @@ onMounted(async () => {
         groupId.value = storedMnemonic;
         savedGroupId.value = storedMnemonic;
     }
-    // Do NOT set default anymore
     await updateSyncStats();
 });
 
@@ -305,20 +313,17 @@ watch(groupId, async (val) => {
 });
 
 function generateRandomCode() {
-    // Generate 12-word mnemonic
     const mnemonic = generateMnemonic();
     groupId.value = mnemonic;
     log('Generated new random code.');
 }
 
 async function onScan(decodedText: object[]) {
-    // vue-qrcode-reader emits array of objects: [{ rawValue: '...' }, ...]
     const result = decodedText[0] as { rawValue: string };
     if (result && result.rawValue) {
         groupId.value = result.rawValue;
         showScanner.value = false;
         log('QR Code scanned successfully.');
-        // Optionally auto-save? Let user review first.
     }
 }
 
@@ -334,17 +339,14 @@ async function copyDeviceId() {
 async function saveGroupId() {
     if (!groupId.value) return;
 
-    // 1. Save valid mnemonic (private key)
     localStorage.setItem('ocm-mnemonic', groupId.value);
 
-    // 2. Derive and save Group ID (public identifier)
     const gid = await deriveGroupId(groupId.value);
     localStorage.setItem('ocm-sync-group-id', gid);
 
-    savedGroupId.value = groupId.value; // Show the mnemonic in UI
+    savedGroupId.value = groupId.value;
     log('Pairing code saved. Sync enabled.');
 
-    // Trigger an initial sync immediately
     handleSync();
 }
 
@@ -385,26 +387,27 @@ async function handleMigration() {
     const transactionStore = useTransactionStore();
     const categoryStore = useCategoryStore();
     const projectStore = useProjectStore();
+    const assertStore = useAssertStore();
 
     try {
-        // Collect data
         const accounts = JSON.parse(JSON.stringify(accountStore.accounts));
         const transactions = JSON.parse(JSON.stringify(transactionStore.$state.transactions));
         const categories = JSON.parse(JSON.stringify(categoryStore.categories));
         const projects = JSON.parse(JSON.stringify(projectStore.projects));
+        const asserts = JSON.parse(JSON.stringify(assertStore.asserts));
 
-        const count = accounts.length + transactions.length + categories.length + projects.length;
+        const count = accounts.length + transactions.length + categories.length + projects.length + asserts.length;
 
         await importLocalData({
             accounts,
             transactions,
             categories,
-            projects
+            projects,
+            asserts
         });
 
         log(`Migrated ${count} items to event log.`);
 
-        // Trigger sync to push
         await handleSync();
         await updateSyncStats();
 
@@ -428,37 +431,36 @@ async function handleRestoreBackup(event: Event) {
             const content = e.target?.result as string;
             const backup = JSON.parse(content);
 
-            // Check format (basic check)
             if (!backup.accounts || !backup.transactions) {
                 log('Invalid backup format. Expected { accounts, transactions }');
                 return;
             }
 
-            // Restore to Event Log directly, then hydrate
             log('Restoring backup to event log...');
 
             const accounts = backup.accounts ? JSON.parse(JSON.stringify(backup.accounts)) : [];
             const transactions = backup.transactions ? JSON.parse(JSON.stringify(backup.transactions)) : [];
             const categories = backup.categories ? JSON.parse(JSON.stringify(backup.categories)) : [];
             const projects = backup.projects ? JSON.parse(JSON.stringify(backup.projects)) : [];
+            const asserts = backup.asserts ? JSON.parse(JSON.stringify(backup.asserts)) : [];
 
-            const count = accounts.length + transactions.length + categories.length + projects.length;
+            const count = accounts.length + transactions.length + categories.length + projects.length + asserts.length;
 
             await importLocalData({
                 accounts,
                 transactions,
                 categories,
-                projects
+                projects,
+                asserts
             });
 
             log(`Restored ${count} items from backup.`);
-            await handleSync(); // Push to server + Hydrate UI
+            await handleSync();
 
         } catch (err) {
             console.error(err);
             log(`Restore failed: ${err}`);
         } finally {
-            // Reset input
             (event.target as HTMLInputElement).value = '';
         }
     };

@@ -35,7 +35,7 @@ function loadDemo() {
         Welcome to Vault Track
       </h2>
       <p class="mt-4 text-lg leading-8 text-gray-600 dark:text-gray-400">
-        Your privacy-first finance tracker. Data stays on your device.
+        Fast local-first finance tracker with real-time sync, bank connectors, and MCP.
         <br />How would you like to start?
       </p>
     </div>

@@ -18,6 +18,7 @@ coverage
 .settings/
 *.sublime-workspace
 sw.*
+.env
 
 # IDE - VSCode
 .vscode/*
@@ -51,6 +52,10 @@ local
 SECRET.md
 cash-droid-1-4-3-4.apk
 
+# Connector credentials (Enable Banking / GoCardless private keys)
+apps/backend/secrets/
+secrets/
+
 account-statement_*.pdf
 account-statement_*.xlsx
 
@@ -58,3 +63,9 @@ statement_*.pdf
 
 Historia_transakcji_*.pdf
 statement_*.xlsx
+
+# DeepSeek workspace metadata
+.deepseek/
+
+# Svelte build output
+apps/web/dist/

@@ -1,0 +1,30 @@
+{
+  "name": "web",
+  "description": "VaultTrack Svelte 5 CashDroid Pro UI",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 3005",
+    "build": "vite build",
+    "preview": "vite preview --port 3005",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "bip39": "^3.1.0",
+    "idb": "^8.0.3",
+    "qrcode": "^1.5.4",
+    "uid": "^2.0.2"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^5.0.3",
+    "@tsconfig/svelte": "^5.0.4",
+    "@types/bip39": "^3.0.4",
+    "@types/node": "^24.0.0",
+    "@types/qrcode": "^1.5.6",
+    "svelte": "^5.20.0",
+    "typescript": "~5.9.3",
+    "vite": "^6.2.0",
+    "vitest": "^4.0.16"
+  }
+}
