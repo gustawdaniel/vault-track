@@ -247,6 +247,11 @@
 
   const CRYPTO_CURRENCIES = new Set(['BTC', 'ETH', 'SOL', 'DOGE']);
 
+  // "Revolut PLN", "Revolut EUR", "Revolut USD" share the "revolut" family.
+  function accountFamily(name: string): string {
+    return (name || '').trim().split(/\s+/)[0].toLocaleLowerCase('pl');
+  }
+
   let accountsByType = $derived.by(() => {
     const groups: Record<AccountType, typeof visibleAccounts> = {
       Bank: [],
@@ -261,6 +266,18 @@
         : (groups[acc.type] ? acc.type : 'Bank');
       groups[t].push(acc);
     }
+
+    // Keep same-family accounts adjacent (Revolut, Wise, Millennium, ...).
+    // Within a family the existing `order` still decides the sequence.
+    for (const key of Object.keys(groups) as AccountType[]) {
+      groups[key].sort((a, b) => {
+        const familyA = accountFamily(a.name);
+        const familyB = accountFamily(b.name);
+        if (familyA !== familyB) return familyA.localeCompare(familyB, 'pl');
+        return (a.order ?? 999) - (b.order ?? 999) || a.name.localeCompare(b.name, 'pl');
+      });
+    }
+
     return groups;
   });
 
