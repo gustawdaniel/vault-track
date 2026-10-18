@@ -245,6 +245,8 @@
     reconciliation.accountsWithMeta.filter((a) => showHiddenAccounts || !a.hidden)
   );
 
+  const CRYPTO_CURRENCIES = new Set(['BTC', 'ETH', 'SOL', 'DOGE']);
+
   let accountsByType = $derived.by(() => {
     const groups: Record<AccountType, typeof visibleAccounts> = {
       Bank: [],
@@ -253,7 +255,10 @@
       CCard: [],
     };
     for (const acc of visibleAccounts) {
-      const t = groups[acc.type] ? acc.type : 'Bank';
+      // Crypto accounts belong to investments even if an old backup says CCard.
+      const t: AccountType = CRYPTO_CURRENCIES.has(acc.currency)
+        ? 'Invst'
+        : (groups[acc.type] ? acc.type : 'Bank');
       groups[t].push(acc);
     }
     return groups;
