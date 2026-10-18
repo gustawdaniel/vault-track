@@ -43,6 +43,7 @@
   // Navigation: 'ledger' | 'analytics' | 'sync'
   let activeTab = $state<'ledger' | 'analytics' | 'sync'>('ledger');
   let theme = $state<'light' | 'dark'>('light');
+  let urlReady = $state(false);
 
   function toggleTheme() {
     theme = theme === 'light' ? 'dark' : 'light';
@@ -50,6 +51,66 @@
       document.documentElement.setAttribute('data-theme', theme);
     }
     localStorage.setItem('ocm-theme', theme);
+  }
+
+  // --- Deep links: /?tab=sync&account=...&currency=BTC ---
+  function readUrlState() {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+
+    const tab = params.get('tab');
+    activeTab = tab === 'ledger' || tab === 'analytics' || tab === 'sync'
+      ? tab
+      : 'ledger';
+
+    const currency = params.get('currency');
+    baseCurrency = currency && (ALL_CURRENCIES as readonly string[]).includes(currency)
+      ? (currency as Currency)
+      : 'PLN';
+
+    filter.accountId = params.get('account') || '';
+    filter.search = params.get('q') || '';
+    filter.category = params.get('category') || '';
+    filter.project = params.get('project') || '';
+    filter.dateFrom = params.get('from') || '';
+    filter.dateTo = params.get('to') || '';
+
+    const type = params.get('type');
+    filter.type =
+      type === 'expense' ||
+      type === 'income' ||
+      type === 'transfer' ||
+      type === 'uncategorized'
+        ? type
+        : 'all';
+  }
+
+  function writeUrlState() {
+    if (typeof window === 'undefined' || !urlReady) return;
+    const params = new URLSearchParams(window.location.search);
+    params.set('tab', activeTab);
+    if (filter.accountId) params.set('account', filter.accountId); else params.delete('account');
+    if (baseCurrency !== 'PLN') params.set('currency', baseCurrency); else params.delete('currency');
+    if (filter.search) params.set('q', filter.search); else params.delete('q');
+    if (filter.category) params.set('category', filter.category); else params.delete('category');
+    if (filter.project) params.set('project', filter.project); else params.delete('project');
+    if (filter.type !== 'all') params.set('type', filter.type); else params.delete('type');
+    if (filter.dateFrom) params.set('from', filter.dateFrom); else params.delete('from');
+    if (filter.dateTo) params.set('to', filter.dateTo); else params.delete('to');
+
+    const next = `${window.location.pathname}?${params.toString()}`;
+    const current = `${window.location.pathname}${window.location.search}`;
+    if (next !== current) {
+      history.replaceState({}, '', next);
+    }
+  }
+
+  function setActiveTab(tab: 'ledger' | 'analytics' | 'sync') {
+    activeTab = tab;
+    if (typeof window === 'undefined' || !urlReady) return;
+    const params = new URLSearchParams(window.location.search);
+    params.set('tab', tab);
+    history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
   }
 
   // Base currency & exchange rates (1 USD = X Currency)
@@ -86,6 +147,20 @@
   let visibleRowLimit = $state(250);
   let showHiddenAccounts = $state(false);
   let showAllReconciliationAlerts = $state(false);
+
+  $effect(() => {
+    // Track every value that belongs in the URL.
+    void activeTab;
+    void filter.accountId;
+    void filter.search;
+    void filter.category;
+    void filter.project;
+    void filter.type;
+    void filter.dateFrom;
+    void filter.dateTo;
+    void baseCurrency;
+    writeUrlState();
+  });
 
   // Slide-over Drawer State: null | 'tx' | 'account' | 'assert'
   let activeDrawer = $state<null | 'tx' | 'account' | 'assert'>(null);
@@ -198,6 +273,14 @@
       sum += convertCurrency(acc.balance, acc.currency, baseCurrency);
     }
     return roundCurrency(sum, baseCurrency);
+  });
+
+  let totalNetWorthPln = $derived.by(() => {
+    let sum = 0;
+    for (const acc of visibleAccounts) {
+      sum += convertCurrency(acc.balance, acc.currency, 'PLN');
+    }
+    return roundCurrency(sum, 'PLN');
   });
 
   let timelineItems = $derived(
@@ -396,6 +479,10 @@
     appState = initial.state;
     eventCount = initial.eventCount;
     loading = false;
+
+    readUrlState();
+    urlReady = true;
+    window.addEventListener('popstate', readUrlState);
 
     fetchLiveExchangeRates();
   });
@@ -833,6 +920,9 @@
       <div class="nw-value mono {totalNetWorth >= 0 ? 'pos' : 'neg'}">
         {formatMoney(totalNetWorth, baseCurrency)}
       </div>
+      {#if baseCurrency !== 'PLN'}
+        <div class="nw-subvalue mono">≈ {formatMoney(totalNetWorthPln, 'PLN')}</div>
+      {/if}
       <div class="nw-meta">
         <span>{visibleAccounts.length} kont</span>
         <span>·</span>
@@ -941,21 +1031,21 @@
       <nav class="nav-tabs">
         <button
           class="nav-tab {activeTab === 'ledger' ? 'active' : ''}"
-          onclick={() => (activeTab = 'ledger')}
+          onclick={() => setActiveTab('ledger')}
         >
-          Księga Główna (Ledger)
+          Księga główna
         </button>
         <button
           class="nav-tab {activeTab === 'analytics' ? 'active' : ''}"
-          onclick={() => (activeTab = 'analytics')}
+          onclick={() => setActiveTab('analytics')}
         >
-          Analityka & Kategoryzacja
+          Analityka
         </button>
         <button
           class="nav-tab {activeTab === 'sync' ? 'active' : ''}"
-          onclick={() => (activeTab = 'sync')}
+          onclick={() => setActiveTab('sync')}
         >
-          Sync, Konektory & MCP
+          Sync & MCP
           {#if derivedGroupId}
             <span class="sync-pill">ONLINE</span>
           {/if}
@@ -1877,7 +1967,7 @@
 <style>
   .app-shell {
     display: grid;
-    grid-template-columns: 290px 1fr;
+    grid-template-columns: 320px 1fr;
     height: 100vh;
     width: 100vw;
     overflow: hidden;
@@ -1940,7 +2030,7 @@
   }
 
   .net-worth-panel {
-    padding: 14px 16px;
+    padding: 16px 18px;
     background: var(--nw-gradient);
     border-bottom: 1px solid var(--border-subtle);
   }
@@ -1949,6 +2039,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 10px;
     margin-bottom: 4px;
   }
 
@@ -1964,14 +2055,22 @@
     border: 1px solid var(--border-strong);
     color: var(--text-primary);
     border-radius: 4px;
-    padding: 2px 6px;
+    padding: 3px 6px;
     font-size: 11px;
+    max-width: 92px;
   }
 
   .nw-value {
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 600;
     letter-spacing: -0.03em;
+    line-height: 1.2;
+  }
+
+  .nw-subvalue {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--text-secondary);
   }
 
   .nw-meta {
@@ -2118,19 +2217,24 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 20px;
+    padding: 12px 24px;
     background: var(--bg-surface);
     border-bottom: 1px solid var(--border-subtle);
-    gap: 16px;
+    gap: 20px;
+    flex-wrap: wrap;
+    row-gap: 10px;
   }
 
   .nav-tabs {
     display: flex;
-    gap: 6px;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
   }
 
   .nav-tab {
-    padding: 7px 14px;
+    padding: 8px 16px;
     border-radius: 6px;
     font-weight: 600;
     font-size: 13px;
@@ -2138,6 +2242,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    white-space: nowrap;
   }
   .nav-tab:hover {
     color: var(--text-primary);
@@ -2160,6 +2265,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
+    margin-left: auto;
   }
 
   .status-toast {
