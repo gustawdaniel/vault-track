@@ -6,6 +6,7 @@ import { db } from '../../db/client';
 import {
     createSession,
     EnableBankingAccount,
+    getAccountIban,
     getEnableBankingConfig,
     listAspsps,
     startAuthorization,
@@ -59,7 +60,7 @@ function chooseProviderAccount(
     const wanted = normalizeIban(vaulttrackDescription);
     if (wanted) {
         const match = accounts.find((account) => {
-            const candidate = normalizeIban(account.account_id);
+            const candidate = normalizeIban(getAccountIban(account));
             return candidate && (candidate.includes(wanted) || wanted.includes(candidate));
         });
         if (match) return match;
@@ -80,7 +81,7 @@ function parseAccounts(value: unknown): EnableBankingAccount[] {
 
 function successPage(accounts: EnableBankingAccount[]): string {
     const rows = accounts
-        .map((account) => `<li>${account.name || 'Account'} — ${account.account_id || account.uid} (${account.currency || '?'})</li>`)
+        .map((account) => `<li>${account.name || 'Account'} — ${getAccountIban(account) || account.uid} (${account.currency || '?'})</li>`)
         .join('');
 
     return `<!doctype html>
@@ -430,7 +431,7 @@ export async function enableBankingRoutes(fastify: FastifyInstance) {
                     accounts: parseAccounts(row.provider_accounts_json).map((account) => ({
                         uid: account.uid,
                         name: account.name || null,
-                        iban: account.account_id || null,
+                        iban: getAccountIban(account) || null,
                         currency: account.currency || null,
                     })),
                     createdAt: Number(row.created_at),

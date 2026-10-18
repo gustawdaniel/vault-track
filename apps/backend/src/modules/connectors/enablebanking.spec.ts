@@ -93,7 +93,24 @@ describe('Enable Banking adapter', () => {
             { balance_type: 'interimAvailable', balance_amount: { amount: '20.50', currency: 'PLN' }, reference_date: '2026-10-18' },
         ]);
 
-        expect(balance).toEqual({ value: 20.5, date: '2026-10-18', currency: 'PLN' });
+        expect(balance).toEqual({
+            value: 10,
+            date: '2026-10-17',
+            currency: 'PLN',
+            type: 'closingBooked',
+        });
+
+        // Millennium returns Berlin Group codes; booked must win over available.
+        expect(pickBalance([
+            { balance_type: 'ITAV', balance_amount: { amount: '1966.63', currency: 'PLN' } },
+            { balance_type: 'ITBD', balance_amount: { amount: '-6033.37', currency: 'PLN' }, reference_date: '2026-10-18' },
+        ])).toEqual({
+            value: -6033.37,
+            date: '2026-10-18',
+            currency: 'PLN',
+            type: 'ITBD',
+        });
+
         expect(sourceSlug('Bank Millennium')).toBe('enablebanking:bank-millennium');
     });
 });

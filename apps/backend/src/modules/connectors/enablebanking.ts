@@ -25,13 +25,25 @@ export interface EnableBankingAspsp {
 
 export interface EnableBankingAccount {
     uid: string;
-    account_id?: string;
+    account_id?: string | { iban?: string; other?: { identification?: string } | null } | null;
     name?: string;
     currency?: string;
     cash_account_type?: string;
     product?: string;
     details?: string;
     [key: string]: unknown;
+}
+
+/**
+ * Enable Banking returns `account_id` either as a string or as an
+ * AccountIdentification object ({ iban, other }). Flatten it for display
+ * and for IBAN matching against VaultTrack accounts.
+ */
+export function getAccountIban(account: any): string {
+    const identification = account?.account_id;
+    if (!identification) return '';
+    if (typeof identification === 'string') return identification;
+    return identification.iban || identification.other?.identification || '';
 }
 
 export interface EnableBankingSession {
@@ -269,14 +281,22 @@ export function mapEnableBankingTransaction(tx: any): ConnectorTransactionInput 
     };
 }
 
-export function pickBalance(balances: any[]): { value: number; date: string; currency?: string } | null {
+export function pickBalance(balances: any[]): {
+    value: number;
+    date: string;
+    currency?: string;
+    type: string;
+} | null {
+    // Prefer booked balances for reconciliation; available balances include
+    // card holds and other reservations. Both short (Berlin Group) and long
+    // names are accepted because ASPSPs return different conventions.
     const preferred = [
-        'interimAvailable',
-        'closingBooked',
-        'expected',
-        'openingBooked',
-        'interimBooked',
-        'forwardAvailable',
+        'CLBD', 'closingBooked',
+        'ITBD', 'interimBooked',
+        'OPBD', 'openingBooked',
+        'ITAV', 'interimAvailable',
+        'FWAV', 'forwardAvailable',
+        'XPCD', 'expected',
     ];
 
     const sorted = [...balances].sort((a, b) => {
@@ -297,6 +317,7 @@ export function pickBalance(balances: any[]): { value: number; date: string; cur
                 || new Date().toISOString().slice(0, 10),
             ).slice(0, 10),
             currency: balance?.balance_amount?.currency,
+            type: String(balance?.balance_type || 'unknown'),
         };
     }
 
@@ -336,6 +357,14 @@ export async function syncEnableBankingLink(
         .map(mapEnableBankingTransaction)
         .filter((tx): tx is ConnectorTransactionInput => tx !== null);
 
+    const dates = mapped
+        .map((tx) => tx.date)
+        .filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date))
+        .sort();
+
+    const actualFrom = dates[0];
+    const actualTo = dates[dates.length - 1];
+
     const ingest = await ingestTransactions(
         db,
         input.groupId,
@@ -361,6 +390,12 @@ export async function syncEnableBankingLink(
 
     return {
         ...ingest,
+        requestedFrom: input.dateFrom ?? null,
+        actualFrom: actualFrom ?? null,
+        actualTo: actualTo ?? null,
+        historyGap: input.dateFrom && actualFrom && actualFrom > input.dateFrom
+            ? { requestedFrom: input.dateFrom, actualFrom }
+            : null,
         balance,
         assertion,
     };
