@@ -316,6 +316,46 @@ export async function clearAllLocalData(): Promise<AppState> {
   return createEmptyState();
 }
 
+/**
+ * Fast first sync: the backend materializes every transaction into SQL tables,
+ * so a fresh browser can load the whole state in one request instead of pulling
+ * the entire event log page by page.
+ */
+export async function bootstrapFromSnapshot(
+  backendUrl: string,
+  groupId: string,
+): Promise<{ state: AppState; timestamp: number } | null> {
+  const db = await getDB();
+  const response = await fetch(`${backendUrl}/sync/snapshot`, {
+    headers: { 'X-Sync-Group-ID': groupId },
+  });
+  if (!response.ok) return null;
+
+  const snapshot = await response.json();
+  const state: AppState = {
+    accounts: Object.fromEntries(
+      ((snapshot.accounts || []) as Account[]).map((item) => [item.id, item]),
+    ),
+    transactions: Object.fromEntries(
+      ((snapshot.transactions || []) as Transaction[]).map((item) => [item.id, item]),
+    ),
+    categories: Object.fromEntries(
+      ((snapshot.categories || []) as PersistedCategory[]).map((item) => [item.id, item]),
+    ),
+    projects: Object.fromEntries(
+      ((snapshot.projects || []) as PersistedProject[]).map((item) => [item.id, item]),
+    ),
+    asserts: Object.fromEntries(
+      ((snapshot.asserts || []) as Assert[]).map((item) => [item.id, item]),
+    ),
+  };
+
+  const timestamp = Number(snapshot.timestamp || Date.now());
+  await saveSnapshotCache(state);
+  await db.put('meta', { key: 'lastServerTimestamp', value: timestamp });
+  return { state, timestamp };
+}
+
 export async function syncWithBackend(
   backendUrl: string,
   groupId: string,
@@ -327,10 +367,22 @@ export async function syncWithBackend(
   const lastServerMeta = await db.get('meta', 'lastServerTimestamp');
 
   const lastPushed = Number(lastPushedMeta?.value || 0);
-  const lastServer = Number(lastServerMeta?.value || 0);
+  let lastServer = Number(lastServerMeta?.value || 0);
+  let pulled = 0;
 
   const allLocalEvents = (await db.getAll('events')) as AppEvent[];
   const toPush = allLocalEvents.filter((e) => e.timestamp > lastPushed);
+
+  // Fresh device: bootstrap from the materialized SQL snapshot in one request
+  // instead of paging through the entire event log.
+  if (lastServer === 0 && allLocalEvents.length === 0) {
+    const boot = await bootstrapFromSnapshot(backendUrl, groupId);
+    if (boot) {
+      currentState = boot.state;
+      lastServer = boot.timestamp;
+      pulled += Object.keys(boot.state.transactions).length;
+    }
+  }
 
   let pushed = 0;
   if (toPush.length > 0) {
@@ -423,11 +475,12 @@ export async function syncWithBackend(
     await db.put('meta', { key: 'lastServerTimestamp', value: maxRemoteTs });
   }
 
+  pulled += newRemoteEvents.length;
   const totalEvents = await db.count('events');
   return {
     state: currentState,
     pushed,
-    pulled: newRemoteEvents.length,
+    pulled,
     eventCount: totalEvents,
   };
 }

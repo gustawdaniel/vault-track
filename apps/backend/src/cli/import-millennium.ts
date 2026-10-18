@@ -16,6 +16,7 @@
  *   --mnemonic "<12 words>"  Derive the group id from the sync mnemonic
  *   --api <url>          Backend base URL (default http://localhost:4500)
  *   --since <YYYY-MM-DD> Import from this date (default: day after last known tx)
+ *   --until <YYYY-MM-DD> Import up to this date (inclusive)
  *   --backfill           Ignore the default since cutoff
  *   --no-match-existing  Do not skip rows matching existing date+amount
  *   --dry-run            Parse and report without sending anything
@@ -36,6 +37,7 @@ interface Args {
     mnemonic?: string;
     api: string;
     since?: string;
+    until?: string;
     backfill: boolean;
     matchExisting: boolean;
     dryRun: boolean;
@@ -75,6 +77,9 @@ function parseArgs(argv: string[]): Args {
                 break;
             case '--since':
                 args.since = argv[++i];
+                break;
+            case '--until':
+                args.until = argv[++i];
                 break;
             case '--backfill':
                 args.backfill = true;
@@ -184,9 +189,9 @@ async function main() {
         console.error(`[millennium] no --since given, starting after last known transaction: ${since}`);
     }
 
-    let candidates = since
-        ? parsed.filter((tx) => tx.date >= since!)
-        : parsed;
+    let candidates = parsed.filter((tx) =>
+        (!since || tx.date >= since) && (!args.until || tx.date <= args.until),
+    );
 
     const existingCounts = new Map<string, number>();
     for (const tx of existing) {
@@ -212,7 +217,7 @@ async function main() {
 
     candidates.sort((a, b) => a.date.localeCompare(b.date));
     console.error(
-        `[millennium] parsed=${parsed.length} since=${since || 'beginning'} matched-existing=${matchedExisting} to-import=${candidates.length}`,
+        `[millennium] parsed=${parsed.length} since=${since || 'beginning'} until=${args.until || 'end'} matched-existing=${matchedExisting} to-import=${candidates.length}`,
     );
 
     const summary: any = {
@@ -220,6 +225,7 @@ async function main() {
         accountId: args.accountId,
         parsed: parsed.length,
         since: since || null,
+        until: args.until || null,
         matchedExisting,
         toImport: candidates.length,
         imported: 0,

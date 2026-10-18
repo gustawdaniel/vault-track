@@ -393,14 +393,9 @@
     }
 
     const initial = await loadInitialState();
-    if (Object.keys(initial.state.accounts).length === 0) {
-      // Auto-load the latest backup-1792270083.json on first open so all 6,471 transactions are ready immediately
-      await loadLatestBundledBackup();
-    } else {
-      appState = initial.state;
-      eventCount = initial.eventCount;
-      loading = false;
-    }
+    appState = initial.state;
+    eventCount = initial.eventCount;
+    loading = false;
 
     fetchLiveExchangeRates();
   });
