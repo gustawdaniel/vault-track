@@ -44,6 +44,7 @@
   let activeTab = $state<'ledger' | 'analytics' | 'sync'>('ledger');
   let theme = $state<'light' | 'dark'>('light');
   let urlReady = $state(false);
+  let pendingTxId = $state<string | null>(null);
 
   function toggleTheme() {
     theme = theme === 'light' ? 'dark' : 'light';
@@ -83,6 +84,16 @@
       type === 'uncategorized'
         ? type
         : 'all';
+
+    const txId = params.get('tx');
+    pendingTxId = txId;
+    if (txId && appState.transactions[txId]) {
+      openEditTransactionDrawer(appState.transactions[txId]);
+      pendingTxId = null;
+    } else if (!txId && activeDrawer === 'tx') {
+      activeDrawer = null;
+      editingTxId = null;
+    }
   }
 
   function writeUrlState() {
@@ -97,6 +108,7 @@
     if (filter.type !== 'all') params.set('type', filter.type); else params.delete('type');
     if (filter.dateFrom) params.set('from', filter.dateFrom); else params.delete('from');
     if (filter.dateTo) params.set('to', filter.dateTo); else params.delete('to');
+    if (activeDrawer === 'tx' && editingTxId) params.set('tx', editingTxId); else params.delete('tx');
 
     const next = `${window.location.pathname}?${params.toString()}`;
     const current = `${window.location.pathname}${window.location.search}`;
@@ -159,6 +171,8 @@
     void filter.dateFrom;
     void filter.dateTo;
     void baseCurrency;
+    void activeDrawer;
+    void editingTxId;
     writeUrlState();
   });
 
@@ -849,6 +863,10 @@
       const res = await syncWithBackend(backendUrl, derivedGroupId, appState, false);
       appState = { ...res.state };
       eventCount = res.eventCount;
+      if (pendingTxId && appState.transactions[pendingTxId]) {
+        openEditTransactionDrawer(appState.transactions[pendingTxId]);
+        pendingTxId = null;
+      }
       lastSyncText = new Date().toLocaleTimeString('pl-PL');
       addSyncLog(`Sync OK: wysłano ${res.pushed}, pobrano ${res.pulled} zdarzeń.`);
       notify(`Zsynchronizowano (↑${res.pushed} ↓${res.pulled})`);
