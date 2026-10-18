@@ -6,6 +6,7 @@ import { db, initDB } from '../../db/client';
 import {
     buildEventMaterializeStatements,
     executeInChunks,
+    filterNewEvents,
     getMaterializedSnapshot,
     importBackupToGroup,
 } from './materializer';
@@ -167,10 +168,14 @@ export async function syncRoutes(fastify: FastifyInstance) {
             }
 
             try {
-                const statements = buildEventMaterializeStatements(groupId, events);
+                const freshEvents = await filterNewEvents(db, groupId, events as any);
+                if (freshEvents.length === 0) {
+                    return { success: true, count: 0 };
+                }
+                const statements = buildEventMaterializeStatements(groupId, freshEvents);
                 await executeInChunks(db, statements);
                 syncEventEmitter.emit(`push:${groupId}`);
-                return { success: true, count: events.length };
+                return { success: true, count: freshEvents.length };
             } catch (e: any) {
                 console.error('Sync push error:', e);
                 return reply.code(500).send({ error: 'Database error: ' + e.message });

@@ -369,6 +369,35 @@ function hashEntityId(id: string): string {
 }
 
 /**
+ * Only materialize events that are not already in the log. Replaying an old
+ * event must not undo a later delete (e.g. a stale browser push resurrecting a
+ * clearing row).
+ */
+export async function filterNewEvents(
+    db: Client,
+    groupId: string,
+    events: ParsedSyncEvent[],
+): Promise<ParsedSyncEvent[]> {
+    if (events.length === 0) return [];
+
+    const existing = new Set<string>();
+    for (let i = 0; i < events.length; i += 400) {
+        const chunk = events.slice(i, i + 400);
+        const placeholders = chunk.map(() => '?').join(',');
+        const result = await db.execute({
+            sql: `SELECT event_id FROM events
+                  WHERE group_id = ? AND event_id IN (${placeholders})`,
+            args: [groupId, ...chunk.map((event) => event.eventId)],
+        });
+        for (const row of result.rows) {
+            existing.add(String((row as any).event_id));
+        }
+    }
+
+    return events.filter((event) => !existing.has(event.eventId));
+}
+
+/**
  * Imports a full JSON backup ({ accounts, transactions, categories, projects, asserts })
  * into both the `events` log and the materialized relational tables for `groupId`.
  */
@@ -443,8 +472,9 @@ export async function importBackupToGroup(
         });
     }
 
-    const statements = buildEventMaterializeStatements(groupId, events);
+    const freshEvents = await filterNewEvents(db, groupId, events);
+    const statements = buildEventMaterializeStatements(groupId, freshEvents);
     await executeInChunks(db, statements);
 
-    return { eventsCount: events.length };
+    return { eventsCount: freshEvents.length };
 }
