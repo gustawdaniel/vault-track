@@ -13,9 +13,9 @@ export interface MillenniumParseResult {
 
 /**
  * Minimal RFC4180 CSV parser: quoted fields, escaped quotes, CRLF and newlines
- * inside quoted values. Millennium exports use a UTF-8 BOM and comma delimiter.
+ * inside quoted values. Millennium/Revolut use a comma; mBank uses a semicolon.
  */
-export function parseCsv(text: string): string[][] {
+export function parseCsv(text: string, delimiter = ','): string[][] {
     const rows: string[][] = [];
     let row: string[] = [];
     let field = '';
@@ -40,7 +40,7 @@ export function parseCsv(text: string): string[][] {
 
         if (ch === '"') {
             inQuotes = true;
-        } else if (ch === ',') {
+        } else if (ch === delimiter) {
             row.push(field);
             field = '';
         } else if (ch === '\n') {

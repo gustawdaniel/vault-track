@@ -15,6 +15,7 @@ const ConnectorTransactionSchema = z.object({
     amount: z.number(),
     payee: z.string().optional(),
     memo: z.string().optional(),
+    category: z.string().optional(),
     currency: z.string().optional(),
     balance: z.number().optional(),
     raw: z.any().optional(),

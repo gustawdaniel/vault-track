@@ -9,6 +9,7 @@ export interface ConnectorTransactionInput {
     amount: number;
     payee?: string;
     memo?: string;
+    category?: string;
     currency?: string;
     balance?: number;
     clearedStatus?: '' | '*' | 'X' | '?';
@@ -101,7 +102,7 @@ function buildTransactionEvent(
             account: account.name,
             amount: tx.amount,
             date: tx.date,
-            category: '',
+            category: tx.category ?? '',
             payee: tx.payee ?? '',
             memo: tx.memo ?? '',
             clearedStatus: tx.clearedStatus ?? 'X',
