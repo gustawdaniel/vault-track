@@ -247,10 +247,10 @@ async function main() {
     }
 
     if (args.assertLatest) {
-        const latest = parsed
-            .filter((tx) => tx.balance !== undefined)
-            .sort((a, b) => a.date.localeCompare(b.date))
-            .pop();
+        // mBank's "Lista operacji" is newest-first. The first row with a
+        // running balance is the final balance, even if several rows share
+        // the last date.
+        const latest = parsed.find((tx) => tx.balance !== undefined);
         if (latest) {
             summary.assert = await apiRequest(args, 'POST', '/api/connectors/assert', {
                 source: 'mbank-csv',
