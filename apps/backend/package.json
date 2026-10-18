@@ -15,6 +15,7 @@
         "lint": "eslint . --fix",
         "test": "vitest run",
         "import:millennium": "tsx src/cli/import-millennium.ts",
+        "import:revolut": "tsx src/cli/import-revolut.ts",
         "query": "tsx query.ts"
     },
     "dependencies": {
