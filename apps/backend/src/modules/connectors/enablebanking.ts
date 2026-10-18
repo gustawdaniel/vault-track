@@ -162,7 +162,7 @@ export async function startAuthorization(
     input: StartAuthorizationInput,
 ): Promise<{ url: string }> {
     const validUntil = new Date(
-        Date.now() + (input.validUntilDays ?? 10) * 24 * 60 * 60 * 1000,
+        Date.now() + (input.validUntilDays ?? 180) * 24 * 60 * 60 * 1000,
     ).toISOString();
 
     return ebRequest<{ url: string }>(config, '/auth', {

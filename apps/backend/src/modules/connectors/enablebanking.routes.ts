@@ -132,6 +132,7 @@ export async function enableBankingRoutes(fastify: FastifyInstance) {
                     vaulttrackAccountId: z.string().min(1),
                     redirectUrl: z.string().url().optional(),
                     psuType: z.enum(['personal', 'business']).optional(),
+                    validUntilDays: z.number().int().min(1).max(180).optional(),
                 }),
                 response: {
                     200: z.object({ linkId: z.string(), state: z.string(), url: z.string() }),
@@ -181,6 +182,7 @@ export async function enableBankingRoutes(fastify: FastifyInstance) {
                     state,
                     redirectUrl,
                     psuType: body.psuType,
+                    validUntilDays: body.validUntilDays,
                 });
 
                 return { linkId: id, state, url: authorization.url };
