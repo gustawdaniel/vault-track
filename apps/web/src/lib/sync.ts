@@ -356,6 +356,27 @@ export async function bootstrapFromSnapshot(
   return { state, timestamp };
 }
 
+/** Page size of `/sync/pull` on the backend. */
+const PULL_PAGE = 2000;
+
+function parseRemoteEvent(raw: any): AppEvent | null {
+  if (typeof raw.payload !== 'string' || !raw.payload.trim().startsWith('{')) return null;
+  try {
+    const parsed = JSON.parse(raw.payload);
+    if (!parsed || !parsed.type || parsed.payload === undefined) return null;
+    return {
+      eventId: raw.eventId,
+      deviceId: raw.deviceId || parsed.deviceId,
+      counter: Number(raw.counter ?? parsed.counter ?? 0),
+      timestamp: Number(raw.timestamp ?? parsed.timestamp ?? Date.now()),
+      type: parsed.type,
+      payload: parsed.payload,
+    };
+  } catch {
+    return null; // malformed
+  }
+}
+
 export async function syncWithBackend(
   backendUrl: string,
   groupId: string,
@@ -421,44 +442,38 @@ export async function syncWithBackend(
     }
   }
 
-  // Pull new events from backend
-  const waitParam = wait ? '&wait=true' : '';
-  const pullRes = await fetch(`${backendUrl}/sync/pull?since=${lastServer}${waitParam}`, {
-    headers: { 'X-Sync-Group-ID': groupId },
-  });
-
-  if (!pullRes.ok) {
-    throw new Error(`Sync pull failed: ${pullRes.status} ${pullRes.statusText}`);
-  }
-
-  const pullData = (await pullRes.json()) as { events: any[] };
+  // Pull new events from backend. The server returns at most PULL_PAGE events per request, so keep pulling until
+  // a page comes back short; `since` is inclusive, so events already seen are skipped by id.
   const localIds = new Set(allLocalEvents.map((e) => e.eventId));
   const newRemoteEvents: AppEvent[] = [];
   let maxRemoteTs = lastServer;
 
-  for (const raw of pullData.events || []) {
-    if (typeof raw.timestamp === 'number' && raw.timestamp > maxRemoteTs) {
-      maxRemoteTs = raw.timestamp;
-    }
-    if (localIds.has(raw.eventId)) continue;
+  for (let page = 0; ; page++) {
+    const since = maxRemoteTs;
+    const waitParam = wait && page === 0 ? '&wait=true' : '';
+    const pullRes = await fetch(`${backendUrl}/sync/pull?since=${since}${waitParam}`, {
+      headers: { 'X-Sync-Group-ID': groupId },
+    });
 
-    if (typeof raw.payload === 'string' && raw.payload.trim().startsWith('{')) {
-      try {
-        const parsed = JSON.parse(raw.payload);
-        if (parsed && parsed.type && parsed.payload !== undefined) {
-          newRemoteEvents.push({
-            eventId: raw.eventId,
-            deviceId: raw.deviceId || parsed.deviceId,
-            counter: Number(raw.counter ?? parsed.counter ?? 0),
-            timestamp: Number(raw.timestamp ?? parsed.timestamp ?? Date.now()),
-            type: parsed.type,
-            payload: parsed.payload,
-          });
-        }
-      } catch {
-        // Ignore malformed
-      }
+    if (!pullRes.ok) {
+      throw new Error(`Sync pull failed: ${pullRes.status} ${pullRes.statusText}`);
     }
+
+    const pullData = (await pullRes.json()) as { events: any[] };
+    const events = pullData.events || [];
+    for (const raw of events) {
+      if (typeof raw.timestamp === 'number' && raw.timestamp > maxRemoteTs) {
+        maxRemoteTs = raw.timestamp;
+      }
+      const ev = parseRemoteEvent(raw);
+      if (!ev || localIds.has(ev.eventId)) continue;
+      localIds.add(ev.eventId);
+      newRemoteEvents.push(ev);
+    }
+
+    // A short page is the last one; a full page that did not move the timestamp (more than a page of events with
+    // one timestamp) cannot be paged by `since`, so stop instead of asking for the same page forever.
+    if (events.length < PULL_PAGE || maxRemoteTs === since) break;
   }
 
   if (newRemoteEvents.length > 0) {
