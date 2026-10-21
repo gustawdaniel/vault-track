@@ -133,7 +133,11 @@ export function parseMillenniumCsv(text: string): MillenniumParseResult {
         const rowIban = cell(row, idx.iban);
         if (rowIban) iban = rowIban;
 
-        const date = normalizeDate(cell(row, idx.date));
+        // Booking date, like the bank statement shows it, so balances and month-end asserts match the statements;
+        // the card transaction date is kept in raw.
+        const transactionDate = normalizeDate(cell(row, idx.date));
+        const settlementDate = normalizeDate(cell(row, idx.settlementDate));
+        const date = settlementDate || transactionDate;
         if (!date) {
             skipped++;
             continue;
@@ -169,7 +173,8 @@ export function parseMillenniumCsv(text: string): MillenniumParseResult {
             balance: idx.balance >= 0 ? parseAmount(cell(row, idx.balance)) : undefined,
             raw: {
                 type: cell(row, idx.type) || undefined,
-                settlementDate: normalizeDate(cell(row, idx.settlementDate)) || undefined,
+                transactionDate: transactionDate || undefined,
+                settlementDate: settlementDate || undefined,
                 counterpartyAccount: cell(row, idx.counterpartyAccount) || undefined,
                 iban: rowIban || undefined,
             },
