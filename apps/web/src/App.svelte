@@ -52,6 +52,9 @@
   let eventCount = $state(0);
   let loading = $state(true);
   let statusNotice = $state<string | null>(null);
+  // Errors stay until dismissed so they can be read and copied.
+  let errorNotices = $state<Array<{ id: number; message: string; time: string; count: number }>>([]);
+  let errorSeq = 0;
 
   // Navigation: 'ledger' | 'analytics' | 'sync'
   let activeTab = $state<'ledger' | 'analytics' | 'sync'>('ledger');
@@ -553,6 +556,32 @@
     }, 3800);
   }
 
+  function notifyError(msg: string) {
+    console.error(msg);
+    const existing = errorNotices.find((e) => e.message === msg);
+    const time = new Date().toLocaleTimeString('pl-PL');
+    if (existing) {
+      existing.count += 1;
+      existing.time = time;
+      return;
+    }
+    errorNotices = [...errorNotices, { id: ++errorSeq, message: msg, time, count: 1 }];
+  }
+
+  function dismissError(id: number) {
+    errorNotices = errorNotices.filter((e) => e.id !== id);
+  }
+
+  async function copyError(message: string) {
+    try {
+      await navigator.clipboard.writeText(message);
+      notify('Skopiowano treść błędu');
+    } catch {
+      // clipboard blocked (e.g. no HTTPS): the text is selectable as a fallback
+      notify('Zaznacz tekst błędu i skopiuj ręcznie');
+    }
+  }
+
   function addSyncLog(msg: string) {
     const ts = new Date().toLocaleTimeString('pl-PL');
     syncLogs = [`[${ts}] ${msg}`, ...syncLogs.slice(0, 49)];
@@ -598,7 +627,7 @@
       }
     } catch (e: any) {
       addSyncLog(`Błąd przeładowania: ${e.message}`);
-      notify('Błąd przeładowania danych');
+      notifyError('Błąd przeładowania danych');
     } finally {
       isSyncing = false;
     }
@@ -820,10 +849,10 @@
             : `Odczytano ${lines.length} pozycji — różnica ${rest.toFixed(2)} do wyjaśnienia`
         );
       } else {
-        notify('Nie znaleziono pozycji na paragonie');
+        notifyError('Nie znaleziono pozycji na paragonie');
       }
     } catch (err: any) {
-      notify(`Błąd skanowania: ${err?.message || err}`);
+      notifyError(`Błąd skanowania: ${err?.message || err}`);
     } finally {
       isScanningReceipt = false;
     }
@@ -844,13 +873,13 @@
     e.preventDefault();
     const sourceAcc = appState.accounts[txFormAccountId];
     if (!sourceAcc) {
-      notify('Wybierz konto źródłowe');
+      notifyError('Wybierz konto źródłowe');
       return;
     }
 
     if (txFormMode === 'split') {
       if (!isSplitValid(txFormAmount, txFormSplits)) {
-        notify('Suma podziału musi być równa kwocie całkowitej');
+        notifyError('Suma podziału musi być równa kwocie całkowitej');
         return;
       }
       const events = buildSplitEvents({
@@ -885,7 +914,7 @@
     if (txFormMode === 'transfer') {
       const targetAcc = appState.accounts[txFormTargetAccountId];
       if (!targetAcc) {
-        notify('Wybierz konto docelowe transferu');
+        notifyError('Wybierz konto docelowe transferu');
         return;
       }
       composedCategory = `[${targetAcc.name}]`;
@@ -1185,7 +1214,7 @@
       await refreshConnectorStatus();
     } catch (e: any) {
       addSyncLog(`Błąd syncu: ${e.message}`);
-      notify(`Błąd syncu: ${e.message}`);
+      notifyError(`Błąd syncu: ${e.message}`);
     } finally {
       isSyncing = false;
     }
@@ -1213,7 +1242,7 @@
       notify(`Zaimportowano ${Object.keys(appState.transactions).length} transakcji`);
       triggerBackgroundSync();
     } catch (e: any) {
-      notify(`Błąd importu JSON: ${e.message}`);
+      notifyError(`Błąd importu JSON: ${e.message}`);
     }
   }
 
@@ -1240,12 +1269,35 @@
       await navigator.clipboard.writeText(text);
       notify(`Skopiowano ${label}`);
     } catch {
-      notify('Nie udało się skopiować');
+      notifyError('Nie udało się skopiować');
     }
   }
 </script>
 
 <div class="app-shell">
+  {#if errorNotices.length > 0}
+    <div class="error-stack" role="alert" aria-live="assertive">
+      {#each errorNotices as err (err.id)}
+        <div class="error-notice">
+          <div class="error-text">
+            <span class="error-meta mono">
+              {err.time}{err.count > 1 ? ` · ×${err.count}` : ''}
+            </span>
+            <span class="error-message">{err.message}</span>
+          </div>
+          <div class="error-actions">
+            <button class="btn-xs" onclick={() => copyError(err.message)}>Kopiuj</button>
+            <button class="btn-xs" title="Zamknij" onclick={() => dismissError(err.id)}>✕</button>
+          </div>
+        </div>
+      {/each}
+      {#if errorNotices.length > 1}
+        <button class="btn-xs error-clear" onclick={() => (errorNotices = [])}>
+          Zamknij wszystkie ({errorNotices.length})
+        </button>
+      {/if}
+    </div>
+  {/if}
   {#if mobileSidebarOpen}
     <div
       class="sidebar-scrim"
@@ -3752,6 +3804,58 @@
 
   .extra-filters {
     display: contents;
+  }
+
+  .error-stack {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    width: min(520px, calc(100vw - 24px));
+    max-height: 50vh;
+    overflow-y: auto;
+    z-index: 80;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .error-notice {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--expense);
+    background: color-mix(in srgb, var(--expense) 12%, var(--bg-surface));
+    color: var(--expense);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(8px);
+  }
+  .error-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .error-meta {
+    font-size: 11px;
+    opacity: 0.8;
+  }
+  .error-message {
+    font-size: 13px;
+    font-weight: 600;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    user-select: text;
+    -webkit-user-select: text;
+  }
+  .error-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .error-clear {
+    align-self: flex-end;
   }
 
   .mobile-only,

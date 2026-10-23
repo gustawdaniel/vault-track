@@ -35,6 +35,21 @@ interface ReceiptAnalysisResult {
     debug?: string;
 }
 
+// ~1 grosz per receipt (measured 2026-10: ~1450 input / ~780 output tokens at
+// $0.30 / $2.50 per 1M). Override with GEMINI_MODEL.
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash-lite';
+// Used when the configured model has been retired (404), so scanning keeps working.
+const FALLBACK_GEMINI_MODELS = [DEFAULT_GEMINI_MODEL, 'gemini-flash-lite-latest'];
+
+async function callGemini(model: string, apiKey: string, payload: unknown): Promise<Response> {
+    return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: 'POST',
+        // header instead of ?key= so the key never ends up in URL logs
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+        body: JSON.stringify(payload),
+    });
+}
+
 export async function receiptsRoutes(fastify: FastifyInstance) {
     const app = fastify.withTypeProvider<ZodTypeProvider>();
 
@@ -87,11 +102,7 @@ export async function receiptsRoutes(fastify: FastifyInstance) {
 
             try {
                 // Construct Gemini API Payload (using fetch)
-                const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-
-                console.log(`Using model: ${model}`);
-
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+                const configuredModel = process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
 
                 const promptText = `You are an expert receipt analyzer. Extract data from the receipt image into a JSON format.
 
@@ -138,11 +149,15 @@ Ensure the output is valid JSON matching this structure:
                     }
                 };
 
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
+                let model = configuredModel;
+                let response = await callGemini(model, apiKey, payload);
+                for (const fallback of FALLBACK_GEMINI_MODELS) {
+                    if (response.status !== 404 || fallback === model) continue;
+                    req.log.warn({ model, fallback }, 'Gemini model unavailable, falling back');
+                    model = fallback;
+                    response = await callGemini(model, apiKey, payload);
+                }
+                console.log(`Using model: ${model}`);
 
                 if (!response.ok) {
                     const errText = await response.text();
@@ -151,6 +166,7 @@ Ensure the output is valid JSON matching this structure:
                 }
 
                 const jsonResponse: any = await response.json();
+                req.log.info({ model, usage: jsonResponse.usageMetadata }, 'Gemini receipt usage');
 
                 // Deduct credit only after success
                 await db.execute({
