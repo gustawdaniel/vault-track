@@ -20,7 +20,7 @@
     "better-sqlite3": "^12.2.0",
     "docus": "5.6.1",
     "eslint": "^9.39.2",
-    "nuxt": "^4.1.2",
+    "nuxt": "^4.4.7",
     "yjs": "^13.6.28",
     "zod": "3.24.1",
     "zod-to-json-schema": "3.24.3"
