@@ -12,7 +12,7 @@ export default defineAppConfig({
         fluid: true
     },
     socials: {
-        github: 'gustawdaniel/vault-track',
+        github: 'https://github.com/gustawdaniel/vault-track',
     },
     github: {
         url: 'https://github.com/gustawdaniel/vault-track',
