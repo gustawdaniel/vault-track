@@ -41,6 +41,7 @@
   import {
     buildSplitEvents,
     decodeSplitId,
+    groupSplitRows,
     isSplitValid,
     splitRemaining,
     type SplitLine,
@@ -417,7 +418,18 @@
     )
   );
 
-  let visibleTimeline = $derived(timelineItems.slice(0, visibleRowLimit));
+  let splitGroupSizes = $derived.by(() => {
+    const sizes = new Map<string, number>();
+    for (const t of transactionsList) {
+      if (t.splitId) sizes.set(t.splitId, (sizes.get(t.splitId) ?? 0) + 1);
+    }
+    return sizes;
+  });
+
+  // One row per split group (Cash Droid style); summaries still use every member.
+  let ledgerRows = $derived(groupSplitRows(timelineItems, splitGroupSizes));
+
+  let visibleTimeline = $derived(ledgerRows.slice(0, visibleRowLimit));
 
   let filteredSummary = $derived.by(() => {
     let income = 0;
@@ -442,6 +454,8 @@
         else expense += val;
       }
     }
+    // a split group counts as one operation, as it is shown as one row
+    txCount -= timelineItems.length - ledgerRows.length;
     return {
       txCount,
       currency: summaryCurrency,
@@ -1675,8 +1689,44 @@
             </tr>
           </thead>
           <tbody>
-            {#each visibleTimeline as item (item.kind === 'transaction' ? item.tx.id : `assert-${item.assertion.id}`)}
-              {#if item.kind === 'assert'}
+            {#each visibleTimeline as item (item.kind === 'transaction' ? item.tx.id : item.kind === 'split' ? `split-${item.tx.accountId}-${item.splitId}` : `assert-${item.assertion.id}`)}
+              {#if item.kind === 'split'}
+                <tr class="tx-row split-row" onclick={() => openEditTransactionDrawer(item.tx)}>
+                  <td class="mono col-date">{item.date.split('T')[0]}</td>
+                  <td class="col-account">
+                    <span class="account-pill">{item.tx.account}</span>
+                  </td>
+                  <td class="col-payee">
+                    <div class="payee-main">{item.payee || '—'}</div>
+                    <div class="payee-memo">
+                      {item.members
+                        .map((m) => m.payee)
+                        .filter(Boolean)
+                        .slice(0, 4)
+                        .join(', ')}{item.members.length > 4 ? '…' : ''}
+                    </div>
+                  </td>
+                  <td class="col-category">
+                    <span class="cat-badge split">
+                      ✂ Podział · {item.members.length === item.totalCount
+                        ? `${item.totalCount} poz.`
+                        : `${item.members.length} z ${item.totalCount} poz.`}
+                    </span>
+                    {#each item.categories.slice(0, 3) as cat}
+                      <span class="proj-badge">{cat}</span>
+                    {/each}
+                    {#if item.categories.length > 3}
+                      <span class="proj-badge">+{item.categories.length - 3}</span>
+                    {/if}
+                  </td>
+                  <td class="mono col-amount {item.amount < 0 ? 'neg' : 'pos'}">
+                    {formatMoney(item.amount, item.tx.currency, true)}
+                  </td>
+                  <td class="mono col-balance">
+                    {formatMoney(item.tx.runningBalance, item.tx.currency)}
+                  </td>
+                </tr>
+              {:else if item.kind === 'assert'}
                 {@const a = item.assertion}
                 <tr
                   class="assert-row {a.passed ? 'passed' : 'failed'}"
@@ -1735,9 +1785,7 @@
                     {#if t.projectName}
                       <span class="proj-badge">/{t.projectName}</span>
                     {/if}
-                    {#if t.splitId}
-                      <span class="proj-badge" title="Część podziału">✂</span>
-                    {/if}
+
                   </td>
                   <td class="mono col-amount {t.amount < 0 ? 'neg' : 'pos'}">
                     {formatMoney(t.amount, t.currency, true)}
@@ -1751,19 +1799,19 @@
           </tbody>
         </table>
 
-        {#if timelineItems.length > visibleRowLimit}
+        {#if ledgerRows.length > visibleRowLimit}
           <div class="load-more-bar">
             <button
               class="btn btn-secondary"
               onclick={() => (visibleRowLimit += 300)}
             >
-              Pokaż kolejne 300 (wyświetlono {visibleRowLimit} z {timelineItems.length})
+              Pokaż kolejne 300 (wyświetlono {visibleRowLimit} z {ledgerRows.length})
             </button>
             <button
               class="btn btn-ghost"
-              onclick={() => (visibleRowLimit = timelineItems.length)}
+              onclick={() => (visibleRowLimit = ledgerRows.length)}
             >
-              Pokaż wszystkie ({timelineItems.length})
+              Pokaż wszystkie ({ledgerRows.length})
             </button>
           </div>
         {/if}
@@ -3046,6 +3094,12 @@
   .ledger-table th.col-amount,
   .ledger-table th.col-balance {
     text-align: right;
+  }
+
+  .cat-badge.split {
+    background: var(--bg-active);
+    color: var(--text-primary);
+    font-weight: 600;
   }
 
   .tx-row {

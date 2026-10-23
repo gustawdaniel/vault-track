@@ -1,5 +1,5 @@
 import { uid } from 'uid';
-import type { Account, AppEvent, Transaction } from './types';
+import type { Account, AppEvent, EnrichedTransaction, TimelineItem, Transaction } from './types';
 
 // Same encoding as the Vue app (apps/ui/utils/splitIdParams.ts), so split groups
 // created in either client stay compatible: "<group payee>###<uuid>".
@@ -98,4 +98,68 @@ export function buildSplitEvents(params: {
   }
 
   return events;
+}
+
+export interface SplitLedgerRow {
+  kind: 'split';
+  date: string;
+  sortKey: string;
+  splitId: string;
+  /** Newest visible member: carries account, currency and the balance after the group. */
+  tx: EnrichedTransaction;
+  members: EnrichedTransaction[];
+  amount: number;
+  payee: string;
+  categories: string[];
+  /** Members in the whole group, which can exceed members.length when a filter hides some. */
+  totalCount: number;
+}
+
+/**
+ * Collapse split members into one ledger row placed where the first (newest)
+ * member appears, as Cash Droid shows a split as a single transaction.
+ * Expects the newest-first order of buildLedgerTimeline.
+ */
+export function groupSplitRows(
+  items: TimelineItem[],
+  groupSizes: Map<string, number>
+): Array<TimelineItem | SplitLedgerRow> {
+  const groups = new Map<string, SplitLedgerRow>();
+  const out: Array<TimelineItem | SplitLedgerRow> = [];
+
+  for (const item of items) {
+    if (item.kind !== 'transaction' || !item.tx.splitId) {
+      out.push(item);
+      continue;
+    }
+    const tx = item.tx;
+    const key = `${tx.accountId}|${tx.splitId}`;
+    let row = groups.get(key);
+    if (!row) {
+      row = {
+        kind: 'split',
+        date: item.date,
+        sortKey: item.sortKey,
+        splitId: tx.splitId!,
+        tx,
+        members: [],
+        amount: 0,
+        payee: decodeSplitId(tx.splitId).payee || tx.payee || '',
+        categories: [],
+        totalCount: groupSizes.get(tx.splitId!) ?? 0,
+      };
+      groups.set(key, row);
+      out.push(row);
+    }
+    row.members.push(tx);
+    row.amount += tx.amount;
+    const label = tx.isTransfer ? `⇄ ${tx.transferTarget ?? ''}` : tx.categoryName;
+    if (label && !row.categories.includes(label)) row.categories.push(label);
+  }
+
+  for (const row of groups.values()) {
+    row.amount = Math.round(row.amount * 1e8) / 1e8;
+    row.totalCount = Math.max(row.totalCount, row.members.length);
+  }
+  return out;
 }

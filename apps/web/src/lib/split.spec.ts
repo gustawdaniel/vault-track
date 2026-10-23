@@ -3,6 +3,7 @@ import {
   buildSplitEvents,
   decodeSplitId,
   encodeSplitId,
+  groupSplitRows,
   isSplitValid,
   splitRemaining,
   type SplitLine,
@@ -83,5 +84,52 @@ describe('buildSplitEvents', () => {
     expect(events[0]!.payload.externalId).toBe('bank-1');
     expect(events[0]!.payload.splitId).toBe('Lidl###u1');
     expect(events[1]).toEqual({ type: 'TRANSACTION_DELETED', payload: { id: 'b' } });
+  });
+});
+
+describe('groupSplitRows', () => {
+  const enriched = (id: string, amount: number, extra: Partial<Transaction> & Record<string, unknown> = {}) =>
+    ({
+      id,
+      account: 'Konto',
+      accountId: 'acc1',
+      amount,
+      date: '2026-10-20',
+      currency: 'PLN',
+      runningBalance: 0,
+      categoryName: '',
+      projectName: '',
+      categoryColor: '',
+      isTransfer: false,
+      ...extra,
+    }) as any;
+  const item = (tx: any) => ({ kind: 'transaction' as const, date: tx.date, sortKey: tx.id, tx });
+
+  it('collapses members of one split into a single row at the newest position', () => {
+    const rows = groupSplitRows(
+      [
+        item(enriched('x', -5)),
+        item(enriched('a', -4.5, { splitId: 'Lidl###u1', categoryName: 'Food', runningBalance: 90 })),
+        item(enriched('y', -1)),
+        item(enriched('b', -8, { splitId: 'Lidl###u1', categoryName: 'Home', runningBalance: 94.5 })),
+      ],
+      new Map([['Lidl###u1', 2]])
+    );
+    expect(rows.map((r: any) => r.kind === 'split' ? 'split' : r.tx.id)).toEqual(['x', 'split', 'y']);
+    const split = rows[1] as any;
+    expect(split.amount).toBe(-12.5);
+    expect(split.payee).toBe('Lidl');
+    expect(split.categories).toEqual(['Food', 'Home']);
+    expect(split.tx.runningBalance).toBe(90);
+    expect(split.totalCount).toBe(2);
+  });
+
+  it('keeps the full group size when a filter shows only some members', () => {
+    const rows = groupSplitRows(
+      [item(enriched('a', -4.5, { splitId: 'Lidl###u1' }))],
+      new Map([['Lidl###u1', 9]])
+    );
+    expect((rows[0] as any).members).toHaveLength(1);
+    expect((rows[0] as any).totalCount).toBe(9);
   });
 });
