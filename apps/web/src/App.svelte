@@ -38,6 +38,14 @@
     recordEvents,
     syncWithBackend,
   } from './lib/sync';
+  import {
+    buildSplitEvents,
+    decodeSplitId,
+    isSplitValid,
+    splitRemaining,
+    type SplitLine,
+  } from './lib/split';
+  import { analyzeReceipt } from './lib/receipt';
 
   // --- Core Reactive State (Svelte 5 Runes) ---
   let appState = $state<AppState>(createEmptyState());
@@ -188,7 +196,13 @@
 
   // Transaction Form State
   let editingTxId = $state<string | null>(null);
-  let txFormMode = $state<'expense' | 'income' | 'transfer'>('expense');
+  let txFormMode = $state<'expense' | 'income' | 'transfer' | 'split'>('expense');
+  let txFormSplits = $state<SplitLine[]>([]);
+  // Split group being edited: its id and the member ids at the time it was opened
+  let editingSplitId = $state<string | null>(null);
+  let editingSplitMemberIds = $state<string[]>([]);
+  let isScanningReceipt = $state(false);
+  let receiptInput = $state<HTMLInputElement | null>(null);
   let txFormAccountId = $state('');
   let txFormTargetAccountId = $state('');
   let txFormAmount = $state<number>(0);
@@ -662,6 +676,9 @@
     txFormProject = '';
     txFormMemo = '';
     txFormCreateCounterpart = true;
+    txFormSplits = [];
+    editingSplitId = null;
+    editingSplitMemberIds = [];
     activeDrawer = 'tx';
   }
 
@@ -671,6 +688,36 @@
     txFormDate = (tx.date || '').split('T')[0] || '';
     txFormPayee = tx.payee || '';
     txFormMemo = tx.memo || '';
+    txFormSplits = [];
+    editingSplitId = null;
+    editingSplitMemberIds = [];
+
+    if (tx.splitId) {
+      const members = transactionsList.filter((t) => t.splitId === tx.splitId);
+      editingSplitId = tx.splitId;
+      editingSplitMemberIds = members.map((t) => t.id);
+      txFormMode = 'split';
+      txFormPayee = decodeSplitId(tx.splitId).payee ?? '';
+      txFormMemo = '';
+      txFormAmount = roundCurrency(
+        members.reduce((sum, t) => sum + Math.abs(t.amount), 0),
+        appState.accounts[tx.accountId]?.currency ?? 'PLN'
+      );
+      txFormProject = '';
+      txFormSplits = members.map((t) => {
+        const { categoryName, projectName } = parseCategoryAndProject(t.category);
+        if (projectName && !txFormProject) txFormProject = projectName;
+        return {
+          id: t.id,
+          amount: Math.abs(t.amount),
+          payee: t.payee || '',
+          category: categoryName,
+          memo: t.memo || '',
+        };
+      });
+      activeDrawer = 'tx';
+      return;
+    }
 
     if (tx.category && tx.category.startsWith('[') && tx.category.includes(']')) {
       txFormMode = 'transfer';
@@ -694,9 +741,100 @@
     activeDrawer = 'tx';
   }
 
+  function setTxFormMode(mode: typeof txFormMode) {
+    if (mode === txFormMode) return;
+    if (mode === 'split' && txFormSplits.length === 0) {
+      txFormSplits = [
+        {
+          id: editingTxId || uid(11),
+          amount: Math.abs(Number(txFormAmount) || 0),
+          payee: '',
+          category: txFormCategory,
+          memo: txFormMemo,
+        },
+      ];
+    } else if (txFormMode === 'split' && mode !== 'split') {
+      txFormCategory = txFormSplits[0]?.category ?? '';
+      txFormSplits = [];
+    }
+    txFormMode = mode;
+  }
+
+  function addSplitLine() {
+    const rest = splitRemaining(txFormAmount, txFormSplits);
+    txFormSplits = [
+      ...txFormSplits,
+      { id: uid(11), amount: rest > 0 ? rest : 0, payee: '', category: '', memo: '' },
+    ];
+  }
+
+  function removeSplitLine(id: string) {
+    txFormSplits = txFormSplits.filter((l) => l.id !== id);
+  }
+
+  function matchCategory(guess: string): string {
+    const g = guess.trim().toLowerCase();
+    if (!g) return '';
+    const hit = categoriesList.find((c) => {
+      const name = c.category.toLowerCase();
+      return name === g || name.split(':').pop() === g;
+    });
+    return hit?.category ?? guess;
+  }
+
+  async function handleReceiptFile(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    if (!derivedGroupId) {
+      notify('Skanowanie paragonów wymaga połączenia Sync (zakładka Sync & MCP)');
+      return;
+    }
+    isScanningReceipt = true;
+    try {
+      const result = await analyzeReceipt(backendUrl, derivedGroupId, file);
+      if (result.payee) txFormPayee = result.payee;
+      const day = result.date?.split('T')[0];
+      if (day && /^\d{4}-\d{2}-\d{2}$/.test(day)) txFormDate = day;
+
+      const lines = (result.splits ?? []).filter((l) => l.amount > 0);
+      if (lines.length > 0) {
+        const sum = lines.reduce((acc, l) => acc + l.amount, 0);
+        txFormMode = 'split';
+        txFormSplits = lines.map((l) => ({
+          id: uid(11),
+          amount: Math.round(l.amount * 100) / 100,
+          payee: l.payee || '',
+          category: matchCategory(l.category === 'Uncategorized' ? '' : l.category || ''),
+          memo: l.memo || '',
+        }));
+        txFormAmount =
+          typeof result.receipt_total === 'number' && result.receipt_total > 0
+            ? result.receipt_total
+            : Math.round(sum * 100) / 100;
+        const rest = splitRemaining(txFormAmount, txFormSplits);
+        notify(
+          Math.abs(rest) < 0.01
+            ? `Odczytano paragon: ${lines.length} pozycji`
+            : `Odczytano ${lines.length} pozycji — różnica ${rest.toFixed(2)} do wyjaśnienia`
+        );
+      } else {
+        notify('Nie znaleziono pozycji na paragonie');
+      }
+    } catch (err: any) {
+      notify(`Błąd skanowania: ${err?.message || err}`);
+    } finally {
+      isScanningReceipt = false;
+    }
+  }
+
   function openCopyTransactionDrawer(tx: Transaction) {
     openEditTransactionDrawer(tx);
     editingTxId = null;
+    editingSplitId = null;
+    editingSplitMemberIds = [];
+    txFormSplits = txFormSplits.map((l) => ({ ...l, id: uid(11) }));
     txFormDate = new Date().toISOString().split('T')[0]!;
     txFormCreateCounterpart = txFormMode === 'transfer';
     if (txFormMode === 'transfer') txFormTargetAmount = 0;
@@ -707,6 +845,35 @@
     const sourceAcc = appState.accounts[txFormAccountId];
     if (!sourceAcc) {
       notify('Wybierz konto źródłowe');
+      return;
+    }
+
+    if (txFormMode === 'split') {
+      if (!isSplitValid(txFormAmount, txFormSplits)) {
+        notify('Suma podziału musi być równa kwocie całkowitej');
+        return;
+      }
+      const events = buildSplitEvents({
+        transactions: appState.transactions,
+        account: sourceAcc,
+        lines: txFormSplits,
+        groupPayee: txFormPayee,
+        project: txFormProject,
+        memo: txFormMemo,
+        date: txFormDate,
+        existingSplitId: editingSplitId,
+        previousIds: editingTxId
+          ? Array.from(new Set([...editingSplitMemberIds, editingTxId]))
+          : [],
+        round: (amount) => roundCurrency(amount, sourceAcc.currency),
+      });
+      const wasEditing = Boolean(editingTxId);
+      const res = await recordEvents(appState, events);
+      appState = { ...res.nextState };
+      eventCount += res.events.length;
+      activeDrawer = null;
+      notify(wasEditing ? 'Zaktualizowano podział' : `Dodano podział (${txFormSplits.length} pozycji)`);
+      triggerBackgroundSync();
       return;
     }
 
@@ -729,6 +896,9 @@
 
     const txId = editingTxId || uid(11);
     const mainTx: Transaction = {
+      // keep fields the form does not edit (externalId, hash, clearedStatus...)
+      ...(editingTxId ? appState.transactions[editingTxId] : {}),
+      splitId: undefined,
       id: txId,
       account: sourceAcc.name,
       accountId: sourceAcc.id,
@@ -745,6 +915,13 @@
         payload: mainTx,
       },
     ];
+
+    // Converting a split group back to a single transaction: drop the other members
+    for (const id of editingSplitMemberIds) {
+      if (id !== txId && appState.transactions[id]) {
+        eventsToEmit.push({ type: 'TRANSACTION_DELETED', payload: { id } });
+      }
+    }
 
     // If creating a new transfer and counterpart creation is enabled, add the positive inflow on target account
     if (!editingTxId && txFormMode === 'transfer' && txFormCreateCounterpart) {
@@ -783,9 +960,11 @@
 
   async function deleteCurrentTransaction() {
     if (!editingTxId) return;
-    const res = await recordEvents(appState, [
-      { type: 'TRANSACTION_DELETED', payload: { id: editingTxId } },
-    ]);
+    const ids = Array.from(new Set([editingTxId, ...editingSplitMemberIds]));
+    const res = await recordEvents(
+      appState,
+      ids.map((id) => ({ type: 'TRANSACTION_DELETED' as const, payload: { id } }))
+    );
     appState = { ...res.nextState };
     eventCount += res.events.length;
     activeDrawer = null;
@@ -1504,6 +1683,9 @@
                     {#if t.projectName}
                       <span class="proj-badge">/{t.projectName}</span>
                     {/if}
+                    {#if t.splitId}
+                      <span class="proj-badge" title="Część podziału">✂</span>
+                    {/if}
                   </td>
                   <td class="mono col-amount {t.amount < 0 ? 'neg' : 'pos'}">
                     {formatMoney(t.amount, t.currency, true)}
@@ -1849,27 +2031,51 @@
           </div>
 
           <form class="drawer-form" onsubmit={saveTransactionForm}>
+            <button
+              type="button"
+              class="btn btn-secondary scan-btn"
+              disabled={isScanningReceipt}
+              onclick={() => receiptInput?.click()}
+              title={derivedGroupId ? 'Zrób zdjęcie lub wybierz zdjęcie paragonu' : 'Wymaga połączenia Sync'}
+            >
+              {isScanningReceipt ? 'Analizuję paragon…' : '📷 Skanuj paragon'}
+            </button>
+            <input
+              bind:this={receiptInput}
+              type="file"
+              accept="image/*"
+              hidden
+              onchange={handleReceiptFile}
+            />
+
             <div class="mode-switch">
               <button
                 type="button"
                 class="mode-btn expense {txFormMode === 'expense' ? 'active' : ''}"
-                onclick={() => (txFormMode = 'expense')}
+                onclick={() => setTxFormMode('expense')}
               >
                 Wydatek (−)
               </button>
               <button
                 type="button"
                 class="mode-btn income {txFormMode === 'income' ? 'active' : ''}"
-                onclick={() => (txFormMode = 'income')}
+                onclick={() => setTxFormMode('income')}
               >
                 Przychód (+)
               </button>
               <button
                 type="button"
                 class="mode-btn transfer {txFormMode === 'transfer' ? 'active' : ''}"
-                onclick={() => (txFormMode = 'transfer')}
+                onclick={() => setTxFormMode('transfer')}
               >
                 Transfer [⇄]
+              </button>
+              <button
+                type="button"
+                class="mode-btn split {txFormMode === 'split' ? 'active' : ''}"
+                onclick={() => setTxFormMode('split')}
+              >
+                Podział ✂
               </button>
             </div>
 
@@ -1897,7 +2103,7 @@
 
             <div class="field-row">
               <div class="field">
-                <label for="tx-amount">Kwota</label>
+                <label for="tx-amount">{txFormMode === 'split' ? 'Kwota całkowita' : 'Kwota'}</label>
                 <input
                   id="tx-amount"
                   type="number"
@@ -1941,7 +2147,9 @@
             {/if}
 
             <div class="field">
-              <label for="tx-payee">Odbiorca / Płatnik (Payee)</label>
+              <label for="tx-payee">
+                {txFormMode === 'split' ? 'Sklep / nazwa grupy' : 'Odbiorca / Płatnik (Payee)'}
+              </label>
               <input
                 id="tx-payee"
                 type="text"
@@ -1951,7 +2159,62 @@
               />
             </div>
 
-            {#if txFormMode !== 'transfer'}
+            {#if txFormMode === 'split'}
+              {@const rest = splitRemaining(txFormAmount, txFormSplits)}
+              <section class="split-editor">
+                <div class="split-head">
+                  <strong>Pozycje ({txFormSplits.length})</strong>
+                  <span class="mono split-rest {Math.abs(rest) < 0.01 ? 'ok' : 'bad'}">
+                    Pozostało: {rest.toFixed(2)}
+                  </span>
+                </div>
+                {#each txFormSplits as line, i (line.id)}
+                  <div class="split-line">
+                    <input
+                      class="input split-payee"
+                      type="text"
+                      placeholder="Produkt / odbiorca"
+                      aria-label="Pozycja {i + 1}: produkt"
+                      bind:value={line.payee}
+                    />
+                    <input
+                      class="input mono split-amount"
+                      type="number"
+                      step="any"
+                      min="0"
+                      aria-label="Pozycja {i + 1}: kwota"
+                      bind:value={line.amount}
+                    />
+                    <input
+                      class="input split-cat"
+                      type="text"
+                      list="categories-datalist"
+                      placeholder="Kategoria"
+                      aria-label="Pozycja {i + 1}: kategoria"
+                      bind:value={line.category}
+                    />
+                    <input
+                      class="input split-memo"
+                      type="text"
+                      placeholder="Notatka"
+                      aria-label="Pozycja {i + 1}: notatka"
+                      bind:value={line.memo}
+                    />
+                    <button
+                      type="button"
+                      class="btn btn-ghost split-remove"
+                      title="Usuń pozycję"
+                      onclick={() => removeSplitLine(line.id)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                {/each}
+                <button type="button" class="btn btn-secondary" onclick={addSplitLine}>
+                  + Dodaj pozycję
+                </button>
+              </section>
+            {:else if txFormMode !== 'transfer'}
               <div class="field">
                 <label for="tx-cat">Kategoria (np. Jedzenie:Miasto)</label>
                 <input
@@ -2016,7 +2279,11 @@
               >
                 Anuluj
               </button>
-              <button type="submit" class="btn btn-primary">
+              <button
+                type="submit"
+                class="btn btn-primary"
+                disabled={txFormMode === 'split' && !isSplitValid(txFormAmount, txFormSplits)}
+              >
                 Zapisz transakcję
               </button>
             </div>
@@ -3374,7 +3641,7 @@
 
   .mode-switch {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: repeat(4, 1fr);
     gap: 6px;
     background: var(--bg-canvas);
     padding: 4px;
@@ -3396,6 +3663,66 @@
   .mode-btn.income.active {
     background: var(--income-bg);
     color: var(--income);
+  }
+  .mode-btn.split.active {
+    background: var(--bg-active);
+    color: var(--text-primary);
+  }
+  .scan-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .split-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    background: var(--bg-canvas);
+  }
+  .split-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+  }
+  .split-rest.ok {
+    color: var(--income);
+  }
+  .split-rest.bad {
+    color: var(--expense);
+  }
+  .split-line {
+    display: grid;
+    grid-template-columns: 1fr 96px 32px;
+    grid-template-areas:
+      'payee amount remove'
+      'cat memo memo';
+    gap: 6px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed var(--border-subtle);
+  }
+  .split-payee {
+    grid-area: payee;
+    min-width: 0;
+  }
+  .split-amount {
+    grid-area: amount;
+    min-width: 0;
+    text-align: right;
+  }
+  .split-cat {
+    grid-area: cat;
+    min-width: 0;
+  }
+  .split-memo {
+    grid-area: memo;
+    min-width: 0;
+  }
+  .split-remove {
+    grid-area: remove;
+    padding: 0;
   }
   .mode-btn.transfer.active {
     background: var(--accent-primary-bg);
