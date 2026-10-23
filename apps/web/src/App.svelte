@@ -3892,7 +3892,9 @@
 
     .app-shell {
       grid-template-columns: 1fr;
-      height: 100dvh;
+      height: auto;
+      min-height: 100dvh;
+      overflow: visible;
     }
 
     .sidebar {
@@ -3917,8 +3919,25 @@
     }
 
     .main-area {
-      height: 100dvh;
+      height: auto;
+      min-height: 100dvh;
+      overflow: visible;
       min-width: 0;
+    }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+    }
+    .sidebar,
+    .drawer-panel {
+      overscroll-behavior: contain;
+    }
+    .analytics-grid,
+    .sync-grid {
+      flex: none;
+      overflow: visible;
+      padding: 12px;
     }
 
     .topbar {
@@ -3982,6 +4001,8 @@
 
     /* Ledger table as stacked cards */
     .ledger-container {
+      flex: none;
+      overflow: visible;
       padding-bottom: 90px;
     }
     .ledger-table thead {

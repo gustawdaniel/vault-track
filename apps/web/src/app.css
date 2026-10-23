@@ -99,6 +99,16 @@ body {
   overflow: hidden;
 }
 
+/* On phones the document itself scrolls (see App.svelte), which is what
+   enables the browser's native pull-to-refresh and collapsing URL bar. */
+@media (max-width: 768px) {
+  html,
+  body {
+    height: auto;
+    overflow: visible;
+  }
+}
+
 /* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 7px;
