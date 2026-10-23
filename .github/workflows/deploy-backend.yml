@@ -9,6 +9,12 @@ permissions:
   packages: write
   contents: read
 
+# Two quick pushes used to run `docker compose up` at the same time on the VPS
+# and fail with a container name conflict; deploy one at a time instead.
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest

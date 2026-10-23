@@ -82,6 +82,9 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # the default also installs 'tools', which no longer exists in the SDK repository
+          packages: 'platform-tools'
 
       - name: Install Rust Targets
         uses: dtolnay/rust-toolchain@stable
