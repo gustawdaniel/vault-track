@@ -16,14 +16,19 @@
     type Transaction,
   } from './lib/types';
   import {
+    buildCashflowAnalytics,
     buildLedgerTimeline,
     computeAccountsAndReconciliation,
     formatMoney,
     getCurrencyDigits,
+    isUncategorizedCategory,
+    normalizeSearchText,
     parseCategoryAndProject,
     roundCurrency,
+    type AnalyticsGrouping,
   } from './lib/engine';
   import {
+    bootstrapFromSnapshot,
     clearAllLocalData,
     createEmptyState,
     deriveGroupId,
@@ -42,6 +47,8 @@
 
   // Navigation: 'ledger' | 'analytics' | 'sync'
   let activeTab = $state<'ledger' | 'analytics' | 'sync'>('ledger');
+  let mobileSidebarOpen = $state(false);
+  let mobileFiltersOpen = $state(false);
   let theme = $state<'light' | 'dark'>('light');
   let urlReady = $state(false);
   let pendingTxId = $state<string | null>(null);
@@ -212,6 +219,7 @@
   let bulkTargetCategory = $state('');
   let bulkTargetProject = $state('');
   let bulkOnlyUncategorized = $state(false);
+  let analyticsGrouping = $state<AnalyticsGrouping>('auto');
 
   // Sync & Pairing State
   let backendUrl = $state(
@@ -303,6 +311,67 @@
     return (amount / fromRate) * toRate;
   }
 
+  function toDateInput(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  function setAnalyticsRange(days: number) {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - (days - 1));
+    filter.dateFrom = toDateInput(start);
+    filter.dateTo = toDateInput(end);
+    // The range drives the default granularity; manual grouping can still override it.
+    analyticsGrouping = 'auto';
+  }
+
+  function clearAnalyticsRange() {
+    filter.dateFrom = '';
+    filter.dateTo = '';
+    analyticsGrouping = 'auto';
+  }
+
+  function groupingLabel(grouping: string): string {
+    const labels: Record<string, string> = {
+      day: 'Dzień',
+      week: 'Tydzień',
+      month: 'Miesiąc',
+      quarter: 'Kwartał',
+      year: 'Rok',
+    };
+    return labels[grouping] || grouping;
+  }
+
+  function cashflowBarHeight(value: number): number {
+    if (value <= 0 || cashflowMax <= 0) return 0;
+    return Math.max(3, (value / cashflowMax) * 100);
+  }
+
+  function shouldShowChartLabel(index: number, total: number): boolean {
+    if (total <= 12) return true;
+    const step = Math.ceil(total / 10);
+    return index % step === 0 || index === total - 1;
+  }
+
+  function chartLabel(label: string): string {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(label)) {
+      return `${label.slice(8, 10)}.${label.slice(5, 7)}`;
+    }
+    if (/^\d{4}-\d{2}$/.test(label)) {
+      return `${label.slice(5, 7)}/${label.slice(2, 4)}`;
+    }
+    if (/^\d{4}-Q[1-4]$/.test(label)) {
+      return `${label.slice(5)}/${label.slice(2, 4)}`;
+    }
+    if (/^\d{4}-W\d{2}$/.test(label)) {
+      return `W${label.slice(6)}`;
+    }
+    return label;
+  }
+
   let totalNetWorth = $derived.by(() => {
     let sum = 0;
     for (const acc of visibleAccounts) {
@@ -337,7 +406,11 @@
     let income = 0;
     let expense = 0;
     let txCount = 0;
-    const selectedAcc = filter.accountId ? appState.accounts[filter.accountId] : null;
+    // A text query spans all accounts, so the summary must use the base currency.
+    const searchActive = filter.search.trim().length > 0;
+    const selectedAcc = !searchActive && filter.accountId
+      ? appState.accounts[filter.accountId]
+      : null;
     const summaryCurrency: Currency = selectedAcc ? selectedAcc.currency : baseCurrency;
 
     for (const item of timelineItems) {
@@ -361,58 +434,97 @@
     };
   });
 
-  // Analytics Breakdown
-  let categoryBreakdown = $derived.by(() => {
-    const stats = new Map<
-      string,
-      { category: string; expense: number; income: number; count: number; color: string }
-    >();
-    let totalExpense = 0;
+  // Analytics uses the account and date range, not the ledger's search/category filters.
+  let analyticsTransactions = $derived(
+    buildLedgerTimeline(
+      transactionsList,
+      [],
+      accountsList,
+      categoriesList,
+      {
+        accountId: filter.accountId,
+        search: '',
+        category: '',
+        project: '',
+        type: 'all',
+        dateFrom: filter.dateFrom,
+        dateTo: filter.dateTo,
+      },
+      reconciliation.runningBalanceByTxId,
+      reconciliation.assertStatusById,
+    ).flatMap((item) => (item.kind === 'transaction' ? [item.tx] : [])),
+  );
 
-    for (const item of timelineItems) {
-      if (item.kind !== 'transaction') continue;
-      const t = item.tx;
-      if (t.isTransfer) continue;
-      const catKey = t.categoryName || '(Bez kategorii)';
-      const rootCat = catKey.split(':')[0] || catKey;
-      const valInBase = convertCurrency(t.amount, t.currency, baseCurrency);
+  let analyticsSummary = $derived.by(() => {
+    let income = 0;
+    let expense = 0;
+    let transfers = 0;
+    let transferVolume = 0;
+    const countedTransfers = new Set<string>();
 
-      let entry = stats.get(rootCat);
-      if (!entry) {
-        entry = {
-          category: rootCat,
-          expense: 0,
-          income: 0,
-          count: 0,
-          color: t.categoryColor || '#38bdf8',
-        };
-        stats.set(rootCat, entry);
+    for (const t of analyticsTransactions) {
+      const value = convertCurrency(t.amount, t.currency, baseCurrency);
+      if (t.isTransfer) {
+        const key = t.transferHash ? `hash:${t.transferHash}` : `id:${t.id}`;
+        if (countedTransfers.has(key)) continue;
+        countedTransfers.add(key);
+        transfers += 1;
+        transferVolume += Math.abs(value);
+        continue;
       }
-      entry.count++;
-      if (valInBase < 0) {
-        entry.expense += Math.abs(valInBase);
-        totalExpense += Math.abs(valInBase);
-      } else {
-        entry.income += valInBase;
+
+      const category = t.categoryName || '';
+      if (category.startsWith('Other:Clearing')) continue;
+      if (category.startsWith('Income')) {
+        // Negative income rows are reversals and reduce income, not expenses.
+        income += value;
+        continue;
       }
+
+      if (value > 0) income += value;
+      else expense += Math.abs(value);
     }
 
-    return Array.from(stats.values())
-      .map((s) => ({
-        ...s,
-        share: totalExpense > 0 ? (s.expense / totalExpense) * 100 : 0,
-      }))
-      .sort((a, b) => b.expense - a.expense || b.income - a.income);
+    return {
+      txCount: analyticsTransactions.length,
+      income: roundCurrency(income, baseCurrency),
+      expense: roundCurrency(expense, baseCurrency),
+      net: roundCurrency(income - expense, baseCurrency),
+      transfers,
+      transferVolume: roundCurrency(transferVolume, baseCurrency),
+    };
   });
 
+  let cashflowAnalytics = $derived(
+    buildCashflowAnalytics(
+      analyticsTransactions,
+      baseCurrency,
+      filter.dateFrom,
+      filter.dateTo,
+      analyticsGrouping,
+      (amount, from, to) => convertCurrency(amount, from, to),
+      240,
+    ),
+  );
+
+  let cashflowMax = $derived(cashflowAnalytics.maxValue);
+
   let bulkMatchingTransactions = $derived.by(() => {
-    const q = bulkSearch.trim().toLowerCase();
+    const q = normalizeSearchText(bulkSearch);
     if (!q && !bulkOnlyUncategorized) return [];
     return transactionsList.filter((t) => {
       const { categoryName } = parseCategoryAndProject(t.category);
-      if (bulkOnlyUncategorized && categoryName !== '') return false;
+      if (bulkOnlyUncategorized && !isUncategorizedCategory(categoryName)) return false;
       if (q) {
-        const hay = `${t.payee || ''} ${t.memo || ''} ${t.category || ''} ${t.account}`.toLowerCase();
+        const hay = normalizeSearchText([
+          t.payee,
+          t.memo,
+          t.category,
+          t.account,
+          t.amount,
+          t.externalId,
+          JSON.stringify(t.rawSource || {}),
+        ].join(' '));
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -447,6 +559,37 @@
     }
   }
 
+  /**
+   * Force a clean reload from the materialized server snapshot.
+   * Useful when the local event cursor is ahead of a data correction and the
+   * normal pull would not revisit older events.
+   */
+  async function reloadFromServer() {
+    if (!derivedGroupId) return;
+    isSyncing = true;
+    try {
+      const check = await fetch(`${backendUrl}/sync/snapshot`, {
+        headers: { 'X-Sync-Group-ID': derivedGroupId },
+      });
+      if (!check.ok) throw new Error(`HTTP ${check.status}`);
+      await clearAllLocalData();
+      const boot = await bootstrapFromSnapshot(backendUrl, derivedGroupId);
+      if (boot) {
+        appState = boot.state;
+        lastSyncText = new Date().toLocaleTimeString('pl-PL');
+        addSyncLog('Przeładowano dane z serwera (snapshot).');
+        notify('Dane przeładowane z serwera');
+      } else {
+        addSyncLog('Nie udało się pobrać snapshotu z serwera.');
+      }
+    } catch (e: any) {
+      addSyncLog(`Błąd przeładowania: ${e.message}`);
+      notify('Błąd przeładowania danych');
+    } finally {
+      isSyncing = false;
+    }
+  }
+
   async function refreshQr(text: string) {
     if (!text) {
       qrDataUrl = '';
@@ -472,26 +615,6 @@
       }
     } catch {
       // Keep fallback rates silently
-    }
-  }
-
-  async function loadLatestBundledBackup() {
-    loading = true;
-    try {
-      const res = await fetch('/backup-latest.json');
-      if (!res.ok) throw new Error('Nie znaleziono /backup-latest.json');
-      const data = await res.json();
-      const imported = await importBackupIntoLocalDB(data);
-      appState = imported.state;
-      eventCount = imported.eventCount;
-      addSyncLog(
-        `Załadowano backup-1792270083.json: ${Object.keys(appState.accounts).length} kont, ${Object.keys(appState.transactions).length} transakcji, ${Object.keys(appState.asserts).length} assertów.`
-      );
-      notify(`Załadowano ${Object.keys(appState.transactions).length} transakcji z backupu`);
-    } catch (e: any) {
-      notify(`Błąd ładowania backupu: ${e.message}`);
-    } finally {
-      loading = false;
     }
   }
 
@@ -569,6 +692,14 @@
       txFormProject = projectName;
     }
     activeDrawer = 'tx';
+  }
+
+  function openCopyTransactionDrawer(tx: Transaction) {
+    openEditTransactionDrawer(tx);
+    editingTxId = null;
+    txFormDate = new Date().toISOString().split('T')[0]!;
+    txFormCreateCounterpart = txFormMode === 'transfer';
+    if (txFormMode === 'transfer') txFormTargetAmount = 0;
   }
 
   async function saveTransactionForm(e: Event) {
@@ -664,6 +795,7 @@
 
   // --- Actions: Accounts ---
   function openNewAccountDrawer() {
+    mobileSidebarOpen = false;
     editingAccountId = null;
     accFormName = '';
     accFormType = 'Bank';
@@ -674,6 +806,7 @@
   }
 
   function openEditAccountDrawer(acc: Account) {
+    mobileSidebarOpen = false;
     editingAccountId = acc.id;
     accFormName = acc.name;
     accFormType = acc.type;
@@ -934,8 +1067,15 @@
 </script>
 
 <div class="app-shell">
+  {#if mobileSidebarOpen}
+    <div
+      class="sidebar-scrim"
+      role="presentation"
+      onclick={() => (mobileSidebarOpen = false)}
+    ></div>
+  {/if}
   <!-- LEFT SIDEBAR: ACCOUNTS & NET WORTH -->
-  <aside class="sidebar">
+  <aside class="sidebar {mobileSidebarOpen ? 'open' : ''}">
     <div class="brand-bar">
       <div class="brand-title">
         <span class="brand-dot"></span>
@@ -977,6 +1117,7 @@
         onclick={() => {
           filter.accountId = '';
           visibleRowLimit = 250;
+          mobileSidebarOpen = false;
         }}
       >
         <div class="acc-main">
@@ -1010,11 +1151,13 @@
                 filter.accountId = acc.id;
                 activeTab = 'ledger';
                 visibleRowLimit = 250;
+                mobileSidebarOpen = false;
               }}
               onkeydown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   filter.accountId = acc.id;
                   activeTab = 'ledger';
+                  mobileSidebarOpen = false;
                 }
               }}
             >
@@ -1068,6 +1211,13 @@
   <div class="main-area">
     <!-- TOP BAR -->
     <header class="topbar">
+      <button
+        class="btn btn-secondary mobile-only accounts-toggle"
+        onclick={() => (mobileSidebarOpen = true)}
+        title="Konta"
+      >
+        ☰ {filter.accountId ? appState.accounts[filter.accountId]?.name || 'Konta' : 'Konta'}
+      </button>
       <nav class="nav-tabs">
         <button
           class="nav-tab {activeTab === 'ledger' ? 'active' : ''}"
@@ -1113,17 +1263,26 @@
           onclick={toggleTheme}
           title="Przełącz motyw jasny / ciemny"
         >
-          {theme === 'light' ? '🌙 Ciemny' : '☀️ Jasny'}
+          {theme === 'light' ? '🌙' : '☀️'}<span class="desktop-only">{theme === 'light' ? ' Ciemny' : ' Jasny'}</span>
         </button>
 
         <button class="btn btn-secondary" onclick={() => openNewAssertDrawer()}>
-          + Assert Salda
+          + Assert<span class="desktop-only"> Salda</span>
         </button>
-        <button class="btn btn-primary" onclick={openNewTransactionDrawer}>
+        <button class="btn btn-primary desktop-only" onclick={openNewTransactionDrawer}>
           + Transakcja
         </button>
       </div>
     </header>
+
+    <button
+      class="fab mobile-only"
+      title="Nowa transakcja"
+      aria-label="Nowa transakcja"
+      onclick={openNewTransactionDrawer}
+    >
+      +
+    </button>
 
     {#if loading}
       <div class="empty-state">
@@ -1198,7 +1357,18 @@
             placeholder="Szukaj odbiorcy, kategorii, notatki, kwoty..."
             bind:value={filter.search}
           />
+          {#if filter.search.trim() && filter.accountId}
+            <span class="search-scope-note">Szukam we wszystkich kontach</span>
+          {/if}
 
+          <button
+            class="btn btn-secondary mobile-only"
+            onclick={() => (mobileFiltersOpen = !mobileFiltersOpen)}
+          >
+            {mobileFiltersOpen ? 'Ukryj filtry' : 'Filtry'}
+          </button>
+
+          <div class="extra-filters {mobileFiltersOpen ? 'open' : ''}">
           <select class="input" bind:value={filter.type}>
             <option value="all">Wszystkie typy</option>
             <option value="expense">Tylko wydatki (−)</option>
@@ -1240,6 +1410,7 @@
               Wyczyść filtry
             </button>
           {/if}
+          </div>
         </div>
 
         <div class="summary-strip mono">
@@ -1284,22 +1455,16 @@
                   <td class="col-account">
                     <span class="account-pill">{a.accountName}</span>
                   </td>
-                  <td colspan="2" class="assert-desc">
+                  <td class="col-payee assert-desc">
                     {#if a.passed}
-                      <span class="assert-status ok mono">✓ ASSERT ZGODNY</span>
-                      <span>Potwierdzone saldo wyciągu bankowego</span>
+                      <span class="assert-status ok mono">✓ Assert zgodny</span>
                     {:else}
                       <span class="assert-status fail mono">
-                        ✗ ROZBIEŻNOŚĆ ASSERTU (Δ {formatMoney(a.diff, a.currency, true)})
-                      </span>
-                      <span>
-                        Oczekiwano {formatMoney(a.expected, a.currency)}, wyliczono {formatMoney(
-                          a.actualBalance,
-                          a.currency
-                        )}
+                        ✗ Rozbieżność (Δ {formatMoney(a.diff, a.currency, true)})
                       </span>
                     {/if}
                   </td>
+                  <td class="col-category"></td>
                   <td class="mono col-amount assert-val">
                     Cel: {formatMoney(a.value, a.currency)}
                   </td>
@@ -1370,134 +1535,127 @@
         {/if}
       </div>
     {:else if activeTab === 'analytics'}
-      <!-- ANALYTICS & BULK CATEGORIZATION VIEW -->
       <div class="analytics-grid">
-        <section class="panel">
-          <div class="panel-header">
-            <h2>Struktura wydatków i przychodów wg głównych kategorii ({baseCurrency})</h2>
-            <p class="panel-sub">
-              Uwzględnia bieżące filtry ({filteredSummary.txCount} transakcji). Kliknij kategorię, aby przefiltrować Księgę.
-            </p>
-          </div>
-          <div class="cat-breakdown-list">
-            {#each categoryBreakdown as row (row.category)}
-              <div
-                class="cat-stat-row"
-                role="button"
-                tabindex="0"
+        <section class="panel analytics-range-panel">
+          <div class="analytics-range-row">
+            <div class="range-field">
+              <label for="an-from">Od</label>
+              <input id="an-from" type="date" class="input date-input" bind:value={filter.dateFrom} />
+            </div>
+            <div class="range-field">
+              <label for="an-to">Do</label>
+              <input id="an-to" type="date" class="input date-input" bind:value={filter.dateTo} />
+            </div>
+            <div class="range-field">
+              <label for="an-group">Grupowanie</label>
+              <select id="an-group" class="input" bind:value={analyticsGrouping}>
+                <option value="auto">Auto</option>
+                <option value="day">Dzień</option>
+                <option value="week">Tydzień</option>
+                <option value="month">Miesiąc</option>
+                <option value="quarter">Kwartał</option>
+                <option value="year">Rok</option>
+              </select>
+            </div>
+            <div class="range-quick">
+              <button class="btn btn-ghost btn-xs" onclick={() => setAnalyticsRange(1)}>Dziś</button>
+              <button class="btn btn-ghost btn-xs" onclick={() => setAnalyticsRange(7)}>7D</button>
+              <button class="btn btn-ghost btn-xs" onclick={() => setAnalyticsRange(30)}>30D</button>
+              <button class="btn btn-ghost btn-xs" onclick={() => setAnalyticsRange(365)}>1R</button>
+              <button class="btn btn-ghost btn-xs" onclick={clearAnalyticsRange}>Wszystko</button>
+              <button
+                class="btn btn-ghost btn-xs"
                 onclick={() => {
-                  filter.category = row.category === '(Bez kategorii)' ? '' : row.category;
-                  if (row.category === '(Bez kategorii)') filter.type = 'uncategorized';
-                  activeTab = 'ledger';
-                }}
-                onkeydown={(e) => {
-                  if (e.key === 'Enter') {
-                    filter.category = row.category === '(Bez kategorii)' ? '' : row.category;
-                    activeTab = 'ledger';
-                  }
+                  clearAnalyticsRange();
+                  analyticsGrouping = 'year';
                 }}
               >
-                <div class="cat-stat-top">
-                  <div class="cat-stat-name">
-                    <span class="cat-color-dot" style="background-color: {row.color}"></span>
-                    <strong>{row.category}</strong>
-                    <span class="mono muted">({row.count} tx)</span>
-                  </div>
-                  <div class="cat-stat-numbers mono">
-                    {#if row.expense > 0}
-                      <span class="neg">−{formatMoney(row.expense, baseCurrency)}</span>
-                    {/if}
-                    {#if row.income > 0}
-                      <span class="pos">+{formatMoney(row.income, baseCurrency)}</span>
-                    {/if}
-                    <span class="share-pill">{row.share.toFixed(1)}%</span>
-                  </div>
-                </div>
-                <div class="progress-track">
-                  <div
-                    class="progress-fill"
-                    style="width: {Math.min(100, row.share)}%; background-color: {row.color}"
-                  ></div>
-                </div>
-              </div>
-            {/each}
+                Porównaj lata
+              </button>
+              <button class="btn btn-ghost btn-xs" onclick={reloadFromServer} disabled={isSyncing}>
+                Odśwież z serwera
+              </button>
+            </div>
+            <div class="analytics-range-meta mono">
+              <span>{filter.accountId ? (appState.accounts[filter.accountId]?.name || 'Konto') : 'Wszystkie konta'}</span>
+              <span>
+                {#if filter.dateFrom || filter.dateTo}
+                  {filter.dateFrom || '…'} → {filter.dateTo || '…'}
+                {:else}
+                  cała historia
+                {/if}
+              </span>
+              <span class="range-note">
+                Grupowanie: {analyticsGrouping === 'auto'
+                  ? `Auto → ${groupingLabel(cashflowAnalytics.grouping)}`
+                  : groupingLabel(cashflowAnalytics.grouping)}
+              </span>
+              <span class="range-note">Godzina/6h niedostępne — dane mają tylko datę.</span>
+            </div>
+          </div>
+          <div class="analytics-summary mono">
+            <span>Transakcje: <strong>{analyticsSummary.txCount}</strong></span>
+            <span class="pos">+{formatMoney(cashflowAnalytics.totalIncome, baseCurrency)}</span>
+            <span class="neg">−{formatMoney(cashflowAnalytics.totalExpense, baseCurrency)}</span>
+            <span>
+              Bilans: <strong>{formatMoney(cashflowAnalytics.totalIncome - cashflowAnalytics.totalExpense, baseCurrency, true)}</strong>
+            </span>
           </div>
         </section>
 
-        <section class="panel">
+        <section class="panel analytics-cashflow-panel">
           <div class="panel-header">
-            <h2>Masowa Kategoryzacja (Bulk Categorizer)</h2>
+            <h2>Przychody i wydatki</h2>
             <p class="panel-sub">
-              Błyskawicznie przypisz kategorię i projekt do serii transakcji z banku (np. po nazwie odbiorcy).
+              Grupowanie: {analyticsGrouping === 'auto'
+                ? `Auto → ${groupingLabel(cashflowAnalytics.grouping)}`
+                : groupingLabel(cashflowAnalytics.grouping)}.
+              Przychody: {formatMoney(cashflowAnalytics.totalIncome, baseCurrency)},
+              wydatki: {formatMoney(cashflowAnalytics.totalExpense, baseCurrency)},
+              maksimum: {formatMoney(cashflowMax, baseCurrency)}.
+              {#if cashflowAnalytics.truncated}
+                Pokazano ostatnie {cashflowAnalytics.periods.length} okresów.
+              {/if}
             </p>
           </div>
-
-          <div class="bulk-form">
-            <div class="field">
-              <label for="bulk-q">Filtr odbiorcy / opisu</label>
-              <input
-                id="bulk-q"
-                type="text"
-                class="input"
-                placeholder="np. Biedronka, Żabka, Bolt, Wise..."
-                bind:value={bulkSearch}
-              />
-            </div>
-
-            <label class="checkbox-line">
-              <input type="checkbox" bind:checked={bulkOnlyUncategorized} />
-              <span>Tylko transakcje bez przypisanej kategorii</span>
-            </label>
-
-            <div class="field-row">
-              <div class="field">
-                <label for="bulk-cat">Nowa kategoria</label>
-                <input
-                  id="bulk-cat"
-                  type="text"
-                  class="input"
-                  list="categories-datalist"
-                  placeholder="np. Jedzenie:Zakupy"
-                  bind:value={bulkTargetCategory}
-                />
+          {#if cashflowAnalytics.periods.length === 0}
+            <p class="panel-sub">Brak transakcji w wybranym zakresie.</p>
+          {:else}
+            <div class="chart-scroll">
+              <div class="chart-columns">
+                {#each cashflowAnalytics.periods as period (period.key)}
+                  <div
+                    class="chart-col"
+                    title="{period.label}: +{formatMoney(period.income, baseCurrency)} / −{formatMoney(period.expense, baseCurrency)}"
+                  >
+                    <div class="chart-bars">
+                      <div
+                        class="chart-bar income"
+                        style="height: {cashflowBarHeight(period.income)}%"
+                      ></div>
+                      <div
+                        class="chart-bar expense"
+                        style="height: {cashflowBarHeight(period.expense)}%"
+                      ></div>
+                    </div>
+                  </div>
+                {/each}
               </div>
-              <div class="field">
-                <label for="bulk-proj">Projekt (opcjonalnie)</label>
-                <input
-                  id="bulk-proj"
-                  type="text"
-                  class="input"
-                  list="projects-datalist"
-                  placeholder="np. Gruzja"
-                  bind:value={bulkTargetProject}
-                />
-              </div>
-            </div>
-
-            <div class="bulk-preview">
-              <div class="bulk-preview-header mono">
-                Pasujących transakcji: <strong>{bulkMatchingTransactions.length}</strong>
-              </div>
-              <div class="bulk-sample-list">
-                {#each bulkMatchingTransactions.slice(0, 8) as m (m.id)}
-                  <div class="bulk-sample-item mono">
-                    <span>{m.date.split('T')[0]}</span>
-                    <span>{m.account}</span>
-                    <span class="truncate">{m.payee || m.memo || '—'}</span>
-                    <span class={m.amount < 0 ? 'neg' : 'pos'}>{m.amount}</span>
+              <div class="chart-axis">
+                {#each cashflowAnalytics.periods as period, index (period.key)}
+                  <div class="chart-axis-col">
+                    {#if shouldShowChartLabel(index, cashflowAnalytics.periods.length)}
+                      <span class="chart-axis-label">{chartLabel(period.label)}</span>
+                    {/if}
                   </div>
                 {/each}
               </div>
             </div>
-
-            <button
-              class="btn btn-primary"
-              disabled={bulkMatchingTransactions.length === 0}
-              onclick={applyBulkCategorization}
-            >
-              Przypisz kategorię do {bulkMatchingTransactions.length} transakcji
-            </button>
-          </div>
+            <div class="chart-legend">
+              <span><i class="legend-dot income"></i> Przychody</span>
+              <span><i class="legend-dot expense"></i> Wydatki</span>
+            </div>
+          {/if}
         </section>
       </div>
     {:else if activeTab === 'sync'}
@@ -1571,9 +1729,6 @@
           <div class="backup-actions-box">
             <h3>Kopie zapasowe i Snapshot (Local-First)</h3>
             <div class="btn-row">
-              <button class="btn btn-primary" onclick={loadLatestBundledBackup}>
-                Załaduj najnowszy backup-1792270083.json (6 471 tx)
-              </button>
               <label class="btn btn-secondary file-label">
                 Wgraj dowolny plik .json
                 <input type="file" accept=".json" hidden onchange={handleBackupFileUpload} />
@@ -1835,6 +1990,7 @@
 
             <div class="drawer-footer">
               {#if editingTxId}
+                {@const original = appState.transactions[editingTxId]}
                 <button
                   type="button"
                   class="btn btn-danger"
@@ -1842,6 +1998,15 @@
                 >
                   Usuń
                 </button>
+                {#if original}
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    onclick={() => openCopyTransactionDrawer(original)}
+                  >
+                    Kopiuj
+                  </button>
+                {/if}
               {/if}
               <div class="spacer"></div>
               <button
@@ -2486,6 +2651,13 @@
     min-width: 220px;
   }
 
+  .search-scope-note {
+    align-self: center;
+    font-size: 11px;
+    color: var(--text-muted, #94a3b8);
+    white-space: nowrap;
+  }
+
   .date-input {
     width: 138px;
   }
@@ -2680,6 +2852,166 @@
     grid-template-columns: 1fr 1fr;
     gap: 20px;
     align-items: start;
+    align-content: start;
+  }
+
+  .analytics-range-panel,
+  .analytics-cashflow-panel {
+    grid-column: 1 / -1;
+  }
+
+  .analytics-range-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+  }
+
+  .range-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .range-field label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+  }
+
+  .range-quick {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .analytics-range-meta {
+    margin-left: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-align: right;
+  }
+
+  .range-note {
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .analytics-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-subtle);
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .chart-scroll {
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .chart-columns {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 156px;
+    width: 100%;
+  }
+
+  .chart-col {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  .chart-bars {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 2px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .chart-bar {
+    width: 44%;
+    max-width: 22px;
+    min-width: 3px;
+    border-radius: 3px 3px 0 0;
+    transition: height 0.2s ease;
+  }
+  .chart-bar.income {
+    background: var(--income);
+  }
+  .chart-bar.expense {
+    background: var(--expense);
+  }
+  .chart-bar.transfer {
+    width: 44%;
+    background: #8b5cf6;
+  }
+
+  .chart-axis {
+    display: flex;
+    gap: 2px;
+    width: 100%;
+    height: 24px;
+    padding-top: 4px;
+  }
+
+  .chart-axis-col {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  .chart-axis-label {
+    font-size: 9.5px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .chart-legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .legend-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    margin-right: 4px;
+  }
+  .legend-dot.income {
+    background: var(--income);
+  }
+  .legend-dot.expense {
+    background: var(--expense);
+  }
+
+  @media (max-width: 1100px) {
+    .analytics-grid {
+      grid-template-columns: 1fr;
+    }
   }
 
   .panel {
@@ -2778,6 +3110,10 @@
     font-size: 12px;
     font-weight: 600;
     color: var(--text-secondary);
+  }
+
+  .drawer-form > .field {
+    flex: 0 0 auto;
   }
 
   .field-row {
@@ -3085,5 +3421,217 @@
     align-items: center;
     justify-content: center;
     color: var(--text-secondary);
+  }
+
+  .extra-filters {
+    display: contents;
+  }
+
+  .mobile-only,
+  .sidebar-scrim {
+    display: none;
+  }
+
+  .fab {
+    position: fixed;
+    right: 18px;
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--accent-primary);
+    color: var(--bg-canvas);
+    font-size: 30px;
+    font-weight: 600;
+    line-height: 1;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    z-index: 40;
+  }
+
+  /* MOBILE */
+  @media (max-width: 768px) {
+    .mobile-only {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .desktop-only {
+      display: none;
+    }
+
+    .app-shell {
+      grid-template-columns: 1fr;
+      height: 100dvh;
+    }
+
+    .sidebar {
+      position: fixed;
+      inset: 0 auto 0 0;
+      width: min(320px, 86vw);
+      height: 100dvh;
+      z-index: 45;
+      transform: translateX(-100%);
+      transition: transform 0.2s ease;
+    }
+    .sidebar.open {
+      transform: translateX(0);
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+    }
+    .sidebar-scrim {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 44;
+      background: var(--backdrop-bg);
+    }
+
+    .main-area {
+      height: 100dvh;
+      min-width: 0;
+    }
+
+    .topbar {
+      padding: 8px 12px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .accounts-toggle {
+      max-width: 55vw;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: inline-block;
+    }
+    .nav-tabs {
+      order: 3;
+      flex: 1 1 100%;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 4px;
+    }
+    .nav-tab {
+      padding: 6px 10px;
+    }
+    .topbar-actions {
+      gap: 6px;
+    }
+    .status-toast {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: calc(86px + env(safe-area-inset-bottom));
+      z-index: 60;
+      text-align: center;
+      background: var(--bg-elevated);
+    }
+
+    .filter-bar {
+      padding: 8px 12px;
+    }
+    .search-input {
+      min-width: 0;
+    }
+    .extra-filters {
+      display: none;
+    }
+    .extra-filters.open {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      width: 100%;
+    }
+    .extra-filters .input {
+      flex: 1 1 140px;
+      width: auto;
+    }
+    .summary-strip {
+      flex-wrap: wrap;
+      gap: 4px 14px;
+    }
+
+    /* Ledger table as stacked cards */
+    .ledger-container {
+      padding-bottom: 90px;
+    }
+    .ledger-table thead {
+      display: none;
+    }
+    .ledger-table,
+    .ledger-table tbody {
+      display: block;
+    }
+    .ledger-table tr {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-areas:
+        'payee amount'
+        'cat balance'
+        'meta meta';
+      gap: 2px 10px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      contain-intrinsic-size: auto 78px;
+    }
+    .ledger-table td {
+      padding: 0;
+      border: none;
+      width: auto;
+      min-width: 0;
+    }
+    .ledger-table td.col-payee {
+      grid-area: payee;
+      overflow: hidden;
+    }
+    .ledger-table td.col-amount {
+      grid-area: amount;
+      font-weight: 600;
+    }
+    .ledger-table td.col-category {
+      grid-area: cat;
+      min-width: 0;
+    }
+    .ledger-table td.col-balance {
+      grid-area: balance;
+      font-size: 11.5px;
+      color: var(--text-secondary);
+    }
+    .ledger-table td.col-date,
+    .ledger-table td.col-account {
+      grid-area: meta;
+      font-size: 11.5px;
+    }
+    .ledger-table td.col-account {
+      justify-self: end;
+    }
+    .payee-main,
+    .payee-memo {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .load-more-bar {
+      flex-wrap: wrap;
+    }
+
+    .drawer-panel {
+      width: 100vw;
+      max-width: 100vw;
+      height: 100dvh;
+      border-left: none;
+      padding: 14px 14px 0;
+    }
+    .drawer-footer {
+      position: sticky;
+      bottom: 0;
+      background: var(--bg-surface);
+      padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
+      flex-wrap: wrap;
+    }
+    .field-row {
+      flex-wrap: wrap;
+    }
+    .drawer-panel .input {
+      font-size: 16px; /* prevents iOS zoom on focus */
+    }
   }
 </style>

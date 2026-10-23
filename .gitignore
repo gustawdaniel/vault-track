@@ -69,3 +69,10 @@ statement_*.xlsx
 
 # Svelte build output
 apps/web/dist/
+
+# Private local data (never commit)
+private/
+
+# Never track env files
+.env.*
+!.env.example

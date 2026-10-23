@@ -50,6 +50,7 @@ export interface Transaction {
   transferHash?: string;
   hash?: string;
   externalId?: string;
+  rawSource?: Record<string, unknown>;
 }
 
 export interface PersistedCategory {
