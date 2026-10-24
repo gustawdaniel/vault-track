@@ -1,7 +1,8 @@
 import { syncWithServer } from '~/sync/client';
 import { useDocumentVisibility } from '@vueuse/core';
 import { hydratePinia } from '~/sync/hydration';
-import { setDebouncedSync } from '~/sync/manager';
+import { setDebouncedSync, startBackgroundSync } from '~/sync/manager';
+import { useSyncStore } from '~/store/sync';
 
 export default defineNuxtPlugin((nuxtApp: unknown) => {
     // Only run on client
@@ -10,6 +11,15 @@ export default defineNuxtPlugin((nuxtApp: unknown) => {
     const visibility = useDocumentVisibility();
     let isLoopRunning = false;
     let isSyncing = false;
+
+    // Ensure the sync store (and its background polling) is initialized.
+    try {
+        const syncStore = useSyncStore();
+        void syncStore.init();
+    } catch (e) {
+        console.warn('[Sync] Failed to init sync store', e);
+    }
+    startBackgroundSync();
 
     const doSync = async (source: string, wait = false) => {
         if (isSyncing && !wait) {
@@ -66,8 +76,26 @@ export default defineNuxtPlugin((nuxtApp: unknown) => {
 
     // Hook up Debounced Sync from Manager
     setDebouncedSync(() => {
-        doSync('local mutation', false);
+        doSync('local mutation', false).then(() => {
+            try {
+                const bc = new BroadcastChannel('ocm-sync');
+                bc.postMessage('changed');
+                bc.close();
+            } catch (e) {
+                // BroadcastChannel may be unavailable; ignore.
+            }
+        });
     });
+
+    // Listen for changes triggered in other tabs/windows so we pull them immediately.
+    try {
+        const bc = new BroadcastChannel('ocm-sync');
+        bc.onmessage = () => {
+            void doSync('broadcast', false);
+        };
+    } catch (e) {
+        // BroadcastChannel may be unavailable; ignore.
+    }
 
     // Initial Sync
     setTimeout(() => {

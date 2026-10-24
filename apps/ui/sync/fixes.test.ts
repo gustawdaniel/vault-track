@@ -4,9 +4,12 @@ import type { TransactionDeleted } from './types';
 
 // --- Mocks ---
 
+const { mockAddEvents, mockTriggerSync } = vi.hoisted(() => ({
+    mockAddEvents: vi.fn(),
+    mockTriggerSync: vi.fn(),
+}));
+
 // Mock manager dependencies
-const mockAddEvents = vi.fn();
-const mockTriggerSync = vi.fn();
 
 vi.mock('./db', () => ({
     addEvents: (events: any[]) => mockAddEvents(events),

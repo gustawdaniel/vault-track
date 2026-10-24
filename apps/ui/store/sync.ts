@@ -46,8 +46,12 @@ export const useSyncStore = defineStore('sync', () => {
 
         isSyncing.value = true;
         try {
-            await syncWithServer();
+            const state = await syncWithServer();
             lastSyncTime.value = Date.now();
+            if (state) {
+                const { hydratePinia } = await import('~/sync/hydration');
+                await hydratePinia();
+            }
         } catch (e) {
             console.error('Sync trigger failed', e);
         } finally {

@@ -220,8 +220,15 @@ export async function syncWithServer(
 
   // To correctly identify new events even if they have the exact same millisecond timestamp,
   // we sort by timestamp, find the last pushed event by ID, and slice from there.
-  // If lastPushedEventId isn't found (or 0 timestamp), we fallback to timestamp strict > filtering.
-  const sortedLocalEvents = [...allLocalEvents].sort((a, b) => a.timestamp - b.timestamp);
+  // If lastPushedEventId isn't found (or 0 timestamp), we fallback to timestamp >= filtering.
+  // Deterministic ordering so slicing by the last pushed event is stable even when
+  // multiple events share the same millisecond timestamp.
+  const sortedLocalEvents = [...allLocalEvents].sort((a, b) => {
+    if (a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
+    if (a.deviceId !== b.deviceId) return a.deviceId.localeCompare(b.deviceId);
+    if (a.counter !== b.counter) return a.counter - b.counter;
+    return (a.eventId || '').localeCompare(b.eventId || '');
+  });
   let newEvents: AppEvent[] = [];
 
   if (lastPushedEventId) {
@@ -229,10 +236,10 @@ export async function syncWithServer(
     if (lastPushedIndex !== -1) {
       newEvents = sortedLocalEvents.slice(lastPushedIndex + 1);
     } else {
-      newEvents = sortedLocalEvents.filter(e => e.timestamp > lastPushedTimestamp);
+      newEvents = sortedLocalEvents.filter(e => e.timestamp >= lastPushedTimestamp);
     }
   } else {
-    newEvents = sortedLocalEvents.filter(e => e.timestamp > lastPushedTimestamp);
+    newEvents = sortedLocalEvents.filter(e => e.timestamp >= lastPushedTimestamp);
   }
 
   console.log(

@@ -24,7 +24,11 @@ export function setDebouncedSync(fn: () => void) {
 const defaultDebouncedSync = useDebounceFn(async () => {
     try {
         const { syncWithServer } = await import('./client');
-        await syncWithServer();
+        const state = await syncWithServer();
+        if (state) {
+            const { hydratePinia } = await import('./hydration');
+            await hydratePinia();
+        }
     } catch (e) {
         console.warn('[Sync] Auto-sync failed', e);
     }
@@ -53,7 +57,11 @@ export function startBackgroundSync() {
     const tick = async () => {
         try {
             const { syncWithServer } = await import('./client');
-            await syncWithServer();
+            const state = await syncWithServer();
+            if (state) {
+                const { hydratePinia } = await import('./hydration');
+                await hydratePinia();
+            }
         } catch (e) {
             console.warn('[Sync] Background sync failed', e);
         }
