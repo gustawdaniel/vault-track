@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { deriveGroupId } from '~/sync/crypto';
 import { syncWithServer } from '~/sync/client';
+import { startBackgroundSync } from '~/sync/manager';
 
 export const useSyncStore = defineStore('sync', () => {
     const isSyncing = ref(false);
@@ -16,6 +17,8 @@ export const useSyncStore = defineStore('sync', () => {
                 groupId.value = await deriveGroupId(stored);
             }
         }
+        // Enable automatic background sync (push local changes + pull remote ones).
+        startBackgroundSync();
     }
 
     async function setMnemonic(phrase: string) {
@@ -27,6 +30,8 @@ export const useSyncStore = defineStore('sync', () => {
         const gid = await deriveGroupId(phrase);
         localStorage.setItem('ocm-sync-group-id', gid);
         groupId.value = gid;
+        // Kick off an immediate sync now that we have a group ID.
+        void triggerSync(true);
     }
 
     async function clear() {

@@ -19,12 +19,54 @@ export function setDebouncedSync(fn: () => void) {
     debouncedSync = useDebounceFn(fn, 500);
 }
 
+// Default auto-sync: push local changes to the server shortly after they happen.
+// Uses a dynamic import to avoid a circular dependency with ./client.
+const defaultDebouncedSync = useDebounceFn(async () => {
+    try {
+        const { syncWithServer } = await import('./client');
+        await syncWithServer();
+    } catch (e) {
+        console.warn('[Sync] Auto-sync failed', e);
+    }
+}, 500);
+
 function triggerSync() {
-    if (debouncedSync) debouncedSync();
+    if (debouncedSync) {
+        debouncedSync();
+    } else {
+        defaultDebouncedSync();
+    }
 }
 
 // Cache current state in memory
 let latestAppState: AppState | null = null;
+
+// Background polling so remote changes show up without a manual "sync" click.
+let backgroundSyncStarted = false;
+const BACKGROUND_SYNC_INTERVAL_MS = 15_000;
+
+export function startBackgroundSync() {
+    if (backgroundSyncStarted) return;
+    if (typeof window === 'undefined') return;
+    backgroundSyncStarted = true;
+
+    const tick = async () => {
+        try {
+            const { syncWithServer } = await import('./client');
+            await syncWithServer();
+        } catch (e) {
+            console.warn('[Sync] Background sync failed', e);
+        }
+    };
+
+    // Initial sync shortly after startup, then periodic.
+    setTimeout(tick, 2_000);
+    setInterval(tick, BACKGROUND_SYNC_INTERVAL_MS);
+
+    // Also sync when the tab regains focus or the network comes back.
+    window.addEventListener('focus', () => { void tick(); });
+    window.addEventListener('online', () => { void tick(); });
+}
 
 // Export for cache invalidation (e.g. from client.ts on merge)
 export function invalidateAppState() {
