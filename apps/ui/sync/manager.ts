@@ -19,62 +19,28 @@ export function setDebouncedSync(fn: () => void) {
     debouncedSync = useDebounceFn(fn, 500);
 }
 
-// Default auto-sync: push local changes to the server shortly after they happen.
-// Uses a dynamic import to avoid a circular dependency with ./client.
-const defaultDebouncedSync = useDebounceFn(async () => {
-    try {
-        const { syncWithServer } = await import('./client');
-        const state = await syncWithServer();
-        if (state) {
-            const { hydratePinia } = await import('./hydration');
-            await hydratePinia();
-        }
-    } catch (e) {
-        console.warn('[Sync] Auto-sync failed', e);
-    }
-}, 500);
-
 function triggerSync() {
-    if (debouncedSync) {
-        debouncedSync();
-    } else {
-        defaultDebouncedSync();
-    }
+    if (debouncedSync) debouncedSync();
+}
+
+// Other windows/tabs of the same origin share IndexedDB but keep their own in-memory
+// state cache. Tell them about local writes so they can rebuild state and refresh the UI.
+export const LOCAL_CHANGE_CHANNEL = 'ocm-local-change';
+
+function broadcastLocalChange() {
+    if (typeof BroadcastChannel === 'undefined') return;
+    const channel = new BroadcastChannel(LOCAL_CHANGE_CHANNEL);
+    channel.postMessage('changed');
+    channel.close();
+}
+
+function onLocalMutation() {
+    broadcastLocalChange();
+    triggerSync();
 }
 
 // Cache current state in memory
 let latestAppState: AppState | null = null;
-
-// Background polling so remote changes show up without a manual "sync" click.
-let backgroundSyncStarted = false;
-const BACKGROUND_SYNC_INTERVAL_MS = 15_000;
-
-export function startBackgroundSync() {
-    if (backgroundSyncStarted) return;
-    if (typeof window === 'undefined') return;
-    backgroundSyncStarted = true;
-
-    const tick = async () => {
-        try {
-            const { syncWithServer } = await import('./client');
-            const state = await syncWithServer();
-            if (state) {
-                const { hydratePinia } = await import('./hydration');
-                await hydratePinia();
-            }
-        } catch (e) {
-            console.warn('[Sync] Background sync failed', e);
-        }
-    };
-
-    // Initial sync shortly after startup, then periodic.
-    setTimeout(tick, 2_000);
-    setInterval(tick, BACKGROUND_SYNC_INTERVAL_MS);
-
-    // Also sync when the tab regains focus or the network comes back.
-    window.addEventListener('focus', () => { void tick(); });
-    window.addEventListener('online', () => { void tick(); });
-}
 
 // Export for cache invalidation (e.g. from client.ts on merge)
 export function invalidateAppState() {
@@ -106,7 +72,7 @@ async function applyEvent(event: AppEvent): Promise<AppState> {
         await getAppState();
     }
 
-    triggerSync();
+    onLocalMutation();
     return latestAppState!;
 }
 
@@ -149,7 +115,7 @@ export async function createTransactionBatch(payloads: (Transaction & { id: stri
         await getAppState();
     }
 
-    triggerSync();
+    onLocalMutation();
     return latestAppState!;
 }
 
@@ -189,7 +155,7 @@ export async function updateTransactionBatch(payloads: (Transaction & { id: stri
         await getAppState();
     }
 
-    triggerSync();
+    onLocalMutation();
     return latestAppState!;
 }
 
@@ -229,7 +195,7 @@ export async function deleteTransactionBatch(ids: string[]): Promise<AppState> {
         await getAppState();
     }
 
-    triggerSync();
+    onLocalMutation();
     return latestAppState!;
 }
 

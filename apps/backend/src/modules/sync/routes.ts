@@ -99,37 +99,40 @@ export async function syncRoutes(fastify: FastifyInstance) {
             };
             const TIMEOUT = 30000;
 
+            if (!wait) {
+                try {
+                    return { events: await getEvents(groupId, cursor, since) };
+                } catch (e: any) {
+                    console.error('Sync pull error:', e);
+                    return reply.code(500).send({ error: 'Database error: ' + e.message });
+                }
+            }
+
+            // Long poll. Subscribe before querying so a push landing between the query and the
+            // subscription still wakes us, and only ever detach our own listener - other clients
+            // of the same group are waiting on the same event name.
+            const eventName = `push:${groupId}`;
+            let wake!: () => void;
+            const woken = new Promise<void>((resolve) => { wake = resolve; });
+            syncEventEmitter.once(eventName, wake);
+            const timeoutId = setTimeout(wake, TIMEOUT);
+            // Client went away (tab closed, request aborted) - stop waiting.
+            reply.raw.once('close', wake);
+
             try {
                 let events = await getEvents(groupId, cursor, since);
-                if (events.length > 0) {
-                    return { events };
-                }
-                if (!wait) {
-                    return { events: [] };
-                }
-
-                const eventName = `push:${groupId}`;
-                let timeoutId: NodeJS.Timeout;
-                const timeoutPromise = new Promise<'timeout'>((resolve) => {
-                    timeoutId = setTimeout(() => resolve('timeout'), TIMEOUT);
-                });
-                const pushPromise = new Promise<'push'>((resolve) => {
-                    syncEventEmitter.once(eventName, () => resolve('push'));
-                });
-
-                const winner = await Promise.race([pushPromise, timeoutPromise]);
-                clearTimeout(timeoutId!);
-
-                if (winner === 'timeout') {
-                    syncEventEmitter.removeAllListeners(eventName);
-                } else {
+                if (events.length === 0) {
+                    await woken;
                     events = await getEvents(groupId, cursor, since);
                 }
-
                 return { events };
             } catch (e: any) {
                 console.error('Sync pull error:', e);
                 return reply.code(500).send({ error: 'Database error: ' + e.message });
+            } finally {
+                clearTimeout(timeoutId);
+                syncEventEmitter.off(eventName, wake);
+                reply.raw.off('close', wake);
             }
         },
     );

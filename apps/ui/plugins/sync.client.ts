@@ -1,7 +1,7 @@
 import { syncWithServer } from '~/sync/client';
 import { useDocumentVisibility } from '@vueuse/core';
 import { hydratePinia } from '~/sync/hydration';
-import { setDebouncedSync, startBackgroundSync } from '~/sync/manager';
+import { setDebouncedSync, invalidateAppState, LOCAL_CHANGE_CHANNEL } from '~/sync/manager';
 import { useSyncStore } from '~/store/sync';
 
 export default defineNuxtPlugin((nuxtApp: unknown) => {
@@ -12,14 +12,8 @@ export default defineNuxtPlugin((nuxtApp: unknown) => {
     let isLoopRunning = false;
     let isSyncing = false;
 
-    // Ensure the sync store (and its background polling) is initialized.
-    try {
-        const syncStore = useSyncStore();
-        void syncStore.init();
-    } catch (e) {
-        console.warn('[Sync] Failed to init sync store', e);
-    }
-    startBackgroundSync();
+    // Ensure the sync store reflects the stored mnemonic / group ID.
+    void useSyncStore().init();
 
     const doSync = async (source: string, wait = false) => {
         if (isSyncing && !wait) {
@@ -76,25 +70,17 @@ export default defineNuxtPlugin((nuxtApp: unknown) => {
 
     // Hook up Debounced Sync from Manager
     setDebouncedSync(() => {
-        doSync('local mutation', false).then(() => {
-            try {
-                const bc = new BroadcastChannel('ocm-sync');
-                bc.postMessage('changed');
-                bc.close();
-            } catch (e) {
-                // BroadcastChannel may be unavailable; ignore.
-            }
-        });
+        doSync('local mutation', false);
     });
 
-    // Listen for changes triggered in other tabs/windows so we pull them immediately.
-    try {
-        const bc = new BroadcastChannel('ocm-sync');
-        bc.onmessage = () => {
-            void doSync('broadcast', false);
+    // Another window of this browser wrote to the shared IndexedDB. Rebuild state from it
+    // directly - no server round trip, works offline and without a sync group.
+    if (typeof BroadcastChannel !== 'undefined') {
+        const channel = new BroadcastChannel(LOCAL_CHANGE_CHANNEL);
+        channel.onmessage = async () => {
+            invalidateAppState();
+            await hydratePinia();
         };
-    } catch (e) {
-        // BroadcastChannel may be unavailable; ignore.
     }
 
     // Initial Sync

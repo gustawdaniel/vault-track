@@ -127,11 +127,25 @@ async function reserveCounters(count: number): Promise<number> {
   return start;
 }
 
+/**
+ * Tabs of one browser share this IndexedDB but each keeps its own in-memory state. Every snapshot write is announced
+ * here so the other tabs can reload it instead of showing stale data until their next sync.
+ */
+export const LOCAL_CHANGE_CHANNEL = 'vaulttrack-local-change';
+
+function announceLocalChange(): void {
+  if (typeof BroadcastChannel === 'undefined') return;
+  const channel = new BroadcastChannel(LOCAL_CHANGE_CHANNEL);
+  channel.postMessage('changed');
+  channel.close();
+}
+
 export async function saveSnapshotCache(state: AppState): Promise<void> {
   const db = await getDB();
   // Strip any proxy wrapper
   const raw = JSON.parse(JSON.stringify(state));
   await db.put('meta', { key: 'snapshot', value: raw });
+  announceLocalChange();
 }
 
 export async function loadInitialState(): Promise<{ state: AppState; eventCount: number }> {
@@ -313,6 +327,8 @@ export async function clearAllLocalData(): Promise<AppState> {
   await db.delete('meta', 'snapshot');
   await db.delete('meta', 'lastPushedTimestamp');
   await db.delete('meta', 'lastServerTimestamp');
+  await db.delete('meta', 'lastServerRowId');
+  announceLocalChange();
   return createEmptyState();
 }
 
@@ -443,15 +459,20 @@ export async function syncWithBackend(
   }
 
   // Pull new events from backend. The server returns at most PULL_PAGE events per request, so keep pulling until
-  // a page comes back short; `since` is inclusive, so events already seen are skipped by id.
+  // a page comes back short. Prefer the server row cursor (`cursor`, exclusive): it is assigned by the server, so it
+  // neither re-sends the last event nor depends on device clocks. The timestamp cursor (`since`, inclusive) is only
+  // used until we have seen a row id - fresh devices and data from before the row cursor was tracked.
   const localIds = new Set(allLocalEvents.map((e) => e.eventId));
   const newRemoteEvents: AppEvent[] = [];
   let maxRemoteTs = lastServer;
+  let maxRowId = Number((await db.get('meta', 'lastServerRowId'))?.value || 0);
 
   for (let page = 0; ; page++) {
     const since = maxRemoteTs;
+    const rowCursor = maxRowId;
     const waitParam = wait && page === 0 ? '&wait=true' : '';
-    const pullRes = await fetch(`${backendUrl}/sync/pull?since=${since}${waitParam}`, {
+    const query = rowCursor > 0 ? `cursor=${rowCursor}` : `since=${since}`;
+    const pullRes = await fetch(`${backendUrl}/sync/pull?${query}${waitParam}`, {
       headers: { 'X-Sync-Group-ID': groupId },
     });
 
@@ -465,15 +486,19 @@ export async function syncWithBackend(
       if (typeof raw.timestamp === 'number' && raw.timestamp > maxRemoteTs) {
         maxRemoteTs = raw.timestamp;
       }
+      if (typeof raw.serverRowId === 'number' && raw.serverRowId > maxRowId) {
+        maxRowId = raw.serverRowId;
+      }
       const ev = parseRemoteEvent(raw);
       if (!ev || localIds.has(ev.eventId)) continue;
       localIds.add(ev.eventId);
       newRemoteEvents.push(ev);
     }
 
-    // A short page is the last one; a full page that did not move the timestamp (more than a page of events with
-    // one timestamp) cannot be paged by `since`, so stop instead of asking for the same page forever.
-    if (events.length < PULL_PAGE || maxRemoteTs === since) break;
+    // A short page is the last one. A full page that did not move the cursor (more than a page of events with
+    // one timestamp, on the `since` path) cannot be paged further, so stop instead of asking for it forever.
+    if (events.length < PULL_PAGE) break;
+    if (rowCursor > 0 ? maxRowId === rowCursor : maxRemoteTs === since) break;
   }
 
   if (newRemoteEvents.length > 0) {
@@ -489,6 +514,9 @@ export async function syncWithBackend(
   if (maxRemoteTs > lastServer) {
     await db.put('meta', { key: 'lastServerTimestamp', value: maxRemoteTs });
   }
+  if (maxRowId > 0) {
+    await db.put('meta', { key: 'lastServerRowId', value: maxRowId });
+  }
 
   pulled += newRemoteEvents.length;
   const totalEvents = await db.count('events');
@@ -498,4 +526,28 @@ export async function syncWithBackend(
     pulled,
     eventCount: totalEvents,
   };
+}
+
+/**
+ * Long poll: resolves once the server has events this device has not pulled yet (true) or the server-side wait
+ * timed out (false). Does not touch local state - the caller runs a regular `syncWithBackend` afterwards.
+ */
+export async function waitForRemoteEvents(
+  backendUrl: string,
+  groupId: string,
+  signal?: AbortSignal,
+): Promise<boolean> {
+  const db = await getDB();
+  const rowId = Number((await db.get('meta', 'lastServerRowId'))?.value || 0);
+  const since = Number((await db.get('meta', 'lastServerTimestamp'))?.value || 0);
+  // Without a row cursor `since` is inclusive and answers immediately; the sync that follows records a row id,
+  // so from the next round on the request really waits.
+  const query = rowId > 0 ? `cursor=${rowId}` : `since=${since}`;
+  const res = await fetch(`${backendUrl}/sync/pull?${query}&wait=true`, {
+    headers: { 'X-Sync-Group-ID': groupId },
+    signal,
+  });
+  if (!res.ok) throw new Error(`Sync pull failed: ${res.status} ${res.statusText}`);
+  const data = (await res.json()) as { events?: unknown[] };
+  return (data.events?.length ?? 0) > 0;
 }

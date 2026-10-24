@@ -37,6 +37,8 @@
     loadInitialState,
     recordEvents,
     syncWithBackend,
+    waitForRemoteEvents,
+    LOCAL_CHANGE_CHANNEL,
   } from './lib/sync';
   import {
     buildSplitEvents,
@@ -700,6 +702,16 @@
     urlReady = true;
     window.addEventListener('popstate', readUrlState);
 
+    if (typeof BroadcastChannel !== 'undefined') {
+      new BroadcastChannel(LOCAL_CHANGE_CHANNEL).onmessage = reloadFromLocalDB;
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') void startLiveSync();
+      else stopLiveSync();
+    });
+    window.addEventListener('online', () => void startLiveSync());
+    void startLiveSync();
+
     fetchLiveExchangeRates();
   });
 
@@ -1195,9 +1207,12 @@
     addSyncLog(`Zapisano klucz synchronizacji. Group ID: ${derivedGroupId.substring(0, 16)}...`);
     notify('Klucz synchronizacji aktywny');
     await handleManualSync();
+    stopLiveSync(); // restart the loop on the new group
+    void startLiveSync();
   }
 
   function disconnectSync() {
+    stopLiveSync();
     localStorage.removeItem('ocm-mnemonic');
     localStorage.removeItem('ocm-sync-group-id');
     savedMnemonic = '';
@@ -1210,19 +1225,31 @@
     notify('Rozłączono synchronizację');
   }
 
+  // Syncs never overlap: each one reads the push/pull cursors and applies pulled events to appState.
+  let syncChain: Promise<unknown> = Promise.resolve();
+  function syncOnce(): Promise<Awaited<ReturnType<typeof syncWithBackend>>> {
+    const groupId = derivedGroupId;
+    const run = syncChain.then(async () => {
+      const res = await syncWithBackend(backendUrl, groupId, appState, false);
+      appState = { ...res.state };
+      eventCount = res.eventCount;
+      lastSyncText = new Date().toLocaleTimeString('pl-PL');
+      return res;
+    });
+    syncChain = run.catch(() => {});
+    return run;
+  }
+
   async function handleManualSync() {
     if (!derivedGroupId || isSyncing) return;
     isSyncing = true;
     try {
       addSyncLog(`Synchronizacja z ${backendUrl}...`);
-      const res = await syncWithBackend(backendUrl, derivedGroupId, appState, false);
-      appState = { ...res.state };
-      eventCount = res.eventCount;
+      const res = await syncOnce();
       if (pendingTxId && appState.transactions[pendingTxId]) {
         openEditTransactionDrawer(appState.transactions[pendingTxId]);
         pendingTxId = null;
       }
-      lastSyncText = new Date().toLocaleTimeString('pl-PL');
       addSyncLog(`Sync OK: wysłano ${res.pushed}, pobrano ${res.pulled} zdarzeń.`);
       notify(`Zsynchronizowano (↑${res.pushed} ↓${res.pulled})`);
       await refreshConnectorStatus();
@@ -1241,6 +1268,45 @@
     syncTimeout = setTimeout(() => {
       handleManualSync();
     }, 800);
+  }
+
+  /**
+   * Live sync: long-poll the server while the tab is visible and pull as soon as another device or browser pushes.
+   * Silent on purpose - errors (offline, server restart) only go to the sync log and are retried after a pause.
+   */
+  let liveSyncAbort: AbortController | null = null;
+  async function startLiveSync() {
+    if (liveSyncAbort || !derivedGroupId || document.visibilityState === 'hidden') return;
+    const abort = new AbortController();
+    liveSyncAbort = abort;
+    const groupId = derivedGroupId;
+    let catchUp = true; // first round pulls whatever changed while the loop was not running
+    while (!abort.signal.aborted && groupId === derivedGroupId) {
+      try {
+        if (catchUp || (await waitForRemoteEvents(backendUrl, groupId, abort.signal))) {
+          const res = await syncOnce();
+          if (res.pulled > 0) addSyncLog(`Live sync: pobrano ${res.pulled} zdarzeń.`);
+        }
+        catchUp = false;
+      } catch (e: any) {
+        if (abort.signal.aborted) break;
+        addSyncLog(`Live sync: ${e.message} - ponowienie za 5 s`);
+        await new Promise((r) => setTimeout(r, 5000));
+      }
+    }
+    if (liveSyncAbort === abort) liveSyncAbort = null;
+  }
+
+  function stopLiveSync() {
+    liveSyncAbort?.abort();
+    liveSyncAbort = null;
+  }
+
+  // Another tab of this browser wrote to the shared IndexedDB.
+  async function reloadFromLocalDB() {
+    const local = await loadInitialState();
+    appState = local.state;
+    eventCount = local.eventCount;
   }
 
   async function handleBackupFileUpload(event: Event) {

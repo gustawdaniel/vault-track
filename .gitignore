@@ -76,3 +76,7 @@ private/
 # Never track env files
 .env.*
 !.env.example
+
+# SQLite WAL/shared-memory files (contain live local data)
+*.db-wal
+*.db-shm
