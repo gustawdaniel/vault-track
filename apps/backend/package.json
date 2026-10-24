@@ -4,7 +4,7 @@
     "private": true,
     "license": "MIT",
     "engines": {
-        "node": "24.x"
+        "node": ">=24.0.0"
     },
     "description": "Fastify backend for Open Cash Manager",
     "main": "dist/server.js",

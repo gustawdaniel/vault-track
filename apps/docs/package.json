@@ -6,7 +6,7 @@
   },
   "license": "MIT",
   "engines": {
-    "node": "24.x"
+    "node": ">=24.0.0"
   },
   "dependencies": {
     "@nuxt/content": "^3.16.2",

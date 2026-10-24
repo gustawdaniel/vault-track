@@ -1,0 +1,11 @@
+node_modules
+**/node_modules
+.git
+.turbo
+dist
+**/dist
+.output
+**/.output
+*.avif
+*.webp
+*.sqlite*
