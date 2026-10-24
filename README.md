@@ -84,9 +84,9 @@ VaultTrack is a modern, high-performance, local-first personal finance applicati
 
 3.  **Start the development server:**
     ```bash
-    pnpm dev --filter ui
+    pnpm --filter svelte dev
     ```
-    The app will be available at `http://localhost:3000`.
+    The app will be available at `http://localhost:3005`.
 
 ### Building for Production
 
@@ -111,12 +111,11 @@ VaultTrack uses a unique **Event Sourcing** approach for synchronization, design
 
 ### Directory Structure
 
-*   `apps/ui`: Main Nuxt 3 application.
-    *   `components`: Vue components.
-    *   `pages`: Application routes.
-    *   `store`: Pinia stores (Account, Transaction, etc.).
-    *   `sync`: Core synchronization logic (`db.ts`, `client.ts`, `manager.ts`, `reducer.ts`).
-    *   `server`: Server-side API routes for sync (`/api/sync/*`).
+*   `apps/svelte`: **Main application** (Svelte 5 + Vite), deployed to Vercel at https://www.vaulttrack.org. All new work goes here.
+    *   `src/App.svelte`: UI.
+    *   `src/lib/sync.ts`: Event log in IndexedDB, push/pull and live sync (long polling).
+*   `apps/backend`: Fastify API at https://api.vaulttrack.org (`/api/sync/*`, connectors, receipts), deployed to a VPS by GitHub Actions.
+*   `apps/legacy-vue`: Previous Nuxt/Vue version, kept as a reference for porting features. Still the source of the Tauri desktop/Android builds.
 
 ## 🤝 Contributing
 

@@ -1,7 +1,7 @@
 import { uid } from 'uid';
 import type { Account, AppEvent, EnrichedTransaction, TimelineItem, Transaction } from './types';
 
-// Same encoding as the Vue app (apps/ui/utils/splitIdParams.ts), so split groups
+// Same encoding as the Vue app (apps/legacy-vue/utils/splitIdParams.ts), so split groups
 // created in either client stay compatible: "<group payee>###<uuid>".
 const SEPARATOR = '###';
 

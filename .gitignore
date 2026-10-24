@@ -68,7 +68,7 @@ statement_*.xlsx
 .deepseek/
 
 # Svelte build output
-apps/web/dist/
+apps/svelte/dist/
 
 # Private local data (never commit)
 private/
