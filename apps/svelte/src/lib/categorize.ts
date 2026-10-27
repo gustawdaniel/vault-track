@@ -18,6 +18,8 @@ export interface CategorizedTransaction {
     payee?: string | null;
     memo?: string | null;
     category?: string | null;
+    /** sign decides between income and expense history; unknown (0/undefined) looks at both */
+    amount?: number | null;
 }
 
 export interface CategorySuggestion {
@@ -69,10 +71,14 @@ export function isMeaningfulCategory(category?: string | null): category is stri
     return !value.startsWith('[');
 }
 
+/** Lowercase, without Polish letters and diacritics: banks write "SZKOLA" and "SZKOŁA" for the same payee. */
 function clean(value?: string | null): string {
     return (value ?? '')
-        .replace(/ /g, ' ')
+        .replace(/\u00a0/g, ' ')
         .toLowerCase()
+        .replace(/ł/g, 'l')
+        .normalize('NFD')
+        .replace(/\p{M}/gu, '')
         .replace(/https?:\/\//g, '')
         .replace(/\bwww\./g, '')
         .replace(/\s+/g, ' ')
@@ -100,9 +106,15 @@ function containsKeyword(text: string, keyword: string): boolean {
     return new RegExp(`(^|[^\\p{L}])${escapeRegExp(k)}($|[^\\p{L}])`, 'u').test(text);
 }
 
+type Direction = 'in' | 'out';
+
 interface HistoryEntry {
-    counts: Map<string, number>;
-    total: number;
+    counts: Record<Direction, Map<string, number>>;
+}
+
+function direction(amount?: number | null): Direction | null {
+    if (!amount) return null;
+    return amount > 0 ? 'in' : 'out';
 }
 
 export function createCategorizer(
@@ -111,49 +123,54 @@ export function createCategorizer(
 ) {
     const existing = new Set(categories.map((c) => c.category));
     const userKeywords: Array<[string, string]> = categories.flatMap((c) =>
-        (c.keywords ?? []).map((k) => [k.trim().toLowerCase(), c.category] as [string, string]),
+        (c.keywords ?? []).map((k) => [clean(k), c.category] as [string, string]),
     ).filter(([k]) => k.length > 0)
         .sort((a, b) => b[0].length - a[0].length);
-    const defaults = DEFAULT_KEYWORDS.filter(([, category]) => existing.size === 0 || existing.has(category));
+    const defaults = DEFAULT_KEYWORDS
+        .filter(([, category]) => existing.size === 0 || existing.has(category))
+        .map(([keyword, category]) => [clean(keyword), category] as [string, string]);
 
     const byPayee = new Map<string, HistoryEntry>();
     for (const tx of history) {
         if (!isMeaningfulCategory(tx.category)) continue;
         const key = payeeKey(tx.payee);
-        if (key.length < 3) continue;
-        const entry = byPayee.get(key) ?? { counts: new Map(), total: 0 };
+        const dir = direction(tx.amount);
+        if (key.length < 3 || !dir) continue;
+        const entry = byPayee.get(key) ?? { counts: { in: new Map(), out: new Map() } };
         const category = tx.category.split('/')[0]!;
-        entry.counts.set(category, (entry.counts.get(category) ?? 0) + 1);
-        entry.total++;
+        entry.counts[dir].set(category, (entry.counts[dir].get(category) ?? 0) + 1);
         byPayee.set(key, entry);
     }
 
-    function fromHistory(payee?: string | null): CategorySuggestion | null {
+    function fromHistory(payee?: string | null, amount?: number | null): CategorySuggestion | null {
         const key = payeeKey(payee);
         if (key.length < 3) return null;
         // the same payee, or one whose name starts the other's ("koleo.pl" ~ "koleo.pl francuska warszawa")
-        const entries: Array<[string, HistoryEntry]> = [];
-        const exact = byPayee.get(key);
-        if (exact) entries.push([key, exact]);
-        else {
-            for (const [other, entry] of byPayee) {
-                const shorter = other.length < key.length ? other : key;
-                const longer = other.length < key.length ? key : other;
-                if (shorter.length >= 5 && (longer === shorter || longer.startsWith(shorter + ' '))) {
-                    entries.push([other, entry]);
-                }
-            }
+        const keys: string[] = [];
+        for (const other of byPayee.keys()) {
+            const shorter = other.length < key.length ? other : key;
+            const longer = other.length < key.length ? key : other;
+            // banks cut long names ("…MAŁGORZATA PASZE"), so a long name may end in the middle of a word
+            const cut = shorter.length >= 20 && longer.startsWith(shorter);
+            if (longer === shorter || cut || (shorter.length >= 5 && longer.startsWith(shorter + ' '))) keys.push(other);
         }
+        // money in and money out are different stories: a refund to a client is not the client's payment
+        const dir = direction(amount);
+        const dirs: Direction[] = dir ? [dir] : ['in', 'out'];
         const counts = new Map<string, number>();
         let total = 0;
-        for (const [, entry] of entries) {
-            for (const [category, count] of entry.counts) counts.set(category, (counts.get(category) ?? 0) + count);
-            total += entry.total;
+        for (const k of keys) {
+            for (const d of dirs) {
+                for (const [category, count] of byPayee.get(k)!.counts[d]) {
+                    counts.set(category, (counts.get(category) ?? 0) + count);
+                    total += count;
+                }
+            }
         }
         if (total === 0) return null;
         const [best, count] = [...counts].sort((a, b) => b[1] - a[1])[0]!;
         if (count / total < 0.6) return null;
-        return { category: best, reason: 'history', match: entries.map(([k]) => k).join(', ') };
+        return { category: best, reason: 'history', match: keys.join(', ') };
     }
 
     return function suggest(tx: CategorizedTransaction): CategorySuggestion | null {
@@ -162,7 +179,7 @@ export function createCategorizer(
         for (const [keyword, category] of userKeywords) {
             if (text.includes(keyword)) return { category, reason: 'keyword', match: keyword };
         }
-        const history = fromHistory(tx.payee);
+        const history = fromHistory(tx.payee, tx.amount);
         if (history) return history;
         for (const [keyword, category] of defaults) {
             if (containsKeyword(text, keyword)) return { category, reason: 'default', match: keyword };

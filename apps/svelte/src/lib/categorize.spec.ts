@@ -27,10 +27,10 @@ describe('isMeaningfulCategory', () => {
 
 describe('createCategorizer', () => {
     const suggest = createCategorizer(categories, [
-        { payee: 'Bar Kim Loan 74940', category: 'Food:Eating out' },
-        { payee: 'Bar Kim Loan 74940', category: 'Food:Eating out' },
-        { payee: 'Gustaw Daniel', category: 'Transfer' },
-        { payee: 'Gustaw Daniel', category: 'Food:Groceries' },
+        { payee: 'Bar Kim Loan 74940', category: 'Food:Eating out', amount: -27 },
+        { payee: 'Bar Kim Loan 74940', category: 'Food:Eating out', amount: -27 },
+        { payee: 'Gustaw Daniel', category: 'Transfer', amount: -10 },
+        { payee: 'Gustaw Daniel', category: 'Food:Groceries', amount: -10 },
     ]);
 
     it('uses the keywords written on a category first', () => {
@@ -49,9 +49,19 @@ describe('createCategorizer', () => {
 
     it('prefers how the user categorized the payee over built-in keywords', () => {
         const own = createCategorizer(categories.concat([{ category: 'Transport:Bus' }]), [
-            { payee: 'jakdojade.pl', category: 'Transport:Bus' },
+            { payee: 'jakdojade.pl', category: 'Transport:Bus', amount: -25 },
         ]);
         expect(own({ payee: 'jakdojade.pl' })).toMatchObject({ category: 'Transport:Bus', reason: 'history' });
+    });
+
+    it('reads income and expenses of a payee separately, whatever the diacritics', () => {
+        const sowa = createCategorizer(categories.concat([{ category: 'Income:Business revenue' }, { category: 'Transfer' }]), [
+            { payee: 'SZKOŁA UMYSŁU SOWA MAŁGORZATA PASZEK', category: 'Income:Business revenue', amount: 250 },
+            { payee: 'SZKOLA UMYSLU SOWA MALGORZATA PASZEK', category: 'Income:Business revenue', amount: 250 },
+            { payee: 'SZKOŁA UMYSŁU SOWA MAŁGORZATA PASZE', category: 'Transfer', amount: -500 },
+        ]);
+        expect(sowa({ payee: 'SZKOŁA UMYSŁU SOWA MAŁGORZATA PASZE', amount: 250 })).toMatchObject({ category: 'Income:Business revenue' });
+        expect(sowa({ payee: 'SZKOŁA UMYSŁU SOWA MAŁGORZATA PASZE', amount: -500 })?.category).toBe('Transfer');
     });
 
     it('stays silent when the payee history is mixed', () => {

@@ -190,13 +190,13 @@ export async function loadCategorizer(db: Client, groupId: string) {
         };
     });
     const history = await db.execute({
-        sql: `SELECT payee, category FROM transactions
+        sql: `SELECT payee, category, amount FROM transactions
               WHERE group_id = ? AND category IS NOT NULL AND category != '' AND category NOT LIKE '[%'`,
         args: [groupId],
     });
     return createCategorizer(
         definitions,
-        history.rows.map((row: any) => ({ payee: row.payee, category: row.category })),
+        history.rows.map((row: any) => ({ payee: row.payee, category: row.category, amount: Number(row.amount) })),
     );
 }
 
@@ -242,7 +242,7 @@ export async function categorizeExisting(
     const events: any[] = [];
     const now = Date.now();
     for (const row of rows.rows as any[]) {
-        const suggestion = suggest({ payee: row.payee, memo: row.memo });
+        const suggestion = suggest({ payee: row.payee, memo: row.memo, amount: Number(row.amount) });
         if (!suggestion) continue;
         suggestions.push({
             id: String(row.id),

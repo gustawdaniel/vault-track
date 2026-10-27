@@ -1175,7 +1175,8 @@
   function suggestFormCategory() {
     if (txFormMode === 'transfer') return;
     if (txFormCategory.trim() && !txFormCategoryAuto) return;
-    const suggestion = suggestCategory({ payee: txFormPayee, memo: txFormMemo });
+    const sign = txFormMode === 'income' ? 1 : txFormMode === 'expense' ? -1 : 0;
+    const suggestion = suggestCategory({ payee: txFormPayee, memo: txFormMemo, amount: sign });
     txFormCategory = suggestion?.category ?? '';
     txFormCategoryAuto = suggestion;
   }
