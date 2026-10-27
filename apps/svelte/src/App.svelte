@@ -269,6 +269,35 @@
     error: string | null;
   }>>([]);
   let connectorStatusError = $state<string | null>(null);
+  // Bank consents (Enable Banking): the newest link per account; a consent lives up to 180 days
+  type BankLink = {
+    id: string;
+    aspspName: string | null;
+    status: string;
+    vaulttrackAccountId: string | null;
+    providerAccountId: string | null;
+    expiresAt: number | null;
+    lastSyncAt: number | null;
+    error: string | null;
+  };
+  let bankLinks = $state<BankLink[]>([]);
+  let bankBusy = $state<string | null>(null);
+  const DAY = 24 * 60 * 60 * 1000;
+  let bankLinksByAccount = $derived.by(() => {
+    const newest = new Map<string, BankLink>();
+    for (const link of bankLinks) {
+      if (!link.vaulttrackAccountId) continue;
+      const current = newest.get(link.vaulttrackAccountId);
+      const rank = (l: BankLink) => (l.status === 'authorized' ? 2 : l.status === 'pending' ? 1 : 0);
+      if (!current || rank(link) > rank(current)) newest.set(link.vaulttrackAccountId, link);
+    }
+    return [...newest.values()];
+  });
+  let expiringBankLinks = $derived(
+    bankLinksByAccount.filter(
+      (l) => l.status === 'expired' || (l.status === 'authorized' && l.expiresAt !== null && l.expiresAt - Date.now() < 7 * DAY),
+    ),
+  );
 
   // --- Derived Computations ---
   let accountsList = $derived(Object.values(appState.accounts));
@@ -623,8 +652,71 @@
       const data = await response.json();
       connectorStatus = data.connectors || [];
       connectorStatusError = null;
+      await refreshBankLinks();
     } catch (e: any) {
       connectorStatusError = e.message;
+    }
+  }
+
+  async function refreshBankLinks() {
+    if (!derivedGroupId) return;
+    try {
+      const response = await fetch(`${backendUrl}/connectors/enablebanking/status`, {
+        headers: { 'x-sync-group-id': derivedGroupId },
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      bankLinks = (await response.json()).links || [];
+    } catch (e: any) {
+      connectorStatusError = e.message;
+    }
+  }
+
+  // A new consent for the same bank and account: the bank asks to log in again, then the link replaces the old one.
+  async function renewBankLink(link: BankLink) {
+    if (!derivedGroupId || !link.aspspName || !link.vaulttrackAccountId) return;
+    bankBusy = link.id;
+    try {
+      const response = await fetch(`${backendUrl}/connectors/enablebanking/connect`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-sync-group-id': derivedGroupId },
+        body: JSON.stringify({
+          aspspName: link.aspspName,
+          country: 'PL',
+          vaulttrackAccountId: link.vaulttrackAccountId,
+          psuType: 'personal',
+          validUntilDays: 180,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.url) throw new Error(data.error || `HTTP ${response.status}`);
+      window.open(data.url, '_blank', 'noopener');
+      notify(`Zaloguj się w ${link.aspspName}, potem kliknij „Synchronizuj”`);
+    } catch (e: any) {
+      notify(`Nie udało się odnowić zgody: ${e.message}`);
+    } finally {
+      bankBusy = null;
+    }
+  }
+
+  async function syncBankLinks() {
+    if (!derivedGroupId) return;
+    bankBusy = 'sync';
+    try {
+      const response = await fetch(`${backendUrl}/connectors/enablebanking/sync`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-sync-group-id': derivedGroupId },
+        body: '{}',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+      const imported = (data.results || []).reduce((sum: number, r: any) => sum + Number(r.imported || 0), 0);
+      notify(`Banki: +${imported} operacji`);
+      await refreshBankLinks();
+      await handleManualSync();
+    } catch (e: any) {
+      notify(`Synchronizacja banków nie powiodła się: ${e.message}`);
+    } finally {
+      bankBusy = null;
     }
   }
 
@@ -1653,6 +1745,11 @@
         {#if statusNotice}
           <span class="status-toast">{statusNotice}</span>
         {/if}
+        {#if expiringBankLinks.length > 0}
+          <button class="btn btn-ghost btn-xs text-danger" onclick={() => setActiveTab('sync')}>
+            Zgoda bankowa do odnowienia: {expiringBankLinks.map((l) => l.aspspName).join(', ')}
+          </button>
+        {/if}
 
         {#if derivedGroupId}
           <button
@@ -2320,6 +2417,32 @@
                   Odśwież
                 </button>
               </div>
+              {#if bankLinksByAccount.length > 0}
+                <div class="bank-links">
+                  {#each bankLinksByAccount as link (link.id)}
+                    {@const days = link.expiresAt ? Math.ceil((link.expiresAt - Date.now()) / DAY) : null}
+                    <div class="connector-run">
+                      <span class="conn-dot {link.status === 'authorized' && (days ?? 99) > 7 ? 'active' : 'error'}"></span>
+                      <strong>{link.aspspName}</strong>
+                      <span>{appState.accounts[link.vaulttrackAccountId ?? '']?.name ?? link.vaulttrackAccountId}</span>
+                      <span class="muted">
+                        {#if link.status === 'authorized' && days !== null}
+                          {days > 0 ? `zgoda jeszcze ${days} dni` : 'zgoda wygasła'}
+                        {:else}
+                          {link.status === 'pending' ? 'czeka na logowanie w banku' : 'zgoda wygasła'}
+                        {/if}
+                        {#if link.status === 'authorized' && !link.providerAccountId} · bank nie wskazał konta{/if}
+                      </span>
+                      <button class="btn btn-ghost btn-xs" disabled={bankBusy !== null} onclick={() => renewBankLink(link)}>
+                        Odnów zgodę
+                      </button>
+                    </div>
+                  {/each}
+                  <button class="btn btn-xs" disabled={bankBusy !== null} onclick={syncBankLinks}>
+                    {bankBusy === 'sync' ? 'Synchronizuję…' : 'Synchronizuj banki'}
+                  </button>
+                </div>
+              {/if}
               {#if connectorStatusError}
                 <p class="text-danger">Błąd statusu: {connectorStatusError}</p>
               {:else if connectorStatus.length === 0}

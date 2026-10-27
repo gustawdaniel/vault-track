@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { db } from '../../db/client';
 import {
+    getSessionAccounts,
     createSession,
     EnableBankingAccount,
     getAccountIban,
@@ -327,6 +328,25 @@ export async function enableBankingRoutes(fastify: FastifyInstance) {
             const results: any[] = [];
 
             for (const link of links) {
+                if (!link.provider_account_id && link.session_id && link.vaulttrack_account_id) {
+                    try {
+                        const accounts = await getSessionAccounts(config, String(link.session_id));
+                        const vaulttrackAccount = await getVaulttrackAccount(
+                            String(link.group_id),
+                            String(link.vaulttrack_account_id),
+                        );
+                        const chosen = chooseProviderAccount(accounts, vaulttrackAccount?.description);
+                        if (chosen) {
+                            link.provider_account_id = chosen.uid;
+                            await db.execute({
+                                sql: `UPDATE connector_links SET provider_account_id = ?, provider_accounts_json = ? WHERE id = ?`,
+                                args: [chosen.uid, JSON.stringify(accounts), String(link.id)],
+                            });
+                        }
+                    } catch (error: any) {
+                        console.error('Enable Banking session accounts:', error?.message || error);
+                    }
+                }
                 if (!link.provider_account_id || !link.vaulttrack_account_id) {
                     results.push({
                         linkId: String(link.id),

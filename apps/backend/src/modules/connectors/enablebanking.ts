@@ -187,6 +187,30 @@ export async function createSession(
     });
 }
 
+/**
+ * Accounts of an authorized session. Some banks (mBank) answer POST /sessions with an empty account list;
+ * GET /sessions/{id} lists the account uids, and each account's details carry its IBAN.
+ */
+export async function getSessionAccounts(
+    config: EnableBankingConfig,
+    sessionId: string,
+): Promise<EnableBankingAccount[]> {
+    const session = await ebRequest<{ accounts?: Array<string | { uid?: string }>; accounts_data?: Array<{ uid?: string }> }>(
+        config,
+        `/sessions/${encodeURIComponent(sessionId)}`,
+    );
+    const uids = [
+        ...(session.accounts || []).map((a) => (typeof a === 'string' ? a : a?.uid)),
+        ...(session.accounts_data || []).map((a) => a?.uid),
+    ].filter((uid, i, all): uid is string => !!uid && all.indexOf(uid) === i);
+    const accounts: EnableBankingAccount[] = [];
+    for (const uid of uids) {
+        const details = await ebRequest<EnableBankingAccount>(config, `/accounts/${encodeURIComponent(uid)}/details`);
+        accounts.push({ ...details, uid });
+    }
+    return accounts;
+}
+
 export async function getBalances(
     config: EnableBankingConfig,
     accountUid: string,
