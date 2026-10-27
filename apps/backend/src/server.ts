@@ -10,7 +10,7 @@ import { adminRoutes } from './modules/admin/routes';
 import { receiptsRoutes } from './modules/receipts/routes';
 import { syncRoutes } from './modules/sync/routes';
 import { connectorRoutes } from './modules/connectors/routes';
-import { enableBankingRoutes } from './modules/connectors/enablebanking.routes';
+import { enableBankingRoutes, startBankSyncSchedule } from './modules/connectors/enablebanking.routes';
 import { initDB } from './db/client';
 
 const server: FastifyInstance = Fastify({
@@ -99,6 +99,7 @@ const start = async () => {
         const port = parseInt(process.env.PORT || '4500', 10);
         await server.listen({ port, host: '0.0.0.0' });
         console.log(`Server listening on http://localhost:${port}`);
+        if (process.env.NODE_ENV !== 'test') startBankSyncSchedule();
         console.log(`Documentation available at http://localhost:${port}/documentation`);
     } catch (err) {
         server.log.error(err);

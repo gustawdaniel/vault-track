@@ -279,6 +279,7 @@
     expiresAt: number | null;
     lastSyncAt: number | null;
     error: string | null;
+    accounts: Array<{ uid: string; name: string | null; iban: string | null; currency: string | null }>;
   };
   let bankLinks = $state<BankLink[]>([]);
   let bankBusy = $state<string | null>(null);
@@ -2431,7 +2432,12 @@
                         {:else}
                           {link.status === 'pending' ? 'czeka na logowanie w banku' : 'zgoda wygasła'}
                         {/if}
-                        {#if link.status === 'authorized' && !link.providerAccountId} · bank nie wskazał konta{/if}
+                        {#if link.status === 'authorized' && !link.providerAccountId}
+                          · bank nie udostępnił konta (przy zgodzie zaznacz rachunek)
+                        {:else if link.providerAccountId}
+                          {@const bankAccount = link.accounts.find((a) => a.uid === link.providerAccountId)}
+                          · rachunek {bankAccount?.iban ? `…${bankAccount.iban.slice(-4)}` : bankAccount?.name ?? '?'}
+                        {/if}
                       </span>
                       <button class="btn btn-ghost btn-xs" disabled={bankBusy !== null} onclick={() => renewBankLink(link)}>
                         Odnów zgodę

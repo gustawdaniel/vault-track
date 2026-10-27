@@ -311,108 +311,7 @@ export async function enableBankingRoutes(fastify: FastifyInstance) {
                 return reply.code(503).send({ error: 'Enable Banking is not configured' });
             }
 
-            const body = req.body as any;
-            const result = body.linkId
-                ? await getLink(groupId, body.linkId)
-                : null;
-
-            const links = result
-                ? [result]
-                : (await db.execute({
-                    sql: `SELECT * FROM connector_links
-                          WHERE group_id = ? AND provider = 'enablebanking' AND status = 'authorized'
-                          ORDER BY created_at DESC`,
-                    args: [groupId],
-                })).rows as any[];
-
-            const results: any[] = [];
-
-            for (const link of links) {
-                if (!link.provider_account_id && link.session_id && link.vaulttrack_account_id) {
-                    try {
-                        const accounts = await getSessionAccounts(config, String(link.session_id));
-                        const vaulttrackAccount = await getVaulttrackAccount(
-                            String(link.group_id),
-                            String(link.vaulttrack_account_id),
-                        );
-                        const chosen = chooseProviderAccount(accounts, vaulttrackAccount?.description);
-                        if (chosen) {
-                            link.provider_account_id = chosen.uid;
-                            await db.execute({
-                                sql: `UPDATE connector_links SET provider_account_id = ?, provider_accounts_json = ? WHERE id = ?`,
-                                args: [chosen.uid, JSON.stringify(accounts), String(link.id)],
-                            });
-                        }
-                    } catch (error: any) {
-                        console.error('Enable Banking session accounts:', error?.message || error);
-                    }
-                }
-                if (!link.provider_account_id || !link.vaulttrack_account_id) {
-                    results.push({
-                        linkId: String(link.id),
-                        skipped: true,
-                        reason: 'missing provider or vaulttrack account mapping',
-                    });
-                    continue;
-                }
-
-                const account = await getVaulttrackAccount(
-                    String(link.group_id),
-                    String(link.vaulttrack_account_id),
-                );
-                if (!account) {
-                    results.push({
-                        linkId: String(link.id),
-                        skipped: true,
-                        reason: 'vaulttrack account not found',
-                    });
-                    continue;
-                }
-
-                try {
-                    const dateFrom = body.dateFrom
-                        || (link.last_sync_at
-                            ? new Date(Number(link.last_sync_at) - 24 * 60 * 60 * 1000)
-                                .toISOString()
-                                .slice(0, 10)
-                            : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
-                                .toISOString()
-                                .slice(0, 10));
-
-                    const sync = await syncEnableBankingLink(db, config, {
-                        groupId,
-                        accountId: account.id,
-                        accountName: account.name,
-                        accountCurrency: account.currency,
-                        aspspName: String(link.aspsp_name || 'bank'),
-                        providerAccountId: String(link.provider_account_id),
-                        dateFrom,
-                    });
-
-                    await db.execute({
-                        sql: `UPDATE connector_links SET last_sync_at = ?, error = NULL WHERE id = ?`,
-                        args: [Date.now(), String(link.id)],
-                    });
-
-                    results.push({
-                        linkId: String(link.id),
-                        aspspName: String(link.aspsp_name || ''),
-                        dateFrom,
-                        ...sync,
-                    });
-                } catch (error: any) {
-                    await db.execute({
-                        sql: `UPDATE connector_links SET error = ? WHERE id = ?`,
-                        args: [error?.message || String(error), String(link.id)],
-                    });
-                    results.push({
-                        linkId: String(link.id),
-                        error: error?.message || String(error),
-                    });
-                }
-            }
-
-            return { results };
+            return { results: await syncGroupLinks(groupId, config, req.body as any) };
         },
     );
 
@@ -464,4 +363,143 @@ export async function enableBankingRoutes(fastify: FastifyInstance) {
             };
         },
     );
+}
+
+/**
+ * Fetches new transactions for the authorized links of a group (all of them, or one).
+ * Used by POST /sync and by the background schedule (startBankSyncSchedule).
+ */
+export async function syncGroupLinks(
+    groupId: string,
+    config: NonNullable<ReturnType<typeof getEnableBankingConfig>>,
+    body: { linkId?: string; dateFrom?: string } = {},
+): Promise<any[]> {
+    const result = body.linkId
+        ? await getLink(groupId, body.linkId)
+        : null;
+
+    const links = result
+        ? [result]
+        : (await db.execute({
+            sql: `SELECT * FROM connector_links
+                  WHERE group_id = ? AND provider = 'enablebanking' AND status = 'authorized'
+                  ORDER BY created_at DESC`,
+            args: [groupId],
+        })).rows as any[];
+
+    const results: any[] = [];
+
+    for (const link of links) {
+        let mappingNote = '';
+        if (!link.provider_account_id && link.session_id && link.vaulttrack_account_id) {
+            try {
+                const accounts = await getSessionAccounts(config, String(link.session_id));
+                const vaulttrackAccount = await getVaulttrackAccount(
+                    String(link.group_id),
+                    String(link.vaulttrack_account_id),
+                );
+                const chosen = chooseProviderAccount(accounts, vaulttrackAccount?.description);
+                mappingNote = chosen ? '' : `the bank shared ${accounts.length} accounts`;
+                if (chosen) {
+                    link.provider_account_id = chosen.uid;
+                    await db.execute({
+                        sql: `UPDATE connector_links SET provider_account_id = ?, provider_accounts_json = ? WHERE id = ?`,
+                        args: [chosen.uid, JSON.stringify(accounts), String(link.id)],
+                    });
+                }
+            } catch (error: any) {
+                mappingNote = `session accounts: ${error?.message || error}`;
+                console.error('Enable Banking session accounts:', error?.message || error);
+            }
+        }
+        if (!link.provider_account_id || !link.vaulttrack_account_id) {
+            results.push({
+                linkId: String(link.id),
+                skipped: true,
+                reason: 'missing provider or vaulttrack account mapping' + (mappingNote ? ` (${mappingNote})` : ''),
+            });
+            continue;
+        }
+
+        const account = await getVaulttrackAccount(
+            String(link.group_id),
+            String(link.vaulttrack_account_id),
+        );
+        if (!account) {
+            results.push({
+                linkId: String(link.id),
+                skipped: true,
+                reason: 'vaulttrack account not found',
+            });
+            continue;
+        }
+
+        try {
+            const dateFrom = body.dateFrom
+                || (link.last_sync_at
+                    ? new Date(Number(link.last_sync_at) - 24 * 60 * 60 * 1000)
+                        .toISOString()
+                        .slice(0, 10)
+                    : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+                        .toISOString()
+                        .slice(0, 10));
+
+            const sync = await syncEnableBankingLink(db, config, {
+                groupId,
+                accountId: account.id,
+                accountName: account.name,
+                accountCurrency: account.currency,
+                aspspName: String(link.aspsp_name || 'bank'),
+                providerAccountId: String(link.provider_account_id),
+                dateFrom,
+            });
+
+            await db.execute({
+                sql: `UPDATE connector_links SET last_sync_at = ?, error = NULL WHERE id = ?`,
+                args: [Date.now(), String(link.id)],
+            });
+
+            results.push({
+                linkId: String(link.id),
+                aspspName: String(link.aspsp_name || ''),
+                dateFrom,
+                ...sync,
+            });
+        } catch (error: any) {
+            await db.execute({
+                sql: `UPDATE connector_links SET error = ? WHERE id = ?`,
+                args: [error?.message || String(error), String(link.id)],
+            });
+            results.push({
+                linkId: String(link.id),
+                error: error?.message || String(error),
+            });
+        }
+    }
+
+    return results;
+}
+
+/**
+ * Banks allow about four unattended reads a day (PSD2), so every group with a consent is synced every 6 hours.
+ */
+export function startBankSyncSchedule(intervalMs = 6 * 60 * 60 * 1000) {
+    const run = async () => {
+        const config = getEnableBankingConfig();
+        if (!config) return;
+        const groups = (await db.execute(
+            `SELECT DISTINCT group_id FROM connector_links WHERE provider = 'enablebanking' AND status = 'authorized'`,
+        )).rows as any[];
+        for (const row of groups) {
+            try {
+                const results = await syncGroupLinks(String(row.group_id), config);
+                const imported = results.reduce((sum, r) => sum + Number(r.imported || 0), 0);
+                console.log(`[bank-sync] ${String(row.group_id).slice(0, 8)}: +${imported}`);
+            } catch (error: any) {
+                console.error('[bank-sync]', error?.message || error);
+            }
+        }
+    };
+    setTimeout(run, 60 * 1000);
+    return setInterval(run, intervalMs);
 }
