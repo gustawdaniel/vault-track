@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
     buildExternalId,
+    categorizeExisting,
     buildTransactionId,
     ingestTransactions,
     transactionFingerprint,
@@ -62,6 +63,18 @@ describe('connector ingest service', () => {
                 hash TEXT,
                 external_id TEXT,
                 raw_source TEXT,
+                data_json TEXT NOT NULL,
+                updated_at INTEGER NOT NULL,
+                PRIMARY KEY (group_id, id)
+            );
+        `);
+        await db.execute(`
+            CREATE TABLE categories (
+                group_id TEXT NOT NULL,
+                id TEXT NOT NULL,
+                category TEXT NOT NULL,
+                color TEXT,
+                "order" INTEGER DEFAULT 0,
                 data_json TEXT NOT NULL,
                 updated_at INTEGER NOT NULL,
                 PRIMARY KEY (group_id, id)
@@ -155,6 +168,45 @@ describe('connector ingest service', () => {
         );
         expect(result.imported).toBe(1);
         expect(result.skipped).toBe(1);
+    });
+
+    it('categorizes new transactions from built-in keywords and payee history', async () => {
+        await db.execute({
+            sql: `INSERT INTO categories (group_id, id, category, color, "order", data_json, updated_at) VALUES (?, ?, ?, ?, 0, ?, 0)`,
+            args: [groupId, 'cat-train', 'Transport:Train', '#000', JSON.stringify({ id: 'cat-train', category: 'Transport:Train' })],
+        });
+        await db.execute({
+            sql: `INSERT INTO categories (group_id, id, category, color, "order", data_json, updated_at) VALUES (?, ?, ?, ?, 0, ?, 0)`,
+            args: [groupId, 'cat-out', 'Food:Eating out', '#000', JSON.stringify({ id: 'cat-out', category: 'Food:Eating out', keywords: ['kim loan'] })],
+        });
+        const result = await ingestTransactions(db, groupId, 'auto', { id: 'auto-account', name: 'Auto', currency: 'PLN' }, [
+            { date: '2026-10-20', amount: -61, payee: 'koleo.pl', memo: 'KOLEO bilety kolejowe PID:350600373' },
+            { date: '2026-10-20', amount: -27, payee: 'BAR KIM LOAN     74940' },
+            { date: '2026-10-20', amount: -10, payee: 'Someone new' },
+        ]);
+        expect(result.imported).toBe(3);
+        const rows = await db.execute({
+            sql: `SELECT payee, category FROM transactions WHERE group_id = ? AND account_id = 'auto-account' ORDER BY amount`,
+            args: [groupId],
+        });
+        expect(rows.rows.map((r: any) => r.category)).toEqual(['Transport:Train', 'Food:Eating out', '']);
+    });
+
+    it('backfills categories of existing transactions without one', async () => {
+        await ingestTransactions(db, groupId, 'auto', { id: 'auto-account', name: 'Auto', currency: 'PLN' }, [
+            { date: '2026-10-21', amount: -20, payee: 'Someone new', category: 'Food:Groceries' },
+            { date: '2026-10-22', amount: -11, payee: 'Someone new' },
+        ]);
+        const dry = await categorizeExisting(db, groupId, { accountId: 'auto-account', dryRun: true });
+        expect(dry.updated).toBe(0);
+        expect(dry.suggestions.map((s) => s.category)).toEqual(['Food:Groceries', 'Food:Groceries']);
+        const done = await categorizeExisting(db, groupId, { accountId: 'auto-account' });
+        expect(done.updated).toBe(2);
+        const left = await db.execute({
+            sql: `SELECT count(*) AS n FROM transactions WHERE group_id = ? AND account_id = 'auto-account' AND category = ''`,
+            args: [groupId],
+        });
+        expect(Number((left.rows[0] as any).n)).toBe(0);
     });
 
     it('creates an assert once and updates it on the next run', async () => {

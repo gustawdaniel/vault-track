@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { db } from '../../db/client';
 import {
+    categorizeExisting,
     getConnectorStatus,
     ingestTransactions,
     logConnectorRun,
@@ -118,6 +119,33 @@ export async function connectorRoutes(fastify: FastifyInstance) {
 
                 console.error('Connector ingest error:', e);
                 return reply.code(500).send({ error: 'Connector ingest failed: ' + (e?.message || e) });
+            }
+        },
+    );
+
+    // Fill in categories of transactions that have none (keywords on categories, built-in merchants, payee history).
+    app.post(
+        '/categorize',
+        {
+            schema: {
+                body: z.object({
+                    accountId: z.string().optional(),
+                    dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+                    includeUncategorized: z.boolean().optional(),
+                    dryRun: z.boolean().optional(),
+                }),
+            },
+        },
+        async (req, reply) => {
+            const groupId = req.headers['x-sync-group-id'] as string;
+            if (!groupId) {
+                return reply.code(400).send({ error: 'Missing X-Sync-Group-ID header' });
+            }
+            try {
+                return await categorizeExisting(db, groupId, req.body as any);
+            } catch (e: any) {
+                console.error('Categorize error:', e);
+                return reply.code(500).send({ error: 'Categorize failed: ' + (e?.message || e) });
             }
         },
     );

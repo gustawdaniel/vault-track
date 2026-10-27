@@ -49,6 +49,7 @@
     type SplitLine,
   } from './lib/split';
   import { analyzeReceipt } from './lib/receipt';
+  import { createCategorizer, isMeaningfulCategory, type CategorySuggestion } from './lib/categorize';
 
   // --- Core Reactive State (Svelte 5 Runes) ---
   let appState = $state<AppState>(createEmptyState());
@@ -59,8 +60,9 @@
   let errorNotices = $state<Array<{ id: number; message: string; time: string; count: number }>>([]);
   let errorSeq = 0;
 
-  // Navigation: 'ledger' | 'analytics' | 'sync'
-  let activeTab = $state<'ledger' | 'analytics' | 'sync'>('ledger');
+  // Navigation: 'ledger' | 'analytics' | 'categories' | 'sync'
+  type Tab = 'ledger' | 'analytics' | 'categories' | 'sync';
+  let activeTab = $state<Tab>('ledger');
   let mobileSidebarOpen = $state(false);
   let mobileFiltersOpen = $state(false);
   let theme = $state<'light' | 'dark'>('light');
@@ -81,7 +83,7 @@
     const params = new URLSearchParams(window.location.search);
 
     const tab = params.get('tab');
-    activeTab = tab === 'ledger' || tab === 'analytics' || tab === 'sync'
+    activeTab = tab === 'ledger' || tab === 'analytics' || tab === 'categories' || tab === 'sync'
       ? tab
       : 'ledger';
 
@@ -138,7 +140,7 @@
     }
   }
 
-  function setActiveTab(tab: 'ledger' | 'analytics' | 'sync') {
+  function setActiveTab(tab: Tab) {
     activeTab = tab;
     if (typeof window === 'undefined' || !urlReady) return;
     const params = new URLSearchParams(window.location.search);
@@ -216,6 +218,8 @@
   let txFormDate = $state(new Date().toISOString().split('T')[0]!);
   let txFormPayee = $state('');
   let txFormCategory = $state('');
+  // the category was filled in by the categorizer (not typed): a new payee may replace it
+  let txFormCategoryAuto = $state<CategorySuggestion | null>(null);
   let txFormProject = $state('');
   let txFormMemo = $state('');
   let txFormCreateCounterpart = $state(true);
@@ -269,6 +273,12 @@
   // --- Derived Computations ---
   let accountsList = $derived(Object.values(appState.accounts));
   let transactionsList = $derived(Object.values(appState.transactions));
+  let suggestCategory = $derived(
+    createCategorizer(
+      Object.values(appState.categories).map((c) => ({ category: c.category, keywords: c.keywords })),
+      transactionsList,
+    ),
+  );
   let categoriesList = $derived(
     Object.values(appState.categories).sort(
       (a, b) => (a.order ?? 0) - (b.order ?? 0) || a.category.localeCompare(b.category)
@@ -728,6 +738,7 @@
     txFormDate = new Date().toISOString().split('T')[0]!;
     txFormPayee = '';
     txFormCategory = '';
+    txFormCategoryAuto = null;
     txFormProject = '';
     txFormMemo = '';
     txFormCreateCounterpart = true;
@@ -743,6 +754,7 @@
     txFormDate = (tx.date || '').split('T')[0] || '';
     txFormPayee = tx.payee || '';
     txFormMemo = tx.memo || '';
+    txFormCategoryAuto = null;
     txFormSplits = [];
     editingSplitId = null;
     editingSplitMemberIds = [];
@@ -1159,6 +1171,83 @@
     triggerBackgroundSync();
   }
 
+  // --- Actions: Automatic categories ---
+  function suggestFormCategory() {
+    if (txFormMode === 'transfer') return;
+    if (txFormCategory.trim() && !txFormCategoryAuto) return;
+    const suggestion = suggestCategory({ payee: txFormPayee, memo: txFormMemo });
+    txFormCategory = suggestion?.category ?? '';
+    txFormCategoryAuto = suggestion;
+  }
+
+  let autoIncludeUncategorized = $state(false);
+  let autoSuggestions = $derived.by(() => {
+    if (activeTab !== 'categories') return [];
+    const out: Array<{ tx: Transaction; suggestion: CategorySuggestion }> = [];
+    for (const tx of transactionsList) {
+      const category = (tx.category ?? '').trim();
+      if (category.startsWith('[')) continue;
+      const empty = category === '' || (autoIncludeUncategorized && !isMeaningfulCategory(category));
+      if (!empty) continue;
+      const suggestion = suggestCategory(tx);
+      if (suggestion) out.push({ tx, suggestion });
+    }
+    return out.sort((a, b) => b.tx.date.localeCompare(a.tx.date));
+  });
+
+  async function applyAutoCategories() {
+    if (autoSuggestions.length === 0) return;
+    const items = autoSuggestions.map(({ tx, suggestion }) => {
+      const { projectName } = parseCategoryAndProject(tx.category);
+      return {
+        type: 'TRANSACTION_UPDATED' as const,
+        payload: { ...tx, category: projectName ? `${suggestion.category}/${projectName}` : suggestion.category },
+      };
+    });
+    const res = await recordEvents(appState, items);
+    appState = { ...res.nextState };
+    eventCount += res.events.length;
+    notify(`Uzupełniono kategorię w ${items.length} transakcjach`);
+    triggerBackgroundSync();
+  }
+
+  let categoryUsage = $derived.by(() => {
+    const counts = new Map<string, number>();
+    for (const tx of transactionsList) {
+      const { categoryName } = parseCategoryAndProject(tx.category);
+      if (categoryName) counts.set(categoryName, (counts.get(categoryName) ?? 0) + 1);
+    }
+    return counts;
+  });
+  let categoryDrafts = $state<Record<string, { description: string; keywords: string }>>({});
+
+  function categoryDraft(cat: PersistedCategory) {
+    return categoryDrafts[cat.id] ?? {
+      description: cat.description ?? '',
+      keywords: (cat.keywords ?? []).join(', '),
+    };
+  }
+
+  function editCategoryDraft(cat: PersistedCategory, field: 'description' | 'keywords', value: string) {
+    categoryDrafts[cat.id] = { ...categoryDraft(cat), [field]: value };
+  }
+
+  async function saveCategoryDetails(cat: PersistedCategory) {
+    const draft = categoryDraft(cat);
+    const keywords = draft.keywords.split(',').map((k) => k.trim().toLowerCase()).filter(Boolean);
+    const res = await recordEvents(appState, [
+      {
+        type: 'CATEGORY_UPDATED',
+        payload: { ...cat, description: draft.description.trim() || undefined, keywords: keywords.length ? keywords : undefined },
+      },
+    ]);
+    appState = { ...res.nextState };
+    eventCount += res.events.length;
+    delete categoryDrafts[cat.id];
+    notify(`Zapisano kategorię ${cat.category}`);
+    triggerBackgroundSync();
+  }
+
   // --- Actions: Bulk Categorization ---
   async function applyBulkCategorization() {
     const matches = bulkMatchingTransactions;
@@ -1541,6 +1630,12 @@
           onclick={() => setActiveTab('analytics')}
         >
           Analityka
+        </button>
+        <button
+          class="nav-tab {activeTab === 'categories' ? 'active' : ''}"
+          onclick={() => setActiveTab('categories')}
+        >
+          Kategorie
         </button>
         <button
           class="nav-tab {activeTab === 'sync' ? 'active' : ''}"
@@ -2006,6 +2101,93 @@
           {/if}
         </section>
       </div>
+    {:else if activeTab === 'categories'}
+      <div class="sync-grid">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Automatyczne kategorie</h2>
+            <p class="panel-sub">
+              Kolejność: słowa kluczowe przy kategorii, oczywiste sklepy i serwisy (koleo → pociąg, jakdojade → transport),
+              a na końcu kategoria, którą ten sam odbiorca dostał wcześniej. Import z banku robi to samo automatycznie.
+            </p>
+          </div>
+          <label class="muted">
+            <input type="checkbox" bind:checked={autoIncludeUncategorized} />
+            także transakcje oznaczone „Other:Uncategorized”
+          </label>
+          <p>
+            Do uzupełnienia: <strong>{autoSuggestions.length}</strong>
+            <button class="btn btn-primary" disabled={autoSuggestions.length === 0} onclick={applyAutoCategories}>
+              Uzupełnij kategorie
+            </button>
+          </p>
+          {#if autoSuggestions.length > 0}
+            <table class="ledger-table">
+              <thead><tr><th>Data</th><th>Odbiorca</th><th>Kwota</th><th>Kategoria</th><th>Dlaczego</th></tr></thead>
+              <tbody>
+                {#each autoSuggestions.slice(0, 100) as { tx, suggestion } (tx.id)}
+                  <tr>
+                    <td>{tx.date}</td>
+                    <td>{tx.payee || tx.memo || ''}</td>
+                    <td>{tx.amount.toFixed(2)}</td>
+                    <td>{suggestion.category}</td>
+                    <td class="muted">
+                      {suggestion.reason === 'history' ? `jak „${suggestion.match}”` : `słowo „${suggestion.match}”`}
+                    </td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          {/if}
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Kategorie</h2>
+            <p class="panel-sub">
+              Opis mówi, co tu należy. Słowa kluczowe (po przecinku) to fragmenty nazwy odbiorcy lub tytułu,
+              które zawsze oznaczają tę kategorię, np. <code>jakdojade, ztm</code>.
+            </p>
+          </div>
+          <table class="ledger-table">
+            <thead><tr><th>Kategoria</th><th>Transakcji</th><th>Opis</th><th>Słowa kluczowe</th><th></th></tr></thead>
+            <tbody>
+              {#each categoriesList as cat (cat.id)}
+                {@const draft = categoryDraft(cat)}
+                <tr>
+                  <td><span class="cat-badge" style="background-color: {cat.color}">{cat.category}</span></td>
+                  <td>{categoryUsage.get(cat.category) ?? 0}</td>
+                  <td>
+                    <input
+                      class="input"
+                      value={draft.description}
+                      oninput={(e) => editCategoryDraft(cat, 'description', e.currentTarget.value)}
+                      placeholder="co tu należy"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      class="input"
+                      value={draft.keywords}
+                      oninput={(e) => editCategoryDraft(cat, 'keywords', e.currentTarget.value)}
+                      placeholder="np. koleo, intercity"
+                    />
+                  </td>
+                  <td>
+                    <button
+                      class="btn"
+                      disabled={draft.description === (cat.description ?? '') && draft.keywords === (cat.keywords ?? []).join(', ')}
+                      onclick={() => saveCategoryDetails(cat)}
+                    >
+                      Zapisz
+                    </button>
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </section>
+      </div>
     {:else if activeTab === 'sync'}
       <!-- SYNC, BACKUP, CONNECTORS & MCP COCKPIT -->
       <div class="sync-grid">
@@ -2322,6 +2504,7 @@
                 class="input"
                 placeholder="np. Biedronka, Wise, Allegro..."
                 bind:value={txFormPayee}
+                oninput={suggestFormCategory}
               />
             </div>
 
@@ -2390,7 +2573,15 @@
                   list="categories-datalist"
                   placeholder="Wybierz lub wpisz kategorię..."
                   bind:value={txFormCategory}
+                  oninput={() => (txFormCategoryAuto = null)}
                 />
+                {#if txFormCategoryAuto}
+                  <small class="muted">
+                    Podpowiedź: {txFormCategoryAuto.reason === 'history'
+                      ? `jak poprzednio dla „${txFormCategoryAuto.match}”`
+                      : `słowo „${txFormCategoryAuto.match}”`}
+                  </small>
+                {/if}
               </div>
             {/if}
 

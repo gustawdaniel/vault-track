@@ -58,6 +58,10 @@ export interface PersistedCategory {
   category: string;
   color: string;
   order: number;
+  /** what belongs here, for people and for the categorizer's reviewer */
+  description?: string;
+  /** payee/memo fragments that always mean this category (lib/categorize.ts) */
+  keywords?: string[];
 }
 
 export interface PersistedProject {

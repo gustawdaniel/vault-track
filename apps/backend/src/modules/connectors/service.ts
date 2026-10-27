@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { Client, InStatement } from '@libsql/client';
 import { buildEventMaterializeStatements, executeInChunks } from '../sync/materializer';
+import { CategoryDefinition, createCategorizer, isMeaningfulCategory } from './categorize';
 
 export interface ConnectorTransactionInput {
     /** Stable identifier from the bank/connector. If omitted, a content fingerprint is used. */
@@ -153,9 +154,11 @@ export async function ingestTransactions(
         return { imported: 0, skipped: transactions.length, total: transactions.length, transactionIds: [] };
     }
 
-    const events = fresh.map(({ tx, externalId }, index) =>
-        buildTransactionEvent(source, account, tx, externalId, index),
-    );
+    const suggest = await loadCategorizer(db, groupId);
+    const events = fresh.map(({ tx, externalId }, index) => {
+        const category = isMeaningfulCategory(tx.category) ? tx.category : suggest(tx)?.category ?? tx.category;
+        return buildTransactionEvent(source, account, { ...tx, category }, externalId, index);
+    });
 
     const statements = buildEventMaterializeStatements(groupId, events);
     await executeInChunks(db, statements);
@@ -166,6 +169,107 @@ export async function ingestTransactions(
         total: transactions.length,
         transactionIds: fresh.map(({ externalId }) => buildTransactionId(externalId)),
     };
+}
+
+/** The categorizer for a group: its categories (with the user's keywords) and every categorized transaction. */
+export async function loadCategorizer(db: Client, groupId: string) {
+    const categories = await db.execute({
+        sql: `SELECT category, data_json FROM categories WHERE group_id = ?`,
+        args: [groupId],
+    });
+    const definitions: CategoryDefinition[] = categories.rows.map((row: any) => {
+        let data: any = {};
+        try {
+            data = row.data_json ? JSON.parse(String(row.data_json)) : {};
+        } catch {
+            data = {};
+        }
+        return {
+            category: String(row.category),
+            keywords: Array.isArray(data.keywords) ? data.keywords.map(String) : [],
+        };
+    });
+    const history = await db.execute({
+        sql: `SELECT payee, category FROM transactions
+              WHERE group_id = ? AND category IS NOT NULL AND category != '' AND category NOT LIKE '[%'`,
+        args: [groupId],
+    });
+    return createCategorizer(
+        definitions,
+        history.rows.map((row: any) => ({ payee: row.payee, category: row.category })),
+    );
+}
+
+export interface CategorizeOptions {
+    accountId?: string;
+    dateFrom?: string;
+    /** also re-categorize transactions marked "Other:Uncategorized" */
+    includeUncategorized?: boolean;
+    dryRun?: boolean;
+}
+
+export interface CategorizeResult {
+    checked: number;
+    updated: number;
+    suggestions: Array<{ id: string; date: string; amount: number; payee: string; category: string; reason: string; match: string }>;
+}
+
+/** Fills in categories of transactions that have none, with the same rules as ingest. */
+export async function categorizeExisting(
+    db: Client,
+    groupId: string,
+    options: CategorizeOptions,
+): Promise<CategorizeResult> {
+    const conditions = ['group_id = ?'];
+    const args: any[] = [groupId];
+    conditions.push(options.includeUncategorized
+        ? `(category IS NULL OR category = '' OR category = 'Other:Uncategorized')`
+        : `(category IS NULL OR category = '')`);
+    if (options.accountId) {
+        conditions.push('account_id = ?');
+        args.push(options.accountId);
+    }
+    if (options.dateFrom) {
+        conditions.push('date >= ?');
+        args.push(options.dateFrom);
+    }
+    const rows = await db.execute({
+        sql: `SELECT id, date, amount, payee, memo, data_json FROM transactions WHERE ${conditions.join(' AND ')} ORDER BY date`,
+        args,
+    });
+    const suggest = await loadCategorizer(db, groupId);
+    const suggestions: CategorizeResult['suggestions'] = [];
+    const events: any[] = [];
+    const now = Date.now();
+    for (const row of rows.rows as any[]) {
+        const suggestion = suggest({ payee: row.payee, memo: row.memo });
+        if (!suggestion) continue;
+        suggestions.push({
+            id: String(row.id),
+            date: String(row.date),
+            amount: Number(row.amount),
+            payee: String(row.payee ?? ''),
+            ...suggestion,
+        });
+        let payload: any;
+        try {
+            payload = JSON.parse(String(row.data_json));
+        } catch {
+            continue;
+        }
+        events.push({
+            eventId: `connector:categorize:${row.id}:${now}`,
+            deviceId: 'connector:categorize',
+            counter: events.length + 1,
+            timestamp: now + events.length,
+            type: 'TRANSACTION_UPDATED',
+            payload: { ...payload, category: suggestion.category },
+        });
+    }
+    if (!options.dryRun && events.length > 0) {
+        await executeInChunks(db, buildEventMaterializeStatements(groupId, events));
+    }
+    return { checked: rows.rows.length, updated: options.dryRun ? 0 : events.length, suggestions };
 }
 
 export interface ConnectorAssertInput {
