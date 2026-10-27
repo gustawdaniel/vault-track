@@ -21,6 +21,8 @@ describe('isMeaningfulCategory', () => {
         expect(isMeaningfulCategory('')).toBe(false);
         expect(isMeaningfulCategory('Other:Uncategorized')).toBe(false);
         expect(isMeaningfulCategory('[mBank Prywatne]')).toBe(false);
+        expect(isMeaningfulCategory('Transfer')).toBe(false);
+        expect(isMeaningfulCategory('Transfer:Atm')).toBe(false);
         expect(isMeaningfulCategory('Food:Groceries')).toBe(true);
     });
 });
@@ -29,7 +31,7 @@ describe('createCategorizer', () => {
     const suggest = createCategorizer(categories, [
         { payee: 'Bar Kim Loan 74940', category: 'Food:Eating out', amount: -27 },
         { payee: 'Bar Kim Loan 74940', category: 'Food:Eating out', amount: -27 },
-        { payee: 'Gustaw Daniel', category: 'Transfer', amount: -10 },
+        { payee: 'Gustaw Daniel', category: 'Fun:Sport', amount: -10 },
         { payee: 'Gustaw Daniel', category: 'Food:Groceries', amount: -10 },
     ]);
 
@@ -61,7 +63,8 @@ describe('createCategorizer', () => {
             { payee: 'SZKOŁA UMYSŁU SOWA MAŁGORZATA PASZE', category: 'Transfer', amount: -500 },
         ]);
         expect(sowa({ payee: 'SZKOŁA UMYSŁU SOWA MAŁGORZATA PASZE', amount: 250 })).toMatchObject({ category: 'Income:Business revenue' });
-        expect(sowa({ payee: 'SZKOŁA UMYSŁU SOWA MAŁGORZATA PASZE', amount: -500 })?.category).toBe('Transfer');
+        // a refund to the client was marked "Transfer": transfers are between own accounts, never suggested
+        expect(sowa({ payee: 'SZKOŁA UMYSŁU SOWA MAŁGORZATA PASZE', amount: -500 })).toBeNull();
     });
 
     it('stays silent when the payee history is mixed', () => {

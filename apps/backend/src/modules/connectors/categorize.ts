@@ -56,7 +56,6 @@ export const DEFAULT_KEYWORDS: Array<[string, string]> = [
     ['alab', 'Health:Medical tests'],
     ['diagnostyka', 'Health:Medical tests'],
     ['apteka', 'Health:Pharmacy'],
-    ['bankomat', 'Transfer:Atm'],
     ['opłata za prowadzenie rachunku', 'Financial:Account maintenance'],
     ['odsetki debetowe', 'Financial:Bank fees'],
     ['digitalocean', 'Professional:Servers'],
@@ -64,10 +63,15 @@ export const DEFAULT_KEYWORDS: Array<[string, string]> = [
 
 const NO_CATEGORY = new Set(['', 'other:uncategorized']);
 
-/** A category that says something: not empty, not "Uncategorized", not a transfer ([Account]). */
+/**
+ * A category that says something about the money: not empty, not "Uncategorized" and not a transfer.
+ * Transfers move money between the user's own accounts ("[Account]" in QIF; "Transfer", "Transfer:Atm"
+ * are the same thing written as a category), so they are never learned from history nor suggested.
+ */
 export function isMeaningfulCategory(category?: string | null): category is string {
     const value = (category ?? '').trim();
     if (NO_CATEGORY.has(value.toLowerCase())) return false;
+    if (/^transfer(:|\/|$)/i.test(value)) return false;
     return !value.startsWith('[');
 }
 
