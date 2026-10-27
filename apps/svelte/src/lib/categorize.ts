@@ -3,8 +3,8 @@
  *
  * Order of evidence:
  *  1. keywords the user wrote on a category (Category.keywords),
- *  2. built-in keywords for obvious merchants (only for categories that exist in the group),
- *  3. the category the user already gave to the same payee (history; a clear majority is required).
+ *  2. the category the user already gave to the same payee (history; a clear majority is required),
+ *  3. built-in keywords for obvious merchants (only for categories that exist in the group).
  *
  * A copy of apps/backend/src/modules/connectors/categorize.ts (the backend fills categories of imported rows); keep the two in step.
  */
@@ -162,9 +162,11 @@ export function createCategorizer(
         for (const [keyword, category] of userKeywords) {
             if (text.includes(keyword)) return { category, reason: 'keyword', match: keyword };
         }
+        const history = fromHistory(tx.payee);
+        if (history) return history;
         for (const [keyword, category] of defaults) {
             if (containsKeyword(text, keyword)) return { category, reason: 'default', match: keyword };
         }
-        return fromHistory(tx.payee);
+        return null;
     };
 }

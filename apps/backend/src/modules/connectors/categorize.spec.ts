@@ -47,6 +47,13 @@ describe('createCategorizer', () => {
         expect(suggest({ payee: 'BAR KIM LOAN     74941' })).toMatchObject({ category: 'Food:Eating out', reason: 'history' });
     });
 
+    it('prefers how the user categorized the payee over built-in keywords', () => {
+        const own = createCategorizer(categories.concat([{ category: 'Transport:Bus' }]), [
+            { payee: 'jakdojade.pl', category: 'Transport:Bus' },
+        ]);
+        expect(own({ payee: 'jakdojade.pl' })).toMatchObject({ category: 'Transport:Bus', reason: 'history' });
+    });
+
     it('stays silent when the payee history is mixed', () => {
         expect(suggest({ payee: 'GUSTAW DANIEL', memo: 'Revolut**7953* Dublin' })).toBeNull();
     });
