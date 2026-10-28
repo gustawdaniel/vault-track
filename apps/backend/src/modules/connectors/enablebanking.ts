@@ -265,12 +265,26 @@ export async function getAllTransactions(
     return all;
 }
 
-export function mapEnableBankingTransaction(tx: any): ConnectorTransactionInput | null {
+const REVOLUT_ASPSP = 'revolut';
+
+/**
+ * Revolut's booking_date is the day the card was charged (the day it was made) and value_date is the day it
+ * settled and moved the balance (the booking day). Every other bank uses transaction_date for the day it was
+ * made and booking_date for the booking day.
+ */
+export function mapEnableBankingTransaction(tx: any, aspspName?: string): ConnectorTransactionInput | null {
+    const isRevolut = String(aspspName || '').toLowerCase() === REVOLUT_ASPSP;
     // the day it was made; the bank's booking day apart (null while pending). APIs give days, not times.
-    const date = tx?.transaction_date || tx?.value_date || tx?.booking_date;
+    const date = isRevolut
+        ? (tx?.booking_date || tx?.transaction_date || tx?.value_date)
+        : (tx?.transaction_date || tx?.value_date || tx?.booking_date);
     if (!date) return null;
     const booked = String(tx?.status || 'BOOK').toUpperCase() === 'BOOK';
-    const bookingDate = booked ? String(tx?.booking_date || tx?.value_date || date) : null;
+    const bookingDate = booked
+        ? (isRevolut
+            ? String(tx?.value_date || tx?.booking_date || date)
+            : String(tx?.booking_date || tx?.value_date || date))
+        : null;
 
     const rawAmount = Number(
         tx?.transaction_amount?.amount ?? tx?.instructed_amount?.amount ?? NaN,
@@ -400,7 +414,7 @@ export async function syncEnableBankingLink(
     });
 
     const mapped = [...transactions, ...pendingRaw]
-        .map(mapEnableBankingTransaction)
+        .map((tx) => mapEnableBankingTransaction(tx, input.aspspName))
         .filter((tx): tx is ConnectorTransactionInput => tx !== null);
 
     const dates = mapped

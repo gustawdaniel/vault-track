@@ -127,4 +127,13 @@ describe('Enable Banking adapter', () => {
         });
         expect(pending).toMatchObject({ date: '2026-10-28', bookingDate: null });
     });
+
+    it('Revolut: booking_date is the day it was made, value_date the day it was booked', async () => {
+        const { mapEnableBankingTransaction } = await import('./enablebanking');
+        const card = mapEnableBankingTransaction({
+            status: 'BOOK', booking_date: '2026-10-20', value_date: '2026-10-21',
+            transaction_amount: { amount: '34.90', currency: 'PLN' }, credit_debit_indicator: 'DBIT', entry_reference: 'x',
+        }, 'Revolut');
+        expect(card).toMatchObject({ date: '2026-10-20', bookingDate: '2026-10-21' });
+    });
 });

@@ -1,6 +1,7 @@
 import { createClient } from '@libsql/client';
 import dotenv from 'dotenv';
 import { z } from 'zod';
+import { startOfDay } from '../modules/sync/dates';
 
 dotenv.config();
 
@@ -112,6 +113,40 @@ export async function initDB() {
         ['booking_date', 'TEXT'],
     ]) {
         if (!transactionColumns.has(name)) await db.execute(`ALTER TABLE transactions ADD COLUMN ${name} ${type}`);
+    }
+
+    // Revolut bank API rows written before the dates model: booking_date is the day the card was charged,
+    // value_date the day it settled and moved the balance. Backfill so the ledger counts on the booked day.
+    const revolutLegacy = await db.execute({
+        sql: `SELECT group_id, id, data_json FROM transactions
+              WHERE external_id LIKE 'enablebanking:revolut:%' AND executed_at IS NULL`,
+    });
+    for (const row of revolutLegacy.rows as any[]) {
+        let payload: any;
+        try {
+            payload = JSON.parse(String(row.data_json));
+        } catch {
+            continue;
+        }
+        const raw = payload?.rawSource || {};
+        const day = (raw.booking_date || raw.value_date || payload.date || '').slice(0, 10);
+        const bookingDate = (raw.value_date || raw.booking_date || day).slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !/^\d{4}-\d{2}-\d{2}$/.test(bookingDate)) continue;
+        const next = {
+            ...payload,
+            date: day,
+            executedAt: startOfDay(day),
+            executedAtPrecision: 'day',
+            executedAtSource: 'bank-api',
+            bookingDate,
+        };
+        await db.execute({
+            sql: `UPDATE transactions
+                  SET date = ?, executed_at = ?, executed_at_precision = 'day',
+                      executed_at_source = 'bank-api', booking_date = ?, data_json = ?
+                  WHERE group_id = ? AND id = ?`,
+            args: [next.date, next.executedAt, next.bookingDate, JSON.stringify(next), String(row.group_id), String(row.id)],
+        });
     }
 
     await db.execute(`
