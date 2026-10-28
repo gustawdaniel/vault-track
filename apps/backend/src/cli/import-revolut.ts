@@ -24,7 +24,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { parseRevolutCsv } from '../modules/connectors/revolut';
+import { parseRevolutCsv, replaceApiRows } from '../modules/connectors/revolut';
 import { ConnectorTransactionInput } from '../modules/connectors/service';
 
 interface Args {
@@ -121,9 +121,12 @@ async function main() {
     const account = (snapshot.accounts || []).find((item: any) => String(item.id) === args.accountId);
     if (!account) throw new Error(`Account ${args.accountId} not found in backend snapshot`);
 
-    const existing: any[] = (snapshot.transactions || []).filter(
+    const accountRows: any[] = (snapshot.transactions || []).filter(
         (tx: any) => String(tx.accountId) === args.accountId,
     );
+    // rows from the bank API are replaced by the export (fees apart), not matched against it
+    const isApiRow = (tx: any) => String(tx.externalId || '').startsWith('enablebanking:revolut');
+    const existing = accountRows.filter((tx) => !isApiRow(tx));
 
     let parseSkipped = 0;
     const parsed = args.files.flatMap((file) => {
@@ -192,6 +195,19 @@ async function main() {
         candidates = remaining;
     }
 
+    const replacement = replaceApiRows(
+        candidates,
+        accountRows.map((tx) => ({
+            id: String(tx.id),
+            date: String(tx.date),
+            amount: Number(tx.amount),
+            category: tx.category,
+            externalId: tx.externalId,
+        })),
+    );
+    candidates = replacement.rows;
+    const replacedApiRows = replacement.deleteIds;
+
     candidates.sort((a, b) => a.date.localeCompare(b.date));
     const netSum = Math.round(candidates.reduce((sum, tx) => sum + tx.amount, 0) * 100) / 100;
 
@@ -208,6 +224,7 @@ async function main() {
         currencySkipped,
         since: since || null,
         matchedExisting,
+        replacedApiRows: replacedApiRows.length,
         toImport: candidates.length,
         netSum,
         imported: 0,
@@ -219,6 +236,21 @@ async function main() {
         summary.sample = candidates.slice(0, 8);
         console.log(JSON.stringify(summary, null, 2));
         return;
+    }
+
+    if (replacedApiRows.length > 0) {
+        const now = Date.now();
+        await apiRequest(args, 'POST', '/api/sync/push', {
+            events: replacedApiRows.map((id, index) => ({
+                eventId: `connector:revolut-csv:replace:${id}`,
+                deviceId: 'connector:revolut-csv',
+                counter: index + 1,
+                timestamp: now + index,
+                type: 'TRANSACTION_DELETED',
+                payload: { id },
+            })),
+        });
+        console.error(`[revolut] replaced ${replacedApiRows.length} rows from the bank API`);
     }
 
     for (let i = 0; i < candidates.length; i += args.batchSize) {

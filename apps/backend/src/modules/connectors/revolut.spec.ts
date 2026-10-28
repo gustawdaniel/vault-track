@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseRevolutCsv } from './revolut';
+import { parseRevolutCsv, replaceApiRows } from './revolut';
 
 const SAMPLE = `\uFEFFType,Product,Started Date,Completed Date,Description,Amount,Fee,Currency,State,Balance
 Deposit,Current,2018-08-07 17:53:08,,Top-up by *6639,1.00,0.00,PLN,REVERTED,
@@ -10,11 +10,11 @@ Card Payment,Current,2026-10-18 08:22:13,,Hetzner,-187.50,0.00,PLN,PENDING,
 `;
 
 describe('Revolut CSV parser', () => {
-    it('imports only COMPLETED rows and subtracts the fee from the gross amount', () => {
+    it('imports only COMPLETED rows, the fee as its own row', () => {
         const result = parseRevolutCsv(SAMPLE);
 
         expect(result.skipped).toBe(2);
-        expect(result.transactions).toHaveLength(3);
+        expect(result.transactions).toHaveLength(4);
 
         expect(result.transactions[0]).toMatchObject({
             date: '2018-08-07',
@@ -26,15 +26,22 @@ describe('Revolut CSV parser', () => {
             clearedStatus: 'X',
         });
 
-        // -205.64 gross - 2.06 fee = -207.70, matching the running balance.
+        // -205.64 gross and a 2.06 fee: together -207.70, matching the running balance.
         expect(result.transactions[1]).toMatchObject({
             date: '2022-02-12',
-            amount: -207.7,
-            balance: 1743.84,
+            amount: -205.64,
+            balance: 1745.9,
             payee: 'Tal Lira Hotels',
         });
-
         expect(result.transactions[2]).toMatchObject({
+            date: '2022-02-12',
+            amount: -2.06,
+            balance: 1743.84,
+            payee: 'Revolut — opłata: Tal Lira Hotels',
+            category: 'Financial:Bank fees',
+        });
+
+        expect(result.transactions[3]).toMatchObject({
             date: '2026-10-18',
             amount: -21.73,
             balance: 974.63,
@@ -46,5 +53,18 @@ describe('Revolut CSV parser', () => {
         expect(() => parseRevolutCsv('date,amount\n2026-10-18,-21.73\n')).toThrow(
             /missing Type \/ Started Date header/,
         );
+    });
+
+    it('replaces API rows: the API amount is the net, its category moves to the main row', () => {
+        const { transactions } = parseRevolutCsv(SAMPLE);
+        const { rows, deleteIds } = replaceApiRows(transactions, [
+            { id: 'api-hotel', date: '2022-02-13', amount: -207.7, category: 'Fun:Travel leisure', externalId: 'enablebanking:revolut:id:x' },
+            { id: 'api-bolt', date: '2026-10-18', amount: -21.73, category: 'Transport:Car', externalId: 'enablebanking:revolut:id:y' },
+            { id: 'csv-old', date: '2026-10-18', amount: -21.73, category: 'Other', externalId: 'revolut-csv:fp:z' },
+        ]);
+        expect(deleteIds.sort()).toEqual(['api-bolt', 'api-hotel']);
+        expect(rows[1]).toMatchObject({ amount: -205.64, category: 'Fun:Travel leisure' });
+        expect(rows[2]).toMatchObject({ amount: -2.06, category: 'Financial:Bank fees' });
+        expect(rows[3]).toMatchObject({ amount: -21.73, category: 'Transport:Car' });
     });
 });
