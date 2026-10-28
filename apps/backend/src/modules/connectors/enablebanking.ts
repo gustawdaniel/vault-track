@@ -406,14 +406,9 @@ export async function syncEnableBankingLink(
         input.providerAccountId,
         input.dateFrom,
     );
-    // payments the bank has not booked yet belong to the real state of the account too
-    let pendingNote: string | null = null;
-    const pendingRaw = await getAllTransactions(config, input.providerAccountId, input.dateFrom, 'PDNG').catch((error: any) => {
-        pendingNote = `pending not available: ${error?.message || error}`;
-        return [] as any[];
-    });
-
-    const mapped = [...transactions, ...pendingRaw]
+    // without a status filter the bank returns booked and pending (PDNG) together: no extra request, since
+    // banks allow only 4 requests a day per account without the person present (PSD2)
+    const mapped = transactions
         .map((tx) => mapEnableBankingTransaction(tx, input.aspspName))
         .filter((tx): tx is ConnectorTransactionInput => tx !== null);
 
@@ -484,6 +479,5 @@ export async function syncEnableBankingLink(
         balance,
         assertion,
         removedPending: stale.length,
-        pendingNote,
     };
 }
