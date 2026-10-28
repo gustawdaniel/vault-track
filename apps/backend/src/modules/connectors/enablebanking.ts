@@ -267,7 +267,8 @@ export function mapEnableBankingTransaction(tx: any): ConnectorTransactionInput 
     const rawAmount = Number(
         tx?.transaction_amount?.amount ?? tx?.instructed_amount?.amount ?? NaN,
     );
-    if (!Number.isFinite(rawAmount)) return null;
+    // card authorisation holds come as 0.00 and never move money
+    if (!Number.isFinite(rawAmount) || rawAmount === 0) return null;
 
     const amount = tx?.credit_debit_indicator === 'DBIT'
         ? -Math.abs(rawAmount)
