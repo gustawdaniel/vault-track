@@ -10,13 +10,18 @@ export type FiatCurrency =
   | 'THB'
   | 'TND'
   | 'TWD'
-  | 'GEL';
+  | 'GEL'
+  | 'AUD'
+  | 'CAD'
+  | 'HUF'
+  | 'NZD'
+  | 'TRY';
 
 export type CryptoCurrency = 'BTC' | 'ETH' | 'SOL' | 'DOGE';
 export type Currency = FiatCurrency | CryptoCurrency;
 
 export const FIAT_CURRENCIES: FiatCurrency[] = [
-  'PLN', 'USD', 'EUR', 'GBP', 'GEL', 'THB', 'JPY', 'SGD', 'MYR', 'PHP', 'TND', 'TWD'
+  'PLN', 'USD', 'EUR', 'GBP', 'GEL', 'THB', 'JPY', 'SGD', 'MYR', 'PHP', 'TND', 'TWD', 'AUD', 'CAD', 'HUF', 'NZD', 'TRY'
 ];
 export const CRYPTO_CURRENCIES: CryptoCurrency[] = ['BTC', 'ETH', 'SOL', 'DOGE'];
 export const ALL_CURRENCIES: Currency[] = [...FIAT_CURRENCIES, ...CRYPTO_CURRENCIES];
