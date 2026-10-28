@@ -1,3 +1,4 @@
+import { withDates } from './dates';
 import { Client, InStatement } from '@libsql/client';
 import crypto from 'node:crypto';
 
@@ -102,12 +103,14 @@ export function buildEventMaterializeStatements(groupId: string, rawEvents: any[
             case 'TRANSACTION_ADDED':
             case 'TRANSACTION_UPDATED': {
                 if (!payload.id) break;
+                const tx = withDates(payload);
                 statements.push({
                     sql: `INSERT INTO transactions (
                             group_id, id, account_id, account, amount, date,
                             category, payee, memo, cleared_status, split_id,
-                            transfer_hash, hash, external_id, raw_source, data_json, updated_at
-                          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            transfer_hash, hash, external_id, raw_source, data_json, updated_at,
+                            executed_at, executed_at_precision, executed_at_source, booking_date
+                          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                           ON CONFLICT(group_id, id) DO UPDATE SET
                             account_id = excluded.account_id,
                             account = excluded.account,
@@ -123,14 +126,18 @@ export function buildEventMaterializeStatements(groupId: string, rawEvents: any[
                             external_id = COALESCE(excluded.external_id, transactions.external_id),
                             raw_source = COALESCE(excluded.raw_source, transactions.raw_source),
                             data_json = excluded.data_json,
-                            updated_at = excluded.updated_at`,
+                            updated_at = excluded.updated_at,
+                            executed_at = excluded.executed_at,
+                            executed_at_precision = excluded.executed_at_precision,
+                            executed_at_source = excluded.executed_at_source,
+                            booking_date = excluded.booking_date`,
                     args: [
                         groupId,
                         String(payload.id),
                         String(payload.accountId ?? ''),
                         String(payload.account ?? ''),
                         Number(payload.amount ?? 0),
-                        String(payload.date ?? ''),
+                        tx.date,
                         payload.category ?? null,
                         payload.payee ?? null,
                         payload.memo ?? null,
@@ -140,8 +147,12 @@ export function buildEventMaterializeStatements(groupId: string, rawEvents: any[
                         payload.hash ?? null,
                         payload.externalId ?? null,
                         payload.rawSource ? JSON.stringify(payload.rawSource) : null,
-                        JSON.stringify(payload),
+                        JSON.stringify(tx),
                         timestamp,
+                        tx.executedAt,
+                        tx.executedAtPrecision,
+                        tx.executedAtSource,
+                        tx.bookingDate,
                     ],
                 });
                 break;

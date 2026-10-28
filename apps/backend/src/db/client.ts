@@ -101,6 +101,19 @@ export async function initDB() {
         );
     `);
 
+    // dates of 28.10.2026 (modules/sync/dates.ts): added to existing databases, filled by the materializer
+    const transactionColumns = new Set(
+        (await db.execute(`PRAGMA table_info(transactions)`)).rows.map((row: any) => String(row.name)),
+    );
+    for (const [name, type] of [
+        ['executed_at', 'TEXT'],
+        ['executed_at_precision', 'TEXT'],
+        ['executed_at_source', 'TEXT'],
+        ['booking_date', 'TEXT'],
+    ]) {
+        if (!transactionColumns.has(name)) await db.execute(`ALTER TABLE transactions ADD COLUMN ${name} ${type}`);
+    }
+
     await db.execute(`
         CREATE INDEX IF NOT EXISTS idx_transactions_group_date ON transactions(group_id, date);
     `);

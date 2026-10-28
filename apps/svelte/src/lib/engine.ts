@@ -1,3 +1,4 @@
+import { ledgerDay } from './dates';
 import {
   type Account,
   type Assert,
@@ -153,8 +154,9 @@ export function computeAccountsAndReconciliation(
   const failedCountByAccountId = new Map<string, number>();
 
   for (const acc of accounts) {
+    // the ledger counts a transaction on the day the bank booked it, or on the day it was made while pending
     const accTxs = (txsByAccount.get(acc.id) || []).slice().sort((a, b) => {
-      const d = (a.date || '').localeCompare(b.date || '');
+      const d = ledgerDay(a).localeCompare(ledgerDay(b));
       return d !== 0 ? d : a.id.localeCompare(b.id);
     });
 
@@ -193,7 +195,7 @@ export function computeAccountsAndReconciliation(
     };
 
     for (const tx of accTxs) {
-      const txDay = (tx.date || '').split('T')[0] || '';
+      const txDay = ledgerDay(tx);
       while (assertIdx < accAsserts.length) {
         const curAssert = accAsserts[assertIdx]!;
         if (curAssert.date < txDay) {

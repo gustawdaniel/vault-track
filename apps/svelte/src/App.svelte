@@ -1064,6 +1064,12 @@
       accountId: sourceAcc.id,
       amount: roundCurrency(signedAmount, sourceAcc.currency),
       date: txFormDate,
+      // a new day typed by hand replaces the moment of execution; an untouched day keeps the precise one
+      ...((!editingTxId || appState.transactions[editingTxId]?.date !== txFormDate) && {
+        executedAt: undefined,
+        executedAtPrecision: 'day' as const,
+        executedAtSource: 'manual' as const,
+      }),
       payee: txFormPayee.trim() || undefined,
       category: composedCategory || undefined,
       memo: txFormMemo.trim() || undefined,
@@ -2016,7 +2022,17 @@
               {:else}
                 {@const t = item.tx}
                 <tr class="tx-row" onclick={() => openEditTransactionDrawer(t)}>
-                  <td class="mono col-date">{t.date.split('T')[0]}</td>
+                  <td class="mono col-date">
+                    {t.date.split('T')[0]}
+                    {#if t.executedAt && t.executedAtPrecision && t.executedAtPrecision !== 'day'}
+                      <span class="muted tx-time">{t.executedAt.slice(11, 16)}</span>
+                    {/if}
+                    {#if t.bookingDate === null}
+                      <span class="tx-pending" title="Bank jeszcze nie zaksięgował; liczy się do stanu konta">niezaksięgowana</span>
+                    {:else if t.bookingDate && t.bookingDate !== t.date.split('T')[0]}
+                      <span class="muted tx-time" title="Data zaksięgowania">ks. {t.bookingDate.slice(5)}</span>
+                    {/if}
+                  </td>
                   <td class="col-account">
                     <span class="account-pill">{t.account}</span>
                   </td>
@@ -3465,6 +3481,15 @@
     vertical-align: middle;
   }
 
+  .tx-time {
+    display: block;
+    font-size: 0.75em;
+  }
+  .tx-pending {
+    display: block;
+    font-size: 0.7em;
+    color: var(--warning, #b45309);
+  }
   .col-date {
     width: 108px;
     white-space: nowrap;

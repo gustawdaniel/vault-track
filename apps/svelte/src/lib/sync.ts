@@ -1,3 +1,4 @@
+import { withDates } from './dates';
 import { openDB, type IDBPDatabase } from 'idb';
 import { uid } from 'uid';
 import type {
@@ -49,7 +50,7 @@ export function applyEventMutable(state: AppState, event: AppEvent): void {
   switch (event.type) {
     case 'TRANSACTION_ADDED':
     case 'TRANSACTION_UPDATED':
-      if (p.id) state.transactions[p.id] = p;
+      if (p.id) state.transactions[p.id] = withDates(p);
       break;
     case 'TRANSACTION_DELETED':
       if (p.id) delete state.transactions[p.id];
@@ -353,7 +354,7 @@ export async function bootstrapFromSnapshot(
       ((snapshot.accounts || []) as Account[]).map((item) => [item.id, item]),
     ),
     transactions: Object.fromEntries(
-      ((snapshot.transactions || []) as Transaction[]).map((item) => [item.id, item]),
+      ((snapshot.transactions || []) as Transaction[]).map((item) => [item.id, withDates(item)]),
     ),
     categories: Object.fromEntries(
       ((snapshot.categories || []) as PersistedCategory[]).map((item) => [item.id, item]),

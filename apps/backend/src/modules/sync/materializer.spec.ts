@@ -64,6 +64,10 @@ describe('Backend Plaintext Sync & Relational Materializer', () => {
                 raw_source TEXT,
                 data_json TEXT NOT NULL,
                 updated_at INTEGER NOT NULL,
+                executed_at TEXT,
+                executed_at_precision TEXT,
+                executed_at_source TEXT,
+                booking_date TEXT,
                 PRIMARY KEY (group_id, id)
             );
         `);

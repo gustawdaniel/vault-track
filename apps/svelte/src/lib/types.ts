@@ -39,6 +39,8 @@ export interface Account {
   hidden?: boolean;
   externalId?: string;
   balance?: number;
+  /** the bank's time zone: where its day ends (lib/dates.ts), Europe/Warsaw when not set */
+  timezone?: string;
 }
 
 export interface Transaction {
@@ -56,6 +58,12 @@ export interface Transaction {
   hash?: string;
   externalId?: string;
   rawSource?: Record<string, unknown>;
+  /** when it was really paid / ordered (lib/dates.ts) */
+  executedAt?: string;
+  executedAtPrecision?: 'second' | 'minute' | 'day';
+  executedAtSource?: 'bank-web' | 'email' | 'manual' | 'bank-api' | 'import';
+  /** the day the bank booked it; null while it is not booked yet */
+  bookingDate?: string | null;
 }
 
 export interface PersistedCategory {

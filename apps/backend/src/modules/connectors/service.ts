@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { Client, InStatement } from '@libsql/client';
 import { buildEventMaterializeStatements, executeInChunks } from '../sync/materializer';
 import { CategoryDefinition, createCategorizer, isMeaningfulCategory } from './categorize';
+import { ExecutedAtPrecision, ExecutedAtSource, withDates } from '../sync/dates';
 
 export interface ConnectorTransactionInput {
     /** Stable identifier from the bank/connector. If omitted, a content fingerprint is used. */
@@ -15,6 +16,12 @@ export interface ConnectorTransactionInput {
     balance?: number;
     clearedStatus?: '' | '*' | 'X' | '?';
     raw?: Record<string, unknown>;
+    /** when it was really paid or ordered (modules/sync/dates.ts); without it, `date` known to the day */
+    executedAt?: string;
+    executedAtPrecision?: ExecutedAtPrecision;
+    executedAtSource?: ExecutedAtSource;
+    /** the day the bank booked it; null while it is not booked yet; omitted = booked on `date` */
+    bookingDate?: string | null;
 }
 
 export interface ConnectorAccount {
@@ -28,6 +35,8 @@ export interface IngestResult {
     skipped: number;
     total: number;
     transactionIds: string[];
+    /** not-yet-booked rows that became booked under a new bank id */
+    merged?: number;
 }
 
 export function normalizeText(value: unknown): string {
@@ -97,12 +106,16 @@ function buildTransactionEvent(
         counter: index + 1,
         timestamp: Date.now() + index,
         type: 'TRANSACTION_ADDED',
-        payload: {
+        payload: withDates({
             id,
             accountId: account.id,
             account: account.name,
             amount: tx.amount,
             date: tx.date,
+            executedAt: tx.executedAt,
+            executedAtPrecision: tx.executedAtPrecision,
+            executedAtSource: tx.executedAtSource,
+            bookingDate: tx.bookingDate,
             category: tx.category ?? '',
             payee: tx.payee ?? '',
             memo: tx.memo ?? '',
@@ -114,7 +127,7 @@ function buildTransactionEvent(
                 balance: tx.balance,
                 ...(tx.raw || {}),
             },
-        },
+        }),
     };
 }
 
@@ -129,6 +142,11 @@ export interface IngestOptions {
      * (a CSV import, a hand-made entry): a bank API that starts late must not repeat history imported before.
      */
     matchExistingDays?: number;
+    /**
+     * A booked row that arrives under a new id (Millennium changes it on booking) replaces this source's
+     * not-yet-booked row of the same amount from within 3 days, instead of being added next to it.
+     */
+    mergePending?: boolean;
 }
 
 function daysBetween(a: string, b: string): number {
@@ -183,8 +201,44 @@ export async function ingestTransactions(
         }
     }
 
+    const merged: any[] = [];
+    if (options.mergePending && fresh.length > 0) {
+        const pending = (await db.execute({
+            sql: `SELECT id, date, amount, data_json FROM transactions
+                  WHERE group_id = ? AND account_id = ? AND booking_date IS NULL AND external_id LIKE ?`,
+            args: [groupId, account.id, `${source}:%`],
+        })).rows.map((row: any) => ({ id: String(row.id), date: String(row.date), amount: Number(row.amount), data: JSON.parse(String(row.data_json)), used: false }));
+        for (let i = fresh.length - 1; i >= 0; i--) {
+            const { tx, externalId } = fresh[i]!;
+            if (!tx.bookingDate) continue;
+            const row = pending.find((p) => !p.used && Math.abs(p.amount - Number(tx.amount)) < 0.005 && daysBetween(p.date, tx.date) <= 3);
+            if (!row) continue;
+            row.used = true;
+            fresh.splice(i, 1);
+            merged.push({
+                ...row.data,
+                externalId,
+                bookingDate: tx.bookingDate,
+                payee: row.data.payee || tx.payee || '',
+                memo: row.data.memo || tx.memo || '',
+                rawSource: { connector: source, currency: tx.currency, ...(tx.raw || {}) },
+            });
+        }
+        if (merged.length > 0) {
+            const now = Date.now();
+            await executeInChunks(db, buildEventMaterializeStatements(groupId, merged.map((payload, index) => ({
+                eventId: `connector:${source}:booked:${payload.id}:${now}`,
+                deviceId: `connector:${source}`,
+                counter: index + 1,
+                timestamp: now + index,
+                type: 'TRANSACTION_UPDATED',
+                payload,
+            }))));
+        }
+    }
+
     if (fresh.length === 0) {
-        return { imported: 0, skipped: transactions.length, total: transactions.length, transactionIds: [] };
+        return { imported: 0, skipped: transactions.length - merged.length, total: transactions.length, transactionIds: [], merged: merged.length };
     }
 
     const suggest = await loadCategorizer(db, groupId);
@@ -198,9 +252,10 @@ export async function ingestTransactions(
 
     return {
         imported: fresh.length,
-        skipped: transactions.length - fresh.length,
+        skipped: transactions.length - fresh.length - merged.length,
         total: transactions.length,
         transactionIds: fresh.map(({ externalId }) => buildTransactionId(externalId)),
+        merged: merged.length,
     };
 }
 

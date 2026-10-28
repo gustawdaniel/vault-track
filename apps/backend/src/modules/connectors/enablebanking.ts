@@ -3,10 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { Client } from '@libsql/client';
 import {
+    buildExternalId,
     ConnectorTransactionInput,
     ingestTransactions,
     upsertConnectorAssert,
 } from './service';
+import { buildEventMaterializeStatements, executeInChunks } from '../sync/materializer';
 
 export interface EnableBankingConfig {
     appId: string;
@@ -225,10 +227,11 @@ export async function getBalances(
 export async function getTransactions(
     config: EnableBankingConfig,
     accountUid: string,
-    options: { dateFrom?: string; continuationKey?: string } = {},
+    options: { dateFrom?: string; continuationKey?: string; status?: 'BOOK' | 'PDNG' } = {},
 ): Promise<{ transactions: any[]; continuation_key?: string }> {
     const params = new URLSearchParams();
     if (options.dateFrom) params.set('date_from', options.dateFrom);
+    if (options.status) params.set('transaction_status', options.status);
     if (options.continuationKey) params.set('continuation_key', options.continuationKey);
 
     const query = params.toString();
@@ -242,6 +245,7 @@ export async function getAllTransactions(
     config: EnableBankingConfig,
     accountUid: string,
     dateFrom?: string,
+    status?: 'BOOK' | 'PDNG',
 ): Promise<any[]> {
     const all: any[] = [];
     let continuationKey: string | undefined;
@@ -251,6 +255,7 @@ export async function getAllTransactions(
         const page = await getTransactions(config, accountUid, {
             dateFrom,
             continuationKey,
+            status,
         });
         all.push(...(page.transactions || []));
         continuationKey = page.continuation_key;
@@ -261,8 +266,11 @@ export async function getAllTransactions(
 }
 
 export function mapEnableBankingTransaction(tx: any): ConnectorTransactionInput | null {
-    const date = tx?.booking_date || tx?.value_date || tx?.transaction_date;
+    // the day it was made; the bank's booking day apart (null while pending). APIs give days, not times.
+    const date = tx?.transaction_date || tx?.value_date || tx?.booking_date;
     if (!date) return null;
+    const booked = String(tx?.status || 'BOOK').toUpperCase() === 'BOOK';
+    const bookingDate = booked ? String(tx?.booking_date || tx?.value_date || date) : null;
 
     const rawAmount = Number(
         tx?.transaction_amount?.amount ?? tx?.instructed_amount?.amount ?? NaN,
@@ -302,8 +310,15 @@ export function mapEnableBankingTransaction(tx: any): ConnectorTransactionInput 
             ? Number(tx.balance_after_transaction.amount)
             : undefined,
         clearedStatus,
+        executedAtPrecision: 'day',
+        executedAtSource: 'bank-api',
+        bookingDate,
         raw: tx,
     };
+}
+
+function isBookedBalance(type: string): boolean {
+    return ['CLBD', 'closingBooked', 'ITBD', 'interimBooked', 'OPBD', 'openingBooked'].includes(type);
 }
 
 export function pickBalance(balances: any[]): {
@@ -377,8 +392,14 @@ export async function syncEnableBankingLink(
         input.providerAccountId,
         input.dateFrom,
     );
+    // payments the bank has not booked yet belong to the real state of the account too
+    let pendingNote: string | null = null;
+    const pendingRaw = await getAllTransactions(config, input.providerAccountId, input.dateFrom, 'PDNG').catch((error: any) => {
+        pendingNote = `pending not available: ${error?.message || error}`;
+        return [] as any[];
+    });
 
-    const mapped = transactions
+    const mapped = [...transactions, ...pendingRaw]
         .map(mapEnableBankingTransaction)
         .filter((tx): tx is ConnectorTransactionInput => tx !== null);
 
@@ -400,11 +421,35 @@ export async function syncEnableBankingLink(
             currency: input.accountCurrency,
         },
         mapped,
-        { matchExistingDays: 3 },
+        { matchExistingDays: 3, mergePending: true },
     );
 
+    // a pending payment the bank no longer lists (reverted, or booked under an id we could not tie) leaves the ledger
+    const listed = new Set(mapped.map((tx) => buildExternalId(source, input.accountId, tx)));
+    const stale = (await db.execute({
+        sql: `SELECT id, external_id FROM transactions
+              WHERE group_id = ? AND account_id = ? AND booking_date IS NULL AND external_id LIKE ? AND date >= ?`,
+        args: [input.groupId, input.accountId, `${source}:%`, input.dateFrom ?? '0000-00-00'],
+    })).rows.filter((row: any) => !listed.has(String(row.external_id)));
+    if (stale.length > 0) {
+        const now = Date.now();
+        await executeInChunks(db, buildEventMaterializeStatements(input.groupId, stale.map((row: any, index) => ({
+            eventId: `connector:${source}:gone:${row.id}:${now}`,
+            deviceId: `connector:${source}`,
+            counter: index + 1,
+            timestamp: now + index,
+            type: 'TRANSACTION_DELETED',
+            payload: { id: String(row.id) },
+        }))));
+    }
+
     const balances = await getBalances(config, input.providerAccountId);
-    const balance = pickBalance(balances);
+    const booked = pickBalance(balances);
+    // the assert is the real state: the booked balance plus what is spent and not booked yet
+    const pendingSum = Math.round(mapped.filter((tx) => tx.bookingDate === null).reduce((sum, tx) => sum + tx.amount, 0) * 100) / 100;
+    const balance = booked
+        ? { ...booked, value: Math.round((booked.value + (isBookedBalance(booked.type) ? pendingSum : 0)) * 100) / 100, pendingSum }
+        : null;
     const assertion = balance
         ? await upsertConnectorAssert(db, input.groupId, source, {
             accountId: input.accountId,
@@ -424,5 +469,7 @@ export async function syncEnableBankingLink(
             : null,
         balance,
         assertion,
+        removedPending: stale.length,
+        pendingNote,
     };
 }

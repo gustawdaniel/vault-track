@@ -113,4 +113,18 @@ describe('Enable Banking adapter', () => {
 
         expect(sourceSlug('Bank Millennium')).toBe('enablebanking:bank-millennium');
     });
+
+    it('keeps the day it was made apart from the booking day; pending has no booking day', async () => {
+        const { mapEnableBankingTransaction } = await import('./enablebanking');
+        const booked = mapEnableBankingTransaction({
+            status: 'BOOK', booking_date: '2026-10-29', value_date: '2026-10-29', transaction_date: '2026-10-27',
+            transaction_amount: { amount: '20.00', currency: 'PLN' }, credit_debit_indicator: 'DBIT', entry_reference: 'x',
+        });
+        expect(booked).toMatchObject({ date: '2026-10-27', bookingDate: '2026-10-29', executedAtPrecision: 'day', executedAtSource: 'bank-api' });
+        const pending = mapEnableBankingTransaction({
+            status: 'PDNG', value_date: '2026-10-28',
+            transaction_amount: { amount: '5.00', currency: 'PLN' }, credit_debit_indicator: 'DBIT', entry_reference: 'y',
+        });
+        expect(pending).toMatchObject({ date: '2026-10-28', bookingDate: null });
+    });
 });

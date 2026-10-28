@@ -65,6 +65,10 @@ describe('connector ingest service', () => {
                 raw_source TEXT,
                 data_json TEXT NOT NULL,
                 updated_at INTEGER NOT NULL,
+                executed_at TEXT,
+                executed_at_precision TEXT,
+                executed_at_source TEXT,
+                booking_date TEXT,
                 PRIMARY KEY (group_id, id)
             );
         `);
@@ -222,6 +226,29 @@ describe('connector ingest service', () => {
             { externalId: 'b4', date: '2026-10-20', amount: -60 },
         ], { matchExistingDays: 3 });
         expect(bank.imported).toBe(2);
+    });
+
+    it('a pending payment becomes booked in place when the bank books it under a new id', async () => {
+        const acc = { id: 'pending-account', name: 'Pending', currency: 'PLN' };
+        await ingestTransactions(db, groupId, 'enablebanking:bank-millennium', acc, [
+            { externalId: 'PENDING|1', date: '2026-10-27', amount: -66.14, payee: 'Bolt', bookingDate: null, category: 'Transport:Car' },
+        ]);
+        const booked = await ingestTransactions(db, groupId, 'enablebanking:bank-millennium', acc, [
+            { externalId: 'BOOKED|7', date: '2026-10-27', amount: -66.14, bookingDate: '2026-10-29' },
+        ], { mergePending: true });
+        expect(booked.imported).toBe(0);
+        expect(booked.merged).toBe(1);
+        const rows = await db.execute({
+            sql: `SELECT booking_date, category, executed_at_precision, external_id FROM transactions WHERE group_id = ? AND account_id = 'pending-account'`,
+            args: [groupId],
+        });
+        expect(rows.rows).toHaveLength(1);
+        expect(rows.rows[0]).toMatchObject({
+            booking_date: '2026-10-29',
+            category: 'Transport:Car',
+            executed_at_precision: 'day',
+            external_id: 'enablebanking:bank-millennium:id:BOOKED|7',
+        });
     });
 
     it('creates an assert once and updates it on the next run', async () => {
