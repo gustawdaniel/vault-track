@@ -2,6 +2,7 @@ import { createClient } from '@libsql/client';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import { startOfDay } from '../modules/sync/dates';
+import { buildEventMaterializeStatements, executeInChunks } from '../modules/sync/materializer';
 
 dotenv.config();
 
@@ -115,13 +116,14 @@ export async function initDB() {
         if (!transactionColumns.has(name)) await db.execute(`ALTER TABLE transactions ADD COLUMN ${name} ${type}`);
     }
 
-    // Revolut bank API rows written before the dates model: booking_date is the day the card was charged,
-    // value_date the day it settled and moved the balance. Backfill so the ledger counts on the booked day.
-    const revolutLegacy = await db.execute({
+    // Revolut bank API rows: booking_date is the day the card was charged, value_date the day it settled.
+    // Emit TRANSACTION_UPDATED events (not raw UPDATEs) so local-first clients pull the corrected rows.
+    const revolutRows = await db.execute({
         sql: `SELECT group_id, id, data_json FROM transactions
-              WHERE external_id LIKE 'enablebanking:revolut:%' AND executed_at IS NULL`,
+              WHERE external_id LIKE 'enablebanking:revolut:%'`,
     });
-    for (const row of revolutLegacy.rows as any[]) {
+    const eventsByGroup = new Map<string, any[]>();
+    for (const row of revolutRows.rows as any[]) {
         let payload: any;
         try {
             payload = JSON.parse(String(row.data_json));
@@ -129,7 +131,7 @@ export async function initDB() {
             continue;
         }
         const raw = payload?.rawSource || {};
-        const day = (raw.booking_date || raw.value_date || payload.date || '').slice(0, 10);
+        const day = (raw.booking_date || raw.value_date || payload.date || payload.executedAt?.slice(0, 10) || '').slice(0, 10);
         const bookingDate = (raw.value_date || raw.booking_date || day).slice(0, 10);
         if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !/^\d{4}-\d{2}-\d{2}$/.test(bookingDate)) continue;
         const next = {
@@ -140,13 +142,20 @@ export async function initDB() {
             executedAtSource: 'bank-api',
             bookingDate,
         };
-        await db.execute({
-            sql: `UPDATE transactions
-                  SET date = ?, executed_at = ?, executed_at_precision = 'day',
-                      executed_at_source = 'bank-api', booking_date = ?, data_json = ?
-                  WHERE group_id = ? AND id = ?`,
-            args: [next.date, next.executedAt, next.bookingDate, JSON.stringify(next), String(row.group_id), String(row.id)],
+        const groupId = String(row.group_id);
+        const events = eventsByGroup.get(groupId) || [];
+        events.push({
+            eventId: `connector:backfill:revolut:${row.id}`,
+            deviceId: 'connector:backfill:revolut',
+            counter: events.length + 1,
+            timestamp: Date.now() + events.length,
+            type: 'TRANSACTION_UPDATED',
+            payload: next,
         });
+        eventsByGroup.set(groupId, events);
+    }
+    for (const [groupId, events] of eventsByGroup) {
+        await executeInChunks(db, buildEventMaterializeStatements(groupId, events));
     }
 
     await db.execute(`
