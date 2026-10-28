@@ -386,6 +386,25 @@ export async function enableBankingRoutes(fastify: FastifyInstance) {
         },
     );
 
+    // Stop feeding a VaultTrack account from a consent (a wrong automatic mapping).
+    app.post(
+        '/unmap',
+        { schema: { body: z.object({ linkId: z.string().min(1) }) } },
+        async (req, reply) => {
+            const groupId = req.headers['x-sync-group-id'] as string;
+            if (!groupId) {
+                return reply.code(400).send({ error: 'Missing X-Sync-Group-ID header' });
+            }
+            const { linkId } = req.body as any;
+            const updated = await db.execute({
+                sql: `UPDATE connector_links SET status = 'disabled', provider_account_id = NULL WHERE group_id = ? AND id = ?`,
+                args: [groupId, linkId],
+            });
+            if (updated.rowsAffected === 0) return reply.code(404).send({ error: 'Link not found' });
+            return { success: true };
+        },
+    );
+
     app.get(
         '/status',
         {

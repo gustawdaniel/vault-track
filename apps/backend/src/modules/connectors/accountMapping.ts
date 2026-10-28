@@ -70,7 +70,11 @@ export function mapBankAccounts(
 
     const brands = aspspName.toLowerCase().split(/\s+/).filter((w) => w.length >= 4 && w !== 'bank');
     const named = vault.filter(
-        (a) => !usedVault.has(a.id) && !a.fedElsewhere && brands.some((brand) => a.name.toLowerCase().includes(brand)),
+        (a) => !usedVault.has(a.id)
+            && !a.fedElsewhere
+            // an account with its own number in the description is matched by that number or not at all
+            && !/\d{10,}/.test(compact(a.description))
+            && brands.some((brand) => a.name.toLowerCase().includes(brand)),
     );
     for (const account of named) {
         const bankSide = bank.filter((b) => !usedBank.has(b.uid) && sameCurrency(b.currency, account.currency));

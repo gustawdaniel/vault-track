@@ -65,4 +65,13 @@ describe('mapBankAccounts', () => {
         );
         expect(mapping).toEqual([]);
     });
+
+    it('never guesses by currency for an account that has its own number (the VAT account is not in the API)', () => {
+        const mapping = mapBankAccounts(
+            'mBank',
+            [{ uid: 'other', identifier: 'PL51114020040000385090709015', currency: 'PLN' }],
+            [{ id: 'vat', name: 'mBank Firmowe VAT', currency: 'PLN', description: '82 1140 2004 0000 3503 0072 8130 (rachunek VAT)' }],
+        );
+        expect(mapping).toEqual([]);
+    });
 });

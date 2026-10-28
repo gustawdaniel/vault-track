@@ -123,12 +123,25 @@ function buildTransactionEvent(
  * All writes go through the same event + materializer path as the browser, so the
  * change is immediately visible to `/api/sync/pull` clients.
  */
+export interface IngestOptions {
+    /**
+     * Also skip a row when the account already has the same amount within this many days from another source
+     * (a CSV import, a hand-made entry): a bank API that starts late must not repeat history imported before.
+     */
+    matchExistingDays?: number;
+}
+
+function daysBetween(a: string, b: string): number {
+    return Math.abs(Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`)) / 86_400_000;
+}
+
 export async function ingestTransactions(
     db: Client,
     groupId: string,
     source: string,
     account: ConnectorAccount,
     transactions: ConnectorTransactionInput[],
+    options: IngestOptions = {},
 ): Promise<IngestResult> {
     const existing = await db.execute({
         sql: `SELECT external_id FROM transactions
@@ -148,6 +161,26 @@ export async function ingestTransactions(
         if (existingIds.has(externalId) || batchSeen.has(externalId)) continue;
         batchSeen.add(externalId);
         fresh.push({ tx, externalId });
+    }
+
+    if (options.matchExistingDays !== undefined && fresh.length > 0) {
+        const others = (await db.execute({
+            sql: `SELECT date, amount FROM transactions
+                  WHERE group_id = ? AND account_id = ?
+                    AND (external_id IS NULL OR external_id NOT LIKE ?)`,
+            args: [groupId, account.id, `${source}:%`],
+        })).rows.map((row: any) => ({ date: String(row.date), amount: Number(row.amount), used: false }));
+        const days = options.matchExistingDays;
+        for (let i = fresh.length - 1; i >= 0; i--) {
+            const { tx } = fresh[i]!;
+            const candidates = others
+                .filter((o) => !o.used && Math.abs(o.amount - Number(tx.amount)) < 0.005 && daysBetween(o.date, tx.date) <= days)
+                .sort((a, b) => daysBetween(a.date, tx.date) - daysBetween(b.date, tx.date));
+            if (candidates[0]) {
+                candidates[0].used = true;
+                fresh.splice(i, 1);
+            }
+        }
     }
 
     if (fresh.length === 0) {

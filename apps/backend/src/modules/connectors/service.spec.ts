@@ -209,6 +209,21 @@ describe('connector ingest service', () => {
         expect(Number((left.rows[0] as any).n)).toBe(0);
     });
 
+    it('does not repeat rows another source already imported, when asked to match them', async () => {
+        const acc = { id: 'match-account', name: 'Match', currency: 'PLN' };
+        await ingestTransactions(db, groupId, 'mbank-csv', acc, [
+            { date: '2026-10-05', amount: -50, payee: 'KOLEO', memo: 'bilet 1' },
+            { date: '2026-10-05', amount: -50, payee: 'KOLEO', memo: 'bilet 2' },
+        ]);
+        const bank = await ingestTransactions(db, groupId, 'enablebanking:mbank', acc, [
+            { externalId: 'b1', date: '2026-10-06', amount: -50 },
+            { externalId: 'b2', date: '2026-10-05', amount: -50 },
+            { externalId: 'b3', date: '2026-10-05', amount: -50 },
+            { externalId: 'b4', date: '2026-10-20', amount: -60 },
+        ], { matchExistingDays: 3 });
+        expect(bank.imported).toBe(2);
+    });
+
     it('creates an assert once and updates it on the next run', async () => {
         const first = await upsertConnectorAssert(db, groupId, 'millennium', {
             accountId: account.id,

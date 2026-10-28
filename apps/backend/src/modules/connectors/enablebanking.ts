@@ -399,6 +399,7 @@ export async function syncEnableBankingLink(
             currency: input.accountCurrency,
         },
         mapped,
+        { matchExistingDays: 3 },
     );
 
     const balances = await getBalances(config, input.providerAccountId);
