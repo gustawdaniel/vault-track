@@ -120,8 +120,12 @@ function clean(value?: string | null): string {
 export function payeeKey(payee?: string | null): string {
     return clean(payee)
         .split(' ')
-        .filter((word) => word && !/\d/.test(word))
-        .map((word) => word.replace(/^[^\p{L}]+|[^\p{L}.]+$/gu, ''))
+        .map((word) => {
+            // a card or account ending ("*3337") tells payees apart; long numbers and ids do not
+            if (/^\*?\d{2,4}$/.test(word)) return word;
+            if (/\d/.test(word)) return '';
+            return word.replace(/^[^\p{L}]+|[^\p{L}.]+$/gu, '');
+        })
         .filter(Boolean)
         .slice(0, 6)
         .join(' ');

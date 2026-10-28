@@ -13,6 +13,7 @@ describe('payeeKey', () => {
         expect(payeeKey('www.koleo.pl Francuska 11a Warszawa')).toBe('koleo.pl francuska warszawa');
         expect(payeeKey('BAR KIM LOAN     74940')).toBe('bar kim loan');
         expect(payeeKey('https://alab.pl')).toBe('alab.pl');
+        expect(payeeKey('Top-Up by *3337')).toBe('top-up by *3337');
     });
 });
 
@@ -83,7 +84,10 @@ describe('createCategorizer', () => {
     });
 
     it('suggests a move to my own account only when the payee clearly always means it', () => {
-        const topups = Array.from({ length: 5 }, () => ({ payee: 'Top-up by *3337', category: '[Millennium Bank]', amount: 500 }));
+        const topups = [
+            ...Array.from({ length: 5 }, () => ({ payee: 'Top-up by *3337', category: '[Millennium Bank]', amount: 500 })),
+            ...Array.from({ length: 3 }, () => ({ payee: 'Top-up by *6639', category: 'Housing:Utilities', amount: 500 })),
+        ];
         const own = createCategorizer([], topups);
         expect(own({ payee: 'Top-Up by *3337', amount: 50 })).toMatchObject({ category: '[Millennium Bank]', reason: 'history' });
         const once = createCategorizer([], topups.slice(0, 2));
