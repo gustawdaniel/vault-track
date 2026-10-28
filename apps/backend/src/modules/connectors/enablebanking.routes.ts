@@ -96,13 +96,23 @@ async function applySessionMapping(link: any, accounts: EnableBankingAccount[]) 
         args: [link.provider_accounts_json, String(link.id)],
     });
     const vault = (await db.execute({
-        sql: `SELECT id, name, currency, description FROM accounts WHERE group_id = ?`,
-        args: [String(link.group_id)],
+        sql: `SELECT a.id, a.name, a.currency, a.description,
+                     EXISTS (SELECT 1 FROM connector_links l
+                             WHERE l.group_id = a.group_id AND l.vaulttrack_account_id = a.id AND l.status = 'authorized'
+                               AND l.provider_account_id IS NOT NULL AND l.session_id != ?) AS fed_elsewhere
+              FROM accounts a WHERE a.group_id = ?`,
+        args: [String(link.session_id), String(link.group_id)],
     })).rows as any[];
     const mapping = mapBankAccounts(
         String(link.aspsp_name || ''),
         accounts.map((a: any) => ({ uid: a.uid, identifier: getAccountIban(a), currency: a.currency })),
-        vault.map((v) => ({ id: String(v.id), name: String(v.name), currency: v.currency, description: v.description })),
+        vault.map((v) => ({
+            id: String(v.id),
+            name: String(v.name),
+            currency: v.currency,
+            description: v.description,
+            fedElsewhere: Number(v.fed_elsewhere) === 1,
+        })),
     );
     for (const m of mapping) await upsertMappedLink(link, m.uid, m.vaulttrackAccountId);
     return mapping;

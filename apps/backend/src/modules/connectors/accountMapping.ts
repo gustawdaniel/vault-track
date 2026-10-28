@@ -5,7 +5,7 @@
  *  1. by number: the account's IBAN/BBAN written in the VaultTrack account's description ("22 1140 … 1652"),
  *     several currency pockets behind one IBAN (Revolut) are told apart by currency;
  *  2. by bank and currency: a VaultTrack account named after the bank ("Wise EUR", "Revolut GBP") with the same
- *     currency, when exactly one such pair is left.
+ *     currency, when exactly one such pair is left and no other consent feeds that account yet.
  */
 
 export interface BankAccountInfo {
@@ -19,6 +19,8 @@ export interface VaultAccountInfo {
     name: string;
     currency?: string | null;
     description?: string | null;
+    /** already fed by another consent: never guessed by currency (two Wise profiles both have EUR) */
+    fedElsewhere?: boolean;
 }
 
 export interface AccountMapping {
@@ -68,7 +70,7 @@ export function mapBankAccounts(
 
     const brands = aspspName.toLowerCase().split(/\s+/).filter((w) => w.length >= 4 && w !== 'bank');
     const named = vault.filter(
-        (a) => !usedVault.has(a.id) && brands.some((brand) => a.name.toLowerCase().includes(brand)),
+        (a) => !usedVault.has(a.id) && !a.fedElsewhere && brands.some((brand) => a.name.toLowerCase().includes(brand)),
     );
     for (const account of named) {
         const bankSide = bank.filter((b) => !usedBank.has(b.uid) && sameCurrency(b.currency, account.currency));

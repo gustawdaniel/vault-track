@@ -56,4 +56,13 @@ describe('mapBankAccounts', () => {
         );
         expect(mapping).toEqual([]);
     });
+
+    it('does not guess by currency for an account another consent already feeds', () => {
+        const mapping = mapBankAccounts(
+            'Wise',
+            [{ uid: 'company-eur', identifier: 'BE00123', currency: 'EUR' }],
+            [{ id: 'weur', name: 'Wise Eur', currency: 'EUR', fedElsewhere: true }],
+        );
+        expect(mapping).toEqual([]);
+    });
 });
