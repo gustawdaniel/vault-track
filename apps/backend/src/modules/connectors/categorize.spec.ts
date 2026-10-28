@@ -74,4 +74,19 @@ describe('createCategorizer', () => {
     it('skips built-in keywords for categories the group does not have', () => {
         expect(suggest({ payee: 'Biedronka 123' })).toBeNull();
     });
+
+    it('falls back to the merchant category code written in the memo', () => {
+        const mcc = createCategorizer([{ category: 'Food:Eating out' }, { category: 'Health' }], []);
+        expect(mcc({ payee: 'Vincent Boulangerie', memo: 'Revolut CARD_PAYMENT · MCC 5462 · 09:07', amount: -26.8 }))
+            .toMatchObject({ category: 'Food:Eating out', reason: 'mcc' });
+        expect(mcc({ payee: 'Centrum Medyczne Roy', memo: 'MCC 8099', amount: -250 })?.category).toBe('Health');
+    });
+
+    it('suggests a move to my own account only when the payee clearly always means it', () => {
+        const topups = Array.from({ length: 5 }, () => ({ payee: 'Top-up by *3337', category: '[Millennium Bank]', amount: 500 }));
+        const own = createCategorizer([], topups);
+        expect(own({ payee: 'Top-Up by *3337', amount: 50 })).toMatchObject({ category: '[Millennium Bank]', reason: 'history' });
+        const once = createCategorizer([], topups.slice(0, 2));
+        expect(once({ payee: 'Top-Up by *3337', amount: 50 })).toBeNull();
+    });
 });

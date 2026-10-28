@@ -24,7 +24,7 @@ export interface CategorizedTransaction {
 
 export interface CategorySuggestion {
     category: string;
-    reason: 'keyword' | 'history' | 'default';
+    reason: 'keyword' | 'history' | 'mcc' | 'default';
     match: string;
 }
 
@@ -61,6 +61,28 @@ export const DEFAULT_KEYWORDS: Array<[string, string]> = [
     ['digitalocean', 'Professional:Servers'],
 ];
 
+/** Merchant category codes (card schemes, BLIK) → category, used when nothing better is known. */
+export const MCC_CATEGORIES: Array<[RegExp, string]> = [
+    [/^4112$/, 'Transport:Train'],
+    [/^4111$/, 'Transport'],
+    [/^4131$/, 'Transport:Bus'],
+    [/^4121$/, 'Transport:Car'],
+    [/^(3\d{3}|4511)$/, 'Transport:Plane'],
+    [/^(5411|5499|5422|5441|5451)$/, 'Food:Groceries'],
+    [/^(5812|5813|5814|5462)$/, 'Food:Eating out'],
+    [/^5912$/, 'Health:Pharmacy'],
+    [/^(80[0-9]{2}|8099)$/, 'Health'],
+    [/^(7372|5734|5817|5818)$/, 'Professional:Apps'],
+    [/^(4814|4816|4899)$/, 'Professional:Internet'],
+    [/^(7011|7012)$/, 'Fun:Travel leisure'],
+    [/^(7941|7997)$/, 'Fun:Sport'],
+];
+
+/** "MCC 4112" written by importers into the memo (Revolut web app, card statements). */
+export function mccOf(tx: { memo?: string | null }): string | null {
+    return (tx.memo ?? '').match(/\bMCC (\d{4})\b/)?.[1] ?? null;
+}
+
 const NO_CATEGORY = new Set(['', 'other:uncategorized']);
 
 /**
@@ -76,6 +98,11 @@ export function isMeaningfulCategory(category?: string | null): category is stri
 }
 
 /** Lowercase, without Polish letters and diacritics: banks write "SZKOLA" and "SZKOŁA" for the same payee. */
+/** "[mBank Prywatne]": money moved to one of my own accounts (QIF transfer). */
+export function isOwnTransfer(category?: string | null): boolean {
+    return /^\[.+\]/.test((category ?? '').trim());
+}
+
 function clean(value?: string | null): string {
     return (value ?? '')
         .replace(/\u00a0/g, ' ')
@@ -136,12 +163,13 @@ export function createCategorizer(
 
     const byPayee = new Map<string, HistoryEntry>();
     for (const tx of history) {
-        if (!isMeaningfulCategory(tx.category)) continue;
+        // a move to one of my accounts ("[Millennium Bank]") is learned too, but suggested only when it is clear
+        if (!isMeaningfulCategory(tx.category) && !isOwnTransfer(tx.category)) continue;
         const key = payeeKey(tx.payee);
         const dir = direction(tx.amount);
         if (key.length < 3 || !dir) continue;
         const entry = byPayee.get(key) ?? { counts: { in: new Map(), out: new Map() } };
-        const category = tx.category.split('/')[0]!;
+        const category = tx.category!.split('/')[0]!;
         entry.counts[dir].set(category, (entry.counts[dir].get(category) ?? 0) + 1);
         byPayee.set(key, entry);
     }
@@ -174,6 +202,7 @@ export function createCategorizer(
         if (total === 0) return null;
         const [best, count] = [...counts].sort((a, b) => b[1] - a[1])[0]!;
         if (count / total < 0.6) return null;
+        if (isOwnTransfer(best) && (count < 3 || count / total < 0.9)) return null;
         return { category: best, reason: 'history', match: keys.join(', ') };
     }
 
@@ -185,6 +214,9 @@ export function createCategorizer(
         }
         const history = fromHistory(tx.payee, tx.amount);
         if (history) return history;
+        const mcc = mccOf(tx);
+        const byMcc = mcc ? MCC_CATEGORIES.find(([pattern, category]) => pattern.test(mcc) && (existing.size === 0 || existing.has(category))) : null;
+        if (byMcc) return { category: byMcc[1], reason: 'mcc', match: `MCC ${mcc}` };
         for (const [keyword, category] of defaults) {
             if (containsKeyword(text, keyword)) return { category, reason: 'default', match: keyword };
         }

@@ -224,7 +224,7 @@ export async function loadCategorizer(db: Client, groupId: string) {
     });
     const history = await db.execute({
         sql: `SELECT payee, category, amount FROM transactions
-              WHERE group_id = ? AND category IS NOT NULL AND category != '' AND category NOT LIKE '[%'`,
+              WHERE group_id = ? AND category IS NOT NULL AND category != ''`,
         args: [groupId],
     });
     return createCategorizer(

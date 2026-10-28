@@ -2231,7 +2231,7 @@
                     <td>{tx.amount.toFixed(2)}</td>
                     <td>{suggestion.category}</td>
                     <td class="muted">
-                      {suggestion.reason === 'history' ? `jak „${suggestion.match}”` : `słowo „${suggestion.match}”`}
+                      {suggestion.reason === 'history' ? `jak „${suggestion.match}”` : suggestion.reason === 'mcc' ? `kod branży ${suggestion.match}` : `słowo „${suggestion.match}”`}
                     </td>
                   </tr>
                 {/each}
@@ -2709,7 +2709,9 @@
                   <small class="muted">
                     Podpowiedź: {txFormCategoryAuto.reason === 'history'
                       ? `jak poprzednio dla „${txFormCategoryAuto.match}”`
-                      : `słowo „${txFormCategoryAuto.match}”`}
+                      : txFormCategoryAuto.reason === 'mcc'
+                        ? `kod branży ${txFormCategoryAuto.match}`
+                        : `słowo „${txFormCategoryAuto.match}”`}
                   </small>
                 {/if}
               </div>
