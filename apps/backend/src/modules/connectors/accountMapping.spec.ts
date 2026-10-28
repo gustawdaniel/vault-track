@@ -6,14 +6,14 @@ describe('mapBankAccounts', () => {
         const mapping = mapBankAccounts(
             'mBank',
             [
-                { uid: 'a', identifier: 'PL22114020040000350279911652', currency: 'PLN' },
-                { uid: 'b', identifier: 'PL13114020040000390275905033', currency: 'PLN' },
-                { uid: 'c', identifier: 'PL52114020040000301221841788', currency: 'EUR' },
+                { uid: 'a', identifier: 'PL00114020040000350279910001', currency: 'PLN' },
+                { uid: 'b', identifier: 'PL00114020040000390275900002', currency: 'PLN' },
+                { uid: 'c', identifier: 'PL00114020040000301221800003', currency: 'EUR' },
             ],
             [
-                { id: 'firm', name: 'mBank Firmowe', currency: 'PLN', description: '22 1140 2004 0000 3502 7991 1652 (mBank mBiznes)' },
-                { id: 'priv', name: 'mBank Prywatne', currency: 'PLN', description: '13 1140 2004 0000 3902 7590 5033 (mBank)' },
-                { id: 'mill', name: 'Millennium Bank', currency: 'PLN', description: '90 1160 2202 0000 0002 2859 6562' },
+                { id: 'firm', name: 'mBank Firmowe', currency: 'PLN', description: '00 1140 2004 0000 3502 7991 0001 (mBank mBiznes)' },
+                { id: 'priv', name: 'mBank Prywatne', currency: 'PLN', description: '00 1140 2004 0000 3902 7590 0002 (mBank)' },
+                { id: 'mill', name: 'Millennium Bank', currency: 'PLN', description: '00 1160 2202 0000 0002 2859 0004' },
             ],
         );
         expect(mapping).toEqual([
@@ -26,13 +26,13 @@ describe('mapBankAccounts', () => {
         const mapping = mapBankAccounts(
             'Revolut',
             [
-                { uid: 'eur', identifier: 'LT543250073209945743', currency: 'EUR' },
-                { uid: 'pln', identifier: 'LT543250073209945743', currency: 'PLN' },
-                { uid: 'usd', identifier: 'LT543250073209945743', currency: 'USD' },
-                { uid: 'local', identifier: 'PL10291000060000000002545867', currency: 'PLN' },
+                { uid: 'eur', identifier: 'LT003250073209945700', currency: 'EUR' },
+                { uid: 'pln', identifier: 'LT003250073209945700', currency: 'PLN' },
+                { uid: 'usd', identifier: 'LT003250073209945700', currency: 'USD' },
+                { uid: 'local', identifier: 'PL00102000060000000002545801', currency: 'PLN' },
             ],
             [
-                { id: 'rpln', name: 'Revolut PLN', currency: 'PLN', description: 'IBAN LT54 3250 0732 0994 5743.' },
+                { id: 'rpln', name: 'Revolut PLN', currency: 'PLN', description: 'IBAN LT00 3250 0732 0994 5700.' },
                 { id: 'reur', name: 'Revolut EUR', currency: 'EUR', description: '' },
                 { id: 'rusd', name: 'Revolut USD', currency: 'USD', description: null },
                 { id: 'rgbp', name: 'Revolut GBP', currency: 'GBP', description: '' },
@@ -49,8 +49,8 @@ describe('mapBankAccounts', () => {
         const mapping = mapBankAccounts(
             'Wise',
             [
-                { uid: 'w1', identifier: 'BE75967288224651', currency: 'EUR' },
-                { uid: 'w2', identifier: '203412614', currency: 'EUR' },
+                { uid: 'w1', identifier: 'BE00123456789001', currency: 'EUR' },
+                { uid: 'w2', identifier: '12345678', currency: 'EUR' },
             ],
             [{ id: 'weur', name: 'Wise Eur', currency: 'EUR' }],
         );
@@ -69,8 +69,8 @@ describe('mapBankAccounts', () => {
     it('never guesses by currency for an account that has its own number (the VAT account is not in the API)', () => {
         const mapping = mapBankAccounts(
             'mBank',
-            [{ uid: 'other', identifier: 'PL51114020040000385090709015', currency: 'PLN' }],
-            [{ id: 'vat', name: 'mBank Firmowe VAT', currency: 'PLN', description: '82 1140 2004 0000 3503 0072 8130 (rachunek VAT)' }],
+            [{ uid: 'other', identifier: 'PL00114020040000385090700009', currency: 'PLN' }],
+            [{ id: 'vat', name: 'mBank Firmowe VAT', currency: 'PLN', description: '00 1140 2004 0000 3503 0072 0009 (rachunek VAT)' }],
         );
         expect(mapping).toEqual([]);
     });

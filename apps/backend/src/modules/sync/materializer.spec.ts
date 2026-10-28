@@ -114,24 +114,38 @@ describe('Backend Plaintext Sync & Relational Materializer', () => {
         }
     });
 
-    it('should import real backup-1792270083.json into relational SQL tables and events log', async () => {
-        const backupFile = path.resolve(__dirname, '../../../../../backup-1792270083.json');
-        const backupRaw = fs.readFileSync(backupFile, 'utf-8');
-        const backup = JSON.parse(backupRaw);
+    it('imports a synthetic backup into relational tables and the events log', async () => {
+        const backup = {
+            accounts: [
+                { id: 'acc-pln', name: 'Konto testowe PLN', type: 'Bank', currency: 'PLN' },
+                { id: 'acc-eur', name: 'Konto testowe EUR', type: 'Bank', currency: 'EUR' },
+            ],
+            transactions: [
+                { id: 'tx-1', accountId: 'acc-pln', account: 'Konto testowe PLN', amount: 100, date: '2026-10-01', payee: 'Sklep testowy', category: 'Zakupy' },
+                { id: 'tx-2', accountId: 'acc-pln', account: 'Konto testowe PLN', amount: -25.5, date: '2026-10-02', payee: 'Kawiarnia testowa', category: 'Jedzenie' },
+                { id: 'tx-3', accountId: 'acc-eur', account: 'Konto testowe EUR', amount: 50, date: '2026-10-03', payee: 'Przelew testowy', category: 'Inne' },
+            ],
+            categories: [
+                { id: 'cat-1', category: 'Zakupy' },
+                { id: 'cat-2', category: 'Jedzenie' },
+            ],
+            projects: [
+                { id: 'proj-1', project: 'Projekt testowy' },
+            ],
+            asserts: [
+                { id: 'assert-1', accountId: 'acc-pln', date: '2026-10-31', value: 74.5 },
+            ],
+        };
 
         const result = await importBackupToGroup(testDb, groupId, backup);
-        expect(result.eventsCount).toBe(
-            backup.accounts.length +
-            backup.transactions.length +
-            backup.categories.length +
-            backup.asserts.length
-        );
+        expect(result.eventsCount).toBe(9);
 
         const snapshot = await getMaterializedSnapshot(testDb, groupId);
-        expect(snapshot.accounts).toHaveLength(26);
-        expect(snapshot.transactions).toHaveLength(6471);
-        expect(snapshot.categories).toHaveLength(85);
-        expect(snapshot.asserts).toHaveLength(58);
+        expect(snapshot.accounts).toHaveLength(2);
+        expect(snapshot.transactions).toHaveLength(3);
+        expect(snapshot.categories).toHaveLength(2);
+        expect(snapshot.projects).toHaveLength(1);
+        expect(snapshot.asserts).toHaveLength(1);
 
         // Verify direct SQL query works for MCP / Connectors
         const sqlRes = await testDb.execute({
@@ -139,12 +153,12 @@ describe('Backend Plaintext Sync & Relational Materializer', () => {
                   FROM transactions
                   WHERE group_id = ?
                   GROUP BY account
-                  ORDER BY tx_count DESC
-                  LIMIT 5`,
+                  ORDER BY tx_count DESC`,
             args: [groupId],
         });
-        expect(sqlRes.rows.length).toBe(5);
-        expect(Number(sqlRes.rows[0]?.tx_count)).toBeGreaterThan(100);
+        expect(sqlRes.rows).toHaveLength(2);
+        expect(Number(sqlRes.rows[0]?.tx_count)).toBe(2);
+        expect(Number(sqlRes.rows[0]?.balance)).toBe(74.5);
     });
 
     it('should materialize incremental add/update/delete events into relational tables', async () => {

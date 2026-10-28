@@ -32,8 +32,8 @@ describe('createCategorizer', () => {
     const suggest = createCategorizer(categories, [
         { payee: 'Bar Kim Loan 74940', category: 'Food:Eating out', amount: -27 },
         { payee: 'Bar Kim Loan 74940', category: 'Food:Eating out', amount: -27 },
-        { payee: 'Gustaw Daniel', category: 'Fun:Sport', amount: -10 },
-        { payee: 'Gustaw Daniel', category: 'Food:Groceries', amount: -10 },
+        { payee: 'Jan Kowalski', category: 'Fun:Sport', amount: -10 },
+        { payee: 'Jan Kowalski', category: 'Food:Groceries', amount: -10 },
     ]);
 
     it('uses the keywords written on a category first', () => {
@@ -42,7 +42,7 @@ describe('createCategorizer', () => {
 
     it('knows obvious merchants, also from the memo', () => {
         expect(suggest({ payee: 'koleo.pl' })).toMatchObject({ category: 'Transport:Train', reason: 'default' });
-        expect(suggest({ payee: 'GUSTAW DANIEL', memo: 'KOLEO bilety kolejowe Warszawa' })?.category).toBe('Transport:Train');
+        expect(suggest({ payee: 'JAN KOWALSKI', memo: 'KOLEO bilety kolejowe Warszawa' })?.category).toBe('Transport:Train');
         expect(suggest({ payee: 'jakdojade.pl' })?.category).toBe('Transport');
     });
 
@@ -69,7 +69,7 @@ describe('createCategorizer', () => {
     });
 
     it('stays silent when the payee history is mixed', () => {
-        expect(suggest({ payee: 'GUSTAW DANIEL', memo: 'Revolut**7953* Dublin' })).toBeNull();
+        expect(suggest({ payee: 'JAN KOWALSKI', memo: 'Revolut**1234* Dublin' })).toBeNull();
     });
 
     it('skips built-in keywords for categories the group does not have', () => {
