@@ -273,4 +273,15 @@ describe('connector ingest service', () => {
         expect(rows.rows).toHaveLength(1);
         expect(Number((rows.rows[0] as any).value)).toBe(5000);
     });
+
+    it('keeps one assert per account and month, moved to the latest balance', async () => {
+        const first = await upsertConnectorAssert(db, groupId, 'millennium', { accountId: account.id, date: '2026-07-02', value: 10 });
+        const later = await upsertConnectorAssert(db, groupId, 'millennium', { accountId: account.id, date: '2026-07-29', value: 12.5 });
+        const next = await upsertConnectorAssert(db, groupId, 'millennium', { accountId: account.id, date: '2026-08-01', value: 13 });
+        expect(later.id).toBe(first.id);
+        expect(later.created).toBe(false);
+        expect(next.created).toBe(true);
+        const rows = await db.execute({ sql: `SELECT date, value FROM asserts WHERE group_id = ? AND id = ?`, args: [groupId, first.id] });
+        expect(rows.rows[0]).toMatchObject({ date: '2026-07-29', value: 12.5 });
+    });
 });

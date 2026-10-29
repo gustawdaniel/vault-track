@@ -373,7 +373,9 @@ export async function upsertConnectorAssert(
     source: string,
     input: ConnectorAssertInput,
 ): Promise<{ id: string; created: boolean }> {
-    const id = `connector:${source}:${input.accountId}:${input.date}`;
+    // one assert per account and month: each sync moves it to the latest balance, so the month ends with the
+    // balance at its last sync (a bank checkpoint per month, not one per day)
+    const id = `connector:${source}:${input.accountId}:${input.date.slice(0, 7)}`;
     const existing = await db.execute({
         sql: `SELECT id FROM asserts WHERE group_id = ? AND id = ? LIMIT 1`,
         args: [groupId, id],
@@ -381,7 +383,7 @@ export async function upsertConnectorAssert(
     const created = existing.rows.length === 0;
 
     const event = {
-        eventId: `connector:${source}:assert:${id}`,
+        eventId: `connector:${source}:assert:${id}:${input.date}:${input.value}`,
         deviceId: `connector:${source}`,
         counter: 1,
         timestamp: Date.now(),
