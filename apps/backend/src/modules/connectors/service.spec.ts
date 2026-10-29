@@ -9,6 +9,7 @@ import {
     ingestTransactions,
     transactionFingerprint,
     upsertConnectorAssert,
+    ensureMonthEndAssert,
 } from './service';
 
 describe('connector ingest service', () => {
@@ -274,14 +275,19 @@ describe('connector ingest service', () => {
         expect(Number((rows.rows[0] as any).value)).toBe(5000);
     });
 
-    it('keeps one assert per account and month, moved to the latest balance', async () => {
-        const first = await upsertConnectorAssert(db, groupId, 'millennium', { accountId: account.id, date: '2026-07-02', value: 10 });
-        const later = await upsertConnectorAssert(db, groupId, 'millennium', { accountId: account.id, date: '2026-07-29', value: 12.5 });
-        const next = await upsertConnectorAssert(db, groupId, 'millennium', { accountId: account.id, date: '2026-08-01', value: 13 });
-        expect(later.id).toBe(first.id);
-        expect(later.created).toBe(false);
-        expect(next.created).toBe(true);
-        const rows = await db.execute({ sql: `SELECT date, value FROM asserts WHERE group_id = ? AND id = ?`, args: [groupId, first.id] });
-        expect(rows.rows[0]).toMatchObject({ date: '2026-07-29', value: 12.5 });
+    it('puts one assert on the last day of the finished month, from the current balance minus later bookings', async () => {
+        const acc = { id: 'month-end-account', name: 'Month end', currency: 'PLN' };
+        await ingestTransactions(db, groupId, 'enablebanking:test', acc, [
+            { externalId: 'm1', date: '2026-09-20', amount: -100, bookingDate: '2026-09-20' },
+            { externalId: 'm2', date: '2026-10-03', amount: -40, bookingDate: '2026-10-03' },
+            { externalId: 'm3', date: '2026-10-29', amount: -62, bookingDate: null },
+        ]);
+        const first = await ensureMonthEndAssert(db, groupId, 'enablebanking:test', { accountId: acc.id, balanceDate: '2026-10-29', balance: 860, booked: true });
+        expect(first).toMatchObject({ created: true, date: '2026-09-30', value: 900 });
+        const again = await ensureMonthEndAssert(db, groupId, 'enablebanking:test', { accountId: acc.id, balanceDate: '2026-10-30', balance: 700, booked: true });
+        expect(again?.created).toBe(false);
+        const rows = await db.execute({ sql: `SELECT date, value FROM asserts WHERE group_id = ? AND account_id = ?`, args: [groupId, acc.id] });
+        expect(rows.rows).toHaveLength(1);
+        expect(rows.rows[0]).toMatchObject({ date: '2026-09-30', value: 900 });
     });
 });

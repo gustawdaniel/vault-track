@@ -5,8 +5,8 @@ import { Client } from '@libsql/client';
 import {
     buildExternalId,
     ConnectorTransactionInput,
+    ensureMonthEndAssert,
     ingestTransactions,
-    upsertConnectorAssert,
 } from './service';
 import { buildEventMaterializeStatements, executeInChunks } from '../sync/materializer';
 
@@ -454,17 +454,15 @@ export async function syncEnableBankingLink(
 
     const balances = await getBalances(config, input.providerAccountId);
     const booked = pickBalance(balances);
-    // the assert is the real state: the booked balance plus what is spent and not booked yet
+    // pending payments the bank has not booked yet: reported, the month-end assert accounts for them
     const pendingSum = Math.round(mapped.filter((tx) => tx.bookingDate === null).reduce((sum, tx) => sum + tx.amount, 0) * 100) / 100;
-    const balance = booked
-        ? { ...booked, value: Math.round((booked.value + (isBookedBalance(booked.type) ? pendingSum : 0)) * 100) / 100, pendingSum }
-        : null;
-    const assertion = balance
-        ? await upsertConnectorAssert(db, input.groupId, source, {
+    const balance = booked ? { ...booked, pendingSum } : null;
+    const assertion = booked
+        ? await ensureMonthEndAssert(db, input.groupId, source, {
             accountId: input.accountId,
-            date: balance.date,
-            value: balance.value,
-            currency: balance.currency,
+            balanceDate: booked.date,
+            balance: booked.value,
+            booked: isBookedBalance(booked.type),
         })
         : null;
 

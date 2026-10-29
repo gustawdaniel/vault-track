@@ -373,9 +373,7 @@ export async function upsertConnectorAssert(
     source: string,
     input: ConnectorAssertInput,
 ): Promise<{ id: string; created: boolean }> {
-    // one assert per account and month: each sync moves it to the latest balance, so the month ends with the
-    // balance at its last sync (a bank checkpoint per month, not one per day)
-    const id = `connector:${source}:${input.accountId}:${input.date.slice(0, 7)}`;
+    const id = `connector:${source}:${input.accountId}:${input.date}`;
     const existing = await db.execute({
         sql: `SELECT id FROM asserts WHERE group_id = ? AND id = ? LIMIT 1`,
         args: [groupId, id],
@@ -402,6 +400,43 @@ export async function upsertConnectorAssert(
     await executeInChunks(db, statements);
 
     return { id, created };
+}
+
+/** The last day of the month before `day` ("2026-10-29" → "2026-09-30"). */
+export function previousMonthEnd(day: string): string {
+    const d = new Date(`${day.slice(0, 7)}-01T00:00:00Z`);
+    d.setUTCDate(0);
+    return d.toISOString().slice(0, 10);
+}
+
+/**
+ * The bank checkpoint of a finished month: one assert on its last day, created once and never moved.
+ * A bank gives today's balance only, so the month-end balance is today's balance minus what was booked after
+ * the month ended (an available balance also counts payments not booked yet). Days of the running month get
+ * no assert: during the day a bank balance lags behind payments already made.
+ */
+export async function ensureMonthEndAssert(
+    db: Client,
+    groupId: string,
+    source: string,
+    input: { accountId: string; balanceDate: string; balance: number; booked: boolean },
+): Promise<{ id: string; created: boolean; date: string; value: number } | null> {
+    const monthEnd = previousMonthEnd(input.balanceDate);
+    const existing = await db.execute({
+        sql: `SELECT id FROM asserts WHERE group_id = ? AND account_id = ? AND id LIKE 'connector:%' AND substr(date, 1, 7) = ?`,
+        args: [groupId, input.accountId, monthEnd.slice(0, 7)],
+    });
+    if (existing.rows.length > 0) return { id: String((existing.rows[0] as any).id), created: false, date: monthEnd, value: NaN };
+
+    const after = await db.execute({
+        sql: input.booked
+            ? `SELECT COALESCE(SUM(amount), 0) AS s FROM transactions WHERE group_id = ? AND account_id = ? AND booking_date > ?`
+            : `SELECT COALESCE(SUM(amount), 0) AS s FROM transactions WHERE group_id = ? AND account_id = ? AND COALESCE(booking_date, date) > ?`,
+        args: [groupId, input.accountId, monthEnd],
+    });
+    const value = Math.round((input.balance - Number((after.rows[0] as any).s)) * 100) / 100;
+    const result = await upsertConnectorAssert(db, groupId, source, { accountId: input.accountId, date: monthEnd, value });
+    return { ...result, date: monthEnd, value };
 }
 
 export interface ConnectorRunInput {
