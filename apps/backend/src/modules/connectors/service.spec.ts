@@ -290,4 +290,23 @@ describe('connector ingest service', () => {
         expect(rows.rows).toHaveLength(1);
         expect(rows.rows[0]).toMatchObject({ date: '2026-09-30', value: 900 });
     });
+
+    it('does not add a bank payment that is already here in parts (a split, or a price with its fee apart)', async () => {
+        const acc = { id: 'parts-account', name: 'Parts', currency: 'PLN' };
+        await ingestTransactions(db, groupId, 'manual-split', acc, [
+            { externalId: 'a', date: '2026-10-29', amount: -23 },
+            { externalId: 'b', date: '2026-10-29', amount: -39 },
+        ]);
+        await db.execute({ sql: `UPDATE transactions SET split_id = 'receipt' WHERE group_id = ? AND account_id = ?`, args: [groupId, acc.id] });
+        await ingestTransactions(db, groupId, 'revolut-csv', acc, [
+            { externalId: 'x', date: '2026-10-19', amount: -185.64 },
+            { externalId: 'x:fee', date: '2026-10-19', amount: -1.86 },
+        ]);
+        const bank = await ingestTransactions(db, groupId, 'enablebanking:test', acc, [
+            { externalId: 'p1', date: '2026-10-29', amount: -62 },
+            { externalId: 'p2', date: '2026-10-18', amount: -187.5 },
+            { externalId: 'p3', date: '2026-10-20', amount: -10 },
+        ], { matchExistingDays: 3 });
+        expect(bank.imported).toBe(1);
+    });
 });

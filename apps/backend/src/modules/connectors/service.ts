@@ -182,12 +182,31 @@ export async function ingestTransactions(
     }
 
     if (options.matchExistingDays !== undefined && fresh.length > 0) {
-        const others = (await db.execute({
-            sql: `SELECT date, amount FROM transactions
+        const rows = (await db.execute({
+            sql: `SELECT date, amount, split_id, external_id FROM transactions
                   WHERE group_id = ? AND account_id = ?
                     AND (external_id IS NULL OR external_id NOT LIKE ?)`,
             args: [groupId, account.id, `${source}:%`],
-        })).rows.map((row: any) => ({ date: String(row.date), amount: Number(row.amount), used: false }));
+        })).rows.map((row: any) => ({
+            date: String(row.date), amount: Number(row.amount),
+            splitId: row.split_id ? String(row.split_id) : '', externalId: row.external_id ? String(row.external_id) : '',
+        }));
+        // one bank payment can already be here in parts: a split (items of one receipt) or a price with its fee
+        // apart (a CSV export, "<id>:fee"); each part set counts as one candidate with the sum of its amounts
+        const groups = new Map<string, { date: string; amount: number }>();
+        const add = (key: string, row: { date: string; amount: number }) => {
+            const g = groups.get(key);
+            if (g) { g.amount = Math.round((g.amount + row.amount) * 100) / 100; if (row.date < g.date) g.date = row.date; }
+            else groups.set(key, { date: row.date, amount: row.amount });
+        };
+        const ids = new Set(rows.map((row) => row.externalId).filter(Boolean));
+        for (const row of rows) {
+            if (row.splitId) add(`split:${row.splitId}`, row);
+            else if (row.externalId.endsWith(':fee') && ids.has(row.externalId.slice(0, -4))) add(`fee:${row.externalId.slice(0, -4)}`, row);
+            else if (row.externalId && ids.has(`${row.externalId}:fee`)) add(`fee:${row.externalId}`, row);
+            else add(`row:${groups.size}:${row.date}`, row);
+        }
+        const others = [...groups.values()].map((g) => ({ ...g, used: false }));
         const days = options.matchExistingDays;
         for (let i = fresh.length - 1; i >= 0; i--) {
             const { tx } = fresh[i]!;
