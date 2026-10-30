@@ -137,6 +137,51 @@ export async function syncRoutes(fastify: FastifyInstance) {
         },
     );
 
+    // Every event of one entity (a transaction, an account...), oldest first: who made it and what changed, for the
+    // details view of the app.
+    app.get(
+        '/history',
+        {
+            schema: {
+                querystring: z.object({ id: z.string().min(1) }),
+                response: {
+                    200: z.object({
+                        events: z.array(z.object({
+                            eventId: z.string(),
+                            deviceId: z.string(),
+                            timestamp: z.number(),
+                            type: z.string(),
+                            payload: z.any(),
+                        })),
+                    }),
+                    400: z.object({ error: z.string() }),
+                },
+            },
+        },
+        async (req, reply) => {
+            const groupId = req.headers['x-sync-group-id'] as string;
+            if (!groupId) return reply.code(400).send({ error: 'Missing X-Sync-Group-ID header' });
+            const result = await db.execute({
+                sql: `SELECT event_id, device_id, timestamp, payload FROM events
+                      WHERE group_id = ? AND json_valid(payload) AND json_extract(payload, '$.payload.id') = ?
+                      ORDER BY timestamp ASC, counter ASC`,
+                args: [groupId, req.query.id],
+            });
+            return {
+                events: result.rows.map((row: any) => {
+                    const event = JSON.parse(String(row.payload));
+                    return {
+                        eventId: String(row.event_id),
+                        deviceId: String(row.device_id),
+                        timestamp: Number(row.timestamp),
+                        type: String(event.type ?? ''),
+                        payload: event.payload ?? null,
+                    };
+                }),
+            };
+        },
+    );
+
     // Push events. Writes the event log and materializes relational SQL tables.
     app.post(
         '/push',

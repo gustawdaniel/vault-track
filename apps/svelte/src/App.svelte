@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { manualSource, SOURCE_LABEL, sourcesOf } from './lib/sources';
+  import TxDetails from './lib/TxDetails.svelte';
   import { uid } from 'uid';
   import QRCode from 'qrcode';
   import {
@@ -2761,6 +2762,16 @@
               />
             </div>
 
+            {#if editingTxId && appState.transactions[editingTxId]}
+              <TxDetails
+                tx={appState.transactions[editingTxId]}
+                transactions={transactionsList}
+                {backendUrl}
+                groupId={derivedGroupId}
+                onOpen={openEditTransactionDrawer}
+              />
+            {/if}
+
             <div class="drawer-footer">
               {#if editingTxId}
                 {@const original = appState.transactions[editingTxId]}
@@ -3488,7 +3499,7 @@
 
   .tx-sources {
     font-size: 0.7em;
-    color: var(--muted, #888);
+    color: var(--text-muted);
   }
   .tx-time {
     display: block;
