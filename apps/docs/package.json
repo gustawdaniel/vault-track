@@ -14,15 +14,15 @@
     "@nuxt/theme": "^0.0.2",
     "@nuxt/ui": "^4.12.0",
     "@nuxthq/studio": "^2.2.1",
-    "@tiptap/extensions": "^3.19.0",
-    "@tiptap/y-tiptap": "^3.0.2",
+    "@tiptap/extensions": "^3.32.2",
+    "@tiptap/y-tiptap": "^3.0.12",
     "@vercel/analytics": "^1.6.1",
-    "better-sqlite3": "^12.2.0",
+    "better-sqlite3": "^12.11.1",
     "docus": "5.15.0",
-    "eslint": "^9.39.2",
-    "nuxt": "~4.6.2",
-    "yjs": "^13.6.28",
-    "zod": "4.6.6",
-    "zod-to-json-schema": "3.24.3"
+    "eslint": "^9.39.5",
+    "nuxt": "~4.6.3",
+    "yjs": "^13.6.33",
+    "zod": "^4.6.7",
+    "zod-to-json-schema": "^3.25.2"
   }
 }
