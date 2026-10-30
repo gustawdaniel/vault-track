@@ -1,3 +1,4 @@
+import { withDates } from '../modules/sync/dates';
 import { createClient } from '@libsql/client';
 import dotenv from 'dotenv';
 import { z } from 'zod';
@@ -114,6 +115,26 @@ export async function initDB() {
         ['booking_date', 'TEXT'],
     ]) {
         if (!transactionColumns.has(name)) await db.execute(`ALTER TABLE transactions ADD COLUMN ${name} ${type}`);
+    }
+    // rows materialized before these columns existed: fill them the way the materializer does
+    for (;;) {
+        const legacy = await db.execute(
+            `SELECT group_id, id, data_json FROM transactions WHERE executed_at IS NULL LIMIT 500`,
+        );
+        if (legacy.rows.length === 0) break;
+        await db.batch(legacy.rows.map((row: any) => {
+            const payload = JSON.parse(String(row.data_json));
+            if (!/^\d{4}-\d{2}-\d{2}/.test(String(payload.date ?? ''))) {
+                // no usable day: mark it so the loop moves on
+                return { sql: `UPDATE transactions SET executed_at = '' WHERE group_id = ? AND id = ?`, args: [row.group_id, row.id] };
+            }
+            const tx = withDates(payload);
+            return {
+                sql: `UPDATE transactions SET date = ?, executed_at = ?, executed_at_precision = ?, executed_at_source = ?,
+                        booking_date = ? WHERE group_id = ? AND id = ?`,
+                args: [tx.date, tx.executedAt, tx.executedAtPrecision, tx.executedAtSource, tx.bookingDate, row.group_id, row.id],
+            };
+        }), 'write');
     }
 
     // Revolut bank API rows: booking_date is the day the card was charged, value_date the day it settled.
