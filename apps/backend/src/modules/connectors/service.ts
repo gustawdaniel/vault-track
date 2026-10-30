@@ -423,7 +423,8 @@ export async function ensureMonthEndAssert(
 ): Promise<{ id: string; created: boolean; date: string; value: number } | null> {
     const monthEnd = previousMonthEnd(input.balanceDate);
     const existing = await db.execute({
-        sql: `SELECT id FROM asserts WHERE group_id = ? AND account_id = ? AND id LIKE 'connector:%' AND substr(date, 1, 7) = ?`,
+        // any assert of that month, also a hand-made one: one checkpoint per month is enough
+        sql: `SELECT id FROM asserts WHERE group_id = ? AND account_id = ? AND substr(date, 1, 7) = ?`,
         args: [groupId, input.accountId, monthEnd.slice(0, 7)],
     });
     if (existing.rows.length > 0) return { id: String((existing.rows[0] as any).id), created: false, date: monthEnd, value: NaN };
