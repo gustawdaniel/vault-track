@@ -1,3 +1,4 @@
+import { manualSource } from './sources';
 import { uid } from 'uid';
 import type { Account, AppEvent, EnrichedTransaction, TimelineItem, Transaction } from './types';
 
@@ -87,6 +88,7 @@ export function buildSplitEvents(params: {
       category: composeCategory(line.category, project),
       memo: line.memo.trim() || memo.trim() || undefined,
       splitId,
+      sources: previous?.sources ?? [manualSource()],
     };
     events.push({ type: previous ? 'TRANSACTION_UPDATED' : 'TRANSACTION_ADDED', payload: tx });
   }

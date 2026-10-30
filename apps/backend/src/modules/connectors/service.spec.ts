@@ -308,5 +308,12 @@ describe('connector ingest service', () => {
             { externalId: 'p3', date: '2026-10-20', amount: -10 },
         ], { matchExistingDays: 3 });
         expect(bank.imported).toBe(1);
+        // the parts now know the bank payment that paid them, and a later sync does not add it
+        const parts = await db.execute({ sql: `SELECT data_json FROM transactions WHERE group_id = ? AND account_id = ? AND split_id = 'receipt'`, args: [groupId, acc.id] });
+        for (const row of parts.rows as any[]) {
+            expect(JSON.parse(String(row.data_json)).sources.at(-1)).toMatchObject({ kind: 'bank-api', id: 'enablebanking:test:id:p1', amount: -62 });
+        }
+        const again = await ingestTransactions(db, groupId, 'enablebanking:test', acc, [{ externalId: 'p1', date: '2026-10-29', amount: -62 }], { matchExistingDays: 3 });
+        expect(again.imported).toBe(0);
     });
 });

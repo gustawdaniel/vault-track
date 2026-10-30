@@ -85,6 +85,29 @@ export function buildExternalId(source: string, accountId: string, tx: Connector
 }
 
 /**
+ * Where a transaction is known from (modules/sync/dates.ts holds the dates): one row can be made of several, e.g. a
+ * receipt typed in the app and the bank payment that paid it. `id` is the source's own id (the dedupe key).
+ */
+export interface TransactionSource {
+    kind: 'manual' | 'bank-api' | 'bank-web' | 'csv' | 'scan' | 'email' | 'import';
+    source?: string;
+    id?: string;
+    at: string;
+    amount?: number;
+    date?: string;
+    payee?: string;
+}
+
+export function sourceKind(source: string): TransactionSource['kind'] {
+    if (source.startsWith('enablebanking')) return 'bank-api';
+    if (source.endsWith('-csv') || source.includes('csv')) return 'csv';
+    if (source.startsWith('scan')) return 'scan';
+    if (source.startsWith('email')) return 'email';
+    if (source.includes('web')) return 'bank-web';
+    return 'import';
+}
+
+/**
  * 11-character id, matching the shape used by the browser app. Deterministic so that
  * re-importing the same bank row is idempotent.
  */
@@ -121,6 +144,7 @@ function buildTransactionEvent(
             memo: tx.memo ?? '',
             clearedStatus: tx.clearedStatus ?? 'X',
             externalId,
+            sources: [{ kind: sourceKind(source), source, id: externalId, at: new Date().toISOString() }],
             rawSource: {
                 connector: source,
                 currency: tx.currency,
@@ -169,6 +193,13 @@ export async function ingestTransactions(
     const existingIds = new Set(
         existing.rows.map((row: any) => String(row.external_id)),
     );
+    // ids a row was matched to (sources), e.g. the bank payment of a receipt typed in the app
+    const linked = await db.execute({
+        sql: `SELECT json_extract(j.value, '$.id') AS id FROM transactions, json_each(transactions.data_json, '$.sources') AS j
+              WHERE transactions.group_id = ? AND json_extract(j.value, '$.id') IS NOT NULL`,
+        args: [groupId],
+    });
+    for (const row of linked.rows as any[]) existingIds.add(String(row.id));
 
     const batchSeen = new Set<string>();
     const fresh: Array<{ tx: ConnectorTransactionInput; externalId: string }> = [];
@@ -181,23 +212,25 @@ export async function ingestTransactions(
         fresh.push({ tx, externalId });
     }
 
+    const linkEvents: any[] = [];
     if (options.matchExistingDays !== undefined && fresh.length > 0) {
         const rows = (await db.execute({
-            sql: `SELECT date, amount, split_id, external_id FROM transactions
+            sql: `SELECT id, date, amount, split_id, external_id, data_json FROM transactions
                   WHERE group_id = ? AND account_id = ?
                     AND (external_id IS NULL OR external_id NOT LIKE ?)`,
             args: [groupId, account.id, `${source}:%`],
         })).rows.map((row: any) => ({
+            id: String(row.id), data: JSON.parse(String(row.data_json)),
             date: String(row.date), amount: Number(row.amount),
             splitId: row.split_id ? String(row.split_id) : '', externalId: row.external_id ? String(row.external_id) : '',
         }));
         // one bank payment can already be here in parts: a split (items of one receipt) or a price with its fee
         // apart (a CSV export, "<id>:fee"); each part set counts as one candidate with the sum of its amounts
-        const groups = new Map<string, { date: string; amount: number }>();
-        const add = (key: string, row: { date: string; amount: number }) => {
+        const groups = new Map<string, { date: string; amount: number; members: typeof rows }>();
+        const add = (key: string, row: (typeof rows)[number]) => {
             const g = groups.get(key);
-            if (g) { g.amount = Math.round((g.amount + row.amount) * 100) / 100; if (row.date < g.date) g.date = row.date; }
-            else groups.set(key, { date: row.date, amount: row.amount });
+            if (g) { g.amount = Math.round((g.amount + row.amount) * 100) / 100; if (row.date < g.date) g.date = row.date; g.members.push(row); }
+            else groups.set(key, { date: row.date, amount: row.amount, members: [row] });
         };
         const ids = new Set(rows.map((row) => row.externalId).filter(Boolean));
         for (const row of rows) {
@@ -215,8 +248,29 @@ export async function ingestTransactions(
                 .sort((a, b) => daysBetween(a.date, tx.date) - daysBetween(b.date, tx.date));
             if (candidates[0]) {
                 candidates[0].used = true;
+                // the payment is already here: link it to the rows instead of adding it (its id, so it is never added later)
+                const at = new Date().toISOString();
+                for (const member of candidates[0].members) {
+                    const sources: TransactionSource[] = Array.isArray(member.data.sources) ? member.data.sources : [];
+                    if (sources.some((src) => src.id === fresh[i]!.externalId)) continue;
+                    linkEvents.push({ ...member.data, sources: [...sources, {
+                        kind: sourceKind(source), source, id: fresh[i]!.externalId, at,
+                        amount: Number(tx.amount), date: tx.date, payee: tx.payee,
+                    }] });
+                }
                 fresh.splice(i, 1);
             }
+        }
+        if (linkEvents.length > 0) {
+            const now = Date.now();
+            await executeInChunks(db, buildEventMaterializeStatements(groupId, linkEvents.map((payload, index) => ({
+                eventId: `connector:${source}:link:${payload.id}:${now}`,
+                deviceId: `connector:${source}`,
+                counter: index + 1,
+                timestamp: now + index,
+                type: 'TRANSACTION_UPDATED',
+                payload,
+            }))));
         }
     }
 

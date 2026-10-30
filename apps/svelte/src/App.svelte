@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { manualSource, SOURCE_LABEL, sourcesOf } from './lib/sources';
   import { uid } from 'uid';
   import QRCode from 'qrcode';
   import {
@@ -1072,6 +1073,7 @@
       }),
       payee: txFormPayee.trim() || undefined,
       category: composedCategory || undefined,
+      sources: editingTxId ? appState.transactions[editingTxId]?.sources : [manualSource()],
       memo: txFormMemo.trim() || undefined,
     };
 
@@ -2041,6 +2043,9 @@
                     {#if t.memo}
                       <div class="payee-memo">{t.memo}</div>
                     {/if}
+                    <div class="tx-sources" title={sourcesOf(t).map((src) => [SOURCE_LABEL[src.kind], src.source, src.id, src.at?.slice(0, 16)].filter(Boolean).join(' · ')).join('\n')}>
+                      {sourcesOf(t).map((src) => SOURCE_LABEL[src.kind]).join(' + ')}
+                    </div>
                   </td>
                   <td class="col-category">
                     {#if t.isTransfer}
@@ -3481,6 +3486,10 @@
     vertical-align: middle;
   }
 
+  .tx-sources {
+    font-size: 0.7em;
+    color: var(--muted, #888);
+  }
   .tx-time {
     display: block;
     font-size: 0.75em;

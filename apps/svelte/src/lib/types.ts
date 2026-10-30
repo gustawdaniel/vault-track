@@ -64,6 +64,18 @@ export interface Transaction {
   executedAtSource?: 'bank-web' | 'email' | 'manual' | 'bank-api' | 'import';
   /** the day the bank booked it; null while it is not booked yet */
   bookingDate?: string | null;
+  /** where it is known from (lib/sources.ts); one row can have several, e.g. a receipt and its bank payment */
+  sources?: TransactionSource[];
+}
+
+export interface TransactionSource {
+  kind: 'manual' | 'bank-api' | 'bank-web' | 'csv' | 'scan' | 'email' | 'import';
+  source?: string;
+  id?: string;
+  at: string;
+  amount?: number;
+  date?: string;
+  payee?: string;
 }
 
 export interface PersistedCategory {
