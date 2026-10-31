@@ -108,7 +108,7 @@
     {#each sourcesOf(tx) as src, i (i)}
       <li>
         <b>{SOURCE_LABEL[src.kind]}</b> <span class="mono">{src.kind}</span>
-        {#if src.at}<span class="muted">{src.at.slice(0, 19).replace('T', ' ')}</span>{/if}
+        {#if src.at}<span class="muted">{time(Date.parse(src.at))}</span>{/if}
         {#if src.id}<div class="mono small">{src.id}</div>{/if}
         {#if src.amount !== undefined || src.payee}<div class="muted small">{[src.date, src.amount, src.payee].filter((v) => v !== undefined && v !== '').join(' · ')}</div>{/if}
         {#if !tx.sources?.length}<div class="muted small">wyliczone z externalId (wiersz sprzed listy źródeł)</div>{/if}
