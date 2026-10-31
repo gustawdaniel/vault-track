@@ -103,7 +103,7 @@ describe('groupSplitRows', () => {
       isTransfer: false,
       ...extra,
     }) as any;
-  const item = (tx: any) => ({ kind: 'transaction' as const, date: tx.date, sortKey: tx.id, tx });
+  const item = (tx: any) => ({ kind: 'transaction' as const, date: tx.date, sortKey: tx.id, executedMs: 0, tx });
 
   it('collapses members of one split into a single row at the newest position', () => {
     const rows = groupSplitRows(

@@ -183,5 +183,5 @@ export interface EnrichedAssert extends Assert {
 }
 
 export type TimelineItem =
-  | { kind: 'transaction'; date: string; sortKey: string; tx: EnrichedTransaction }
+  | { kind: 'transaction'; date: string; sortKey: string; executedMs: number; tx: EnrichedTransaction }
   | { kind: 'assert'; date: string; sortKey: string; assertion: EnrichedAssert };

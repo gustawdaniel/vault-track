@@ -119,6 +119,22 @@ export function ledgerDay(tx: TransactionDates): string {
     return (tx.bookingDate || tx.date || '').slice(0, 10);
 }
 
+/**
+ * Order of transactions within a day: the instant of execution in epoch ms (offsets differ between rows, so the
+ * ISO string itself does not sort). A row known only to the day has no clock time and sorts as the start of its day.
+ */
+export function executedMs(tx: TransactionDates): number {
+    const { executedAt, executedAtPrecision } = tx;
+    if (!executedAt || (executedAtPrecision ?? 'day') === 'day') return 0;
+    const cached = parsedExecution.get(tx);
+    if (cached?.executedAt === executedAt) return cached.ms;
+    const ms = Date.parse(executedAt) || 0;
+    parsedExecution.set(tx, { executedAt, ms });
+    return ms;
+}
+// the ledger sorts again on every filter change; parse a row's time once while it stays the same
+const parsedExecution = new WeakMap<TransactionDates, { executedAt: string; ms: number }>();
+
 /** Whether `incoming` knows the moment of execution better than `current` (more precise, then more trusted). */
 export function knowsExecutionBetter(incoming: TransactionDates, current: TransactionDates): boolean {
     if (!incoming.executedAt) return false;

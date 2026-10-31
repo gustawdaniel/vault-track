@@ -1,4 +1,4 @@
-import { ledgerDay } from './dates';
+import { executedMs, ledgerDay } from './dates';
 import {
   type Account,
   type Assert,
@@ -155,10 +155,11 @@ export function computeAccountsAndReconciliation(
 
   for (const acc of accounts) {
     // the ledger counts a transaction on the day the bank booked it, or on the day it was made while pending
-    const accTxs = (txsByAccount.get(acc.id) || []).slice().sort((a, b) => {
-      const d = ledgerDay(a).localeCompare(ledgerDay(b));
-      return d !== 0 ? d : a.id.localeCompare(b.id);
-    });
+    // within the day by the moment of execution, the same order the ledger shows; keys built once, not per comparison
+    const accTxs = (txsByAccount.get(acc.id) || [])
+      .map((tx) => ({ tx, day: ledgerDay(tx), ms: executedMs(tx) }))
+      .sort((a, b) => (a.day !== b.day ? (a.day < b.day ? -1 : 1) : a.ms - b.ms || (a.tx.id < b.tx.id ? -1 : a.tx.id > b.tx.id ? 1 : 0)))
+      .map((entry) => entry.tx);
 
     const accAsserts = (assertsByAccount.get(acc.id) || []).slice().sort((a, b) =>
       (a.date || '').localeCompare(b.date || '')
@@ -328,6 +329,7 @@ export function buildLedgerTimeline(
       kind: 'transaction',
       date: (tx.date || '').split('T')[0] || tx.date,
       sortKey: `${(tx.date || '').split('T')[0]}_0_${tx.id}`,
+      executedMs: executedMs(tx),
       tx: enriched,
     });
   }
@@ -354,8 +356,13 @@ export function buildLedgerTimeline(
     }
   }
 
-  // Sort newest first; on the same date, asserts appear at end-of-day (above transactions of that day)
-  items.sort((a, b) => b.sortKey.localeCompare(a.sortKey));
+  // Sort newest first; within a day by the moment of execution, asserts at end-of-day (above transactions of that day)
+  const time = (item: TimelineItem) => (item.kind === 'transaction' ? item.executedMs : 0);
+  items.sort((a, b) => {
+    if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+    if (a.kind !== b.kind) return a.kind === 'assert' ? -1 : 1;
+    return time(b) - time(a) || (a.sortKey < b.sortKey ? 1 : a.sortKey > b.sortKey ? -1 : 0);
+  });
 
   return items;
 }
