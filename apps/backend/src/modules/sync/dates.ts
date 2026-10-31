@@ -15,12 +15,13 @@
  */
 
 export type ExecutedAtPrecision = 'second' | 'minute' | 'day';
-export type ExecutedAtSource = 'bank-web' | 'email' | 'manual' | 'bank-api' | 'import';
+export type ExecutedAtSource = 'bank-web' | 'email' | 'receipt' | 'manual' | 'bank-api' | 'import';
 
 export const DEFAULT_TIMEZONE = 'Europe/Warsaw';
 
 const PRECISION_RANK: Record<ExecutedAtPrecision, number> = { day: 0, minute: 1, second: 2 };
-const SOURCE_RANK: Record<ExecutedAtSource, number> = { import: 0, 'bank-api': 1, manual: 2, email: 3, 'bank-web': 4 };
+// a receipt or ticket prints the moment of sale; typed by hand it is a guess
+const SOURCE_RANK: Record<ExecutedAtSource, number> = { import: 0, 'bank-api': 1, manual: 2, receipt: 3, email: 4, 'bank-web': 5 };
 
 export interface TransactionDates {
     date?: string;
@@ -64,6 +65,14 @@ function formatOffset(minutes: number): string {
 export function isoInZone(ms: number, timeZone = DEFAULT_TIMEZONE): string {
     const p = parts(ms, timeZone);
     return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}${formatOffset(offsetMinutes(ms, timeZone))}`;
+}
+
+/** A wall-clock time of the given zone ("2026-10-31T11:47") as an instant with its offset. */
+export function zonedIso(local: string, timeZone = DEFAULT_TIMEZONE): string {
+    const guess = Date.parse(`${local.length === 16 ? `${local}:00` : local.slice(0, 19)}Z`);
+    let ms = guess - offsetMinutes(guess, timeZone) * 60000;
+    ms = guess - offsetMinutes(ms, timeZone) * 60000;
+    return isoInZone(ms, timeZone);
 }
 
 /** The calendar day of an instant in the given zone. */

@@ -108,7 +108,8 @@ export async function receiptsRoutes(fastify: FastifyInstance) {
 
 Rules:
 1. **Shop Name**: Extract the store name (e.g. Biedronka).
-2. **Date**: Extract date (YYYY-MM-DDTHH:mm:ss).
+2. **Date**: The date and time of the sale as printed, local time (YYYY-MM-DDTHH:mm, with :ss if seconds are printed).
+   For a ticket it is the issue time ("Wystawiono"). If no time is printed, return only YYYY-MM-DD; never invent a time.
 3. **Items**: Extract ALL line items.
    - **product_name**: The specific NAME of the product (e.g. "Masło Ekstra", "Coca-Cola 0.5L"). 
      - NEVER use the Shop Name here. 

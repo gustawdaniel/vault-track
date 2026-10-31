@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dayInZone, isoInZone, knowsExecutionBetter, ledgerDay, startOfDay, withDates } from './dates';
+import { dayInZone, isoInZone, knowsExecutionBetter, ledgerDay, startOfDay, withDates, zonedIso } from './dates';
 
 describe('transaction dates', () => {
     it('writes instants with the zone offset, summer and winter', () => {
@@ -41,4 +41,10 @@ describe('transaction dates', () => {
         expect(knowsExecutionBetter(mail, web)).toBe(false);
         expect(knowsExecutionBetter(mail, api)).toBe(true);
     });
+
+  it('reads a wall-clock time of Warsaw as an instant (a ticket issued at 11:47)', () => {
+    expect(zonedIso('2026-10-31T11:47')).toBe('2026-10-31T11:47:00+01:00');
+    expect(zonedIso('2026-07-01T09:05:30')).toBe('2026-07-01T09:05:30+02:00');
+    expect(zonedIso('2026-10-25T02:30')).toMatch(/^2026-10-25T02:30:00\+0[12]:00$/);
+  });
 });

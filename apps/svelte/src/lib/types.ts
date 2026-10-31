@@ -61,7 +61,7 @@ export interface Transaction {
   /** when it was really paid / ordered (lib/dates.ts) */
   executedAt?: string;
   executedAtPrecision?: 'second' | 'minute' | 'day';
-  executedAtSource?: 'bank-web' | 'email' | 'manual' | 'bank-api' | 'import';
+  executedAtSource?: 'bank-web' | 'email' | 'receipt' | 'manual' | 'bank-api' | 'import';
   /** the day the bank booked it; null while it is not booked yet */
   bookingDate?: string | null;
   /** where it is known from (lib/sources.ts); one row can have several, e.g. a receipt and its bank payment */
@@ -76,6 +76,13 @@ export interface TransactionSource {
   amount?: number;
   date?: string;
   payee?: string;
+  memo?: string;
+  category?: string;
+  executedAt?: string;
+  /** null: the source has not booked it yet */
+  bookingDate?: string | null;
+  /** everything the source sent about it */
+  raw?: Record<string, unknown>;
 }
 
 export interface PersistedCategory {

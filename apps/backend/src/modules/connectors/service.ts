@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { Client, InStatement } from '@libsql/client';
 import { buildEventMaterializeStatements, executeInChunks } from '../sync/materializer';
 import { CategoryDefinition, createCategorizer, isMeaningfulCategory } from './categorize';
-import { ExecutedAtPrecision, ExecutedAtSource, withDates } from '../sync/dates';
+import { ExecutedAtPrecision, ExecutedAtSource, knowsExecutionBetter, withDates } from '../sync/dates';
 
 export interface ConnectorTransactionInput {
     /** Stable identifier from the bank/connector. If omitted, a content fingerprint is used. */
@@ -96,6 +96,13 @@ export interface TransactionSource {
     amount?: number;
     date?: string;
     payee?: string;
+    memo?: string;
+    category?: string;
+    executedAt?: string;
+    /** null: the source has not booked it yet */
+    bookingDate?: string | null;
+    /** everything the source sent about it */
+    raw?: Record<string, unknown>;
 }
 
 export function sourceKind(source: string): TransactionSource['kind'] {
@@ -173,6 +180,59 @@ export interface IngestOptions {
     mergePending?: boolean;
 }
 
+/** Name words that tell who was paid ("KOLEO" in a receipt, "koleo.pl" from the bank); generic words do not count. */
+const GENERIC_WORDS = new Set([
+    'www', 'com', 'net', 'org', 'spolka', 'ograniczona', 'ograniczonej', 'odpowiedzialnoscia', 'ogranic',
+    'platnosc', 'oplata', 'zakup', 'transakcja', 'karta', 'karty', 'blik', 'przelew', 'sklep', 'bilet', 'bilety',
+]);
+export function nameWords(...texts: Array<string | undefined | null>): Set<string> {
+    const words = texts.join(' ').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ł/g, 'l')
+        .split(/[^a-z0-9]+/).filter((w) => w.length >= 3 && !/^\d+$/.test(w) && !GENERIC_WORDS.has(w));
+    return new Set(words);
+}
+
+/** A bank category replaces the row's when it says the same, only more precisely (Transport → Transport:Train). */
+function moreSpecificCategory(current: string | undefined, incoming: string | undefined): string | undefined {
+    if (!incoming) return current;
+    if (!current) return incoming;
+    const [base, ...project] = current.split('/');
+    const incomingBase = incoming.split('/')[0]!;
+    if (incomingBase.startsWith(`${base}:`)) return [incomingBase, ...project].join('/');
+    return current;
+}
+
+/**
+ * A row already here gets what the bank knows about the payment, and keeps what it knew better: its own name,
+ * memo and amount stay, the bank's booking day comes in, the time of execution is the better known one, the category
+ * the more specific one, and everything the bank sent is kept in the row's sources.
+ */
+export function enrichFromBank(row: any, source: string, externalId: string, tx: ConnectorTransactionInput, at: string): any {
+    const sources: TransactionSource[] = Array.isArray(row.sources) ? row.sources : [];
+    if (sources.some((src) => src.id === externalId)) return null;
+    const bank = withDates({
+        date: tx.date, executedAt: tx.executedAt, executedAtPrecision: tx.executedAtPrecision,
+        executedAtSource: tx.executedAtSource ?? 'bank-api', bookingDate: tx.bookingDate,
+    });
+    const next: any = {
+        ...row,
+        sources: [...sources, {
+            kind: sourceKind(source), source, id: externalId, at,
+            amount: Number(tx.amount), date: tx.date, payee: tx.payee, memo: tx.memo, category: tx.category,
+            executedAt: bank.executedAt, bookingDate: bank.bookingDate,
+            raw: { connector: source, currency: tx.currency, balance: tx.balance, ...(tx.raw || {}) },
+        }],
+        category: moreSpecificCategory(row.category, tx.category),
+    };
+    if (typeof bank.bookingDate === 'string') next.bookingDate = bank.bookingDate;
+    if (knowsExecutionBetter(bank, row)) {
+        next.executedAt = bank.executedAt;
+        next.executedAtPrecision = bank.executedAtPrecision;
+        next.executedAtSource = bank.executedAtSource;
+        next.date = bank.date;
+    }
+    return next;
+}
+
 function daysBetween(a: string, b: string): number {
     return Math.abs(Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`)) / 86_400_000;
 }
@@ -233,7 +293,11 @@ export async function ingestTransactions(
             else groups.set(key, { date: row.date, amount: row.amount, members: [row] });
         };
         const ids = new Set(rows.map((row) => row.externalId).filter(Boolean));
+        // a row the bank has already paid (a booked payment of this source is linked to it) is not a candidate again
+        const paid = (row: (typeof rows)[number]) => (Array.isArray(row.data.sources) ? row.data.sources : [])
+            .some((src: any) => src.source === source && src.bookingDate !== null);
         for (const row of rows) {
+            if (paid(row)) continue;
             if (row.splitId) add(`split:${row.splitId}`, row);
             else if (row.externalId.endsWith(':fee') && ids.has(row.externalId.slice(0, -4))) add(`fee:${row.externalId.slice(0, -4)}`, row);
             else if (row.externalId && ids.has(`${row.externalId}:fee`)) add(`fee:${row.externalId}`, row);
@@ -241,24 +305,52 @@ export async function ingestTransactions(
         }
         const others = [...groups.values()].map((g) => ({ ...g, used: false }));
         const days = options.matchExistingDays;
+        const suggestCategory = await loadCategorizer(db, groupId);
+        const linkTo = (members: typeof rows, i: number) => {
+            const at = new Date().toISOString();
+            const tx = fresh[i]!.tx;
+            const category = isMeaningfulCategory(tx.category) ? tx.category : suggestCategory(tx)?.category ?? tx.category;
+            for (const member of members) {
+                const next = enrichFromBank(member.data, source, fresh[i]!.externalId, { ...tx, category }, at);
+                if (next) linkEvents.push(next);
+            }
+            fresh.splice(i, 1);
+        };
         for (let i = fresh.length - 1; i >= 0; i--) {
             const { tx } = fresh[i]!;
             const candidates = others
                 .filter((o) => !o.used && Math.abs(o.amount - Number(tx.amount)) < 0.005 && daysBetween(o.date, tx.date) <= days)
                 .sort((a, b) => daysBetween(a.date, tx.date) - daysBetween(b.date, tx.date));
             if (candidates[0]) {
-                candidates[0].used = true;
                 // the payment is already here: link it to the rows instead of adding it (its id, so it is never added later)
-                const at = new Date().toISOString();
-                for (const member of candidates[0].members) {
-                    const sources: TransactionSource[] = Array.isArray(member.data.sources) ? member.data.sources : [];
-                    if (sources.some((src) => src.id === fresh[i]!.externalId)) continue;
-                    linkEvents.push({ ...member.data, sources: [...sources, {
-                        kind: sourceKind(source), source, id: fresh[i]!.externalId, at,
-                        amount: Number(tx.amount), date: tx.date, payee: tx.payee,
-                    }] });
+                candidates[0].used = true;
+                linkTo(candidates[0].members, i);
+                continue;
+            }
+            // or as 2-3 entries made before it (tickets of one order scanned one by one): same account, the bank's day
+            // or up to 2 days later, the exact sum, the same name on both sides, and no other way to make that sum
+            const bankWords = nameWords(tx.payee, tx.memo, (tx.raw as any)?.creditor?.name);
+            const near = others.filter((o) => {
+                if (o.used) return false;
+                const lag = (Date.parse(`${tx.date}T00:00:00Z`) - Date.parse(`${o.date}T00:00:00Z`)) / 86_400_000;
+                if (lag < 0 || lag > 2 || Math.sign(o.amount) !== Math.sign(Number(tx.amount))) return false;
+                const words = nameWords(...o.members.flatMap((m) => [m.data.payee, m.data.memo, m.splitId.split('###')[0]]));
+                return [...words].some((w) => bankWords.has(w));
+            });
+            const target = Math.round(Number(tx.amount) * 100);
+            const cents = (o: (typeof near)[number]) => Math.round(o.amount * 100);
+            const found: Array<typeof near> = [];
+            for (let a = 0; a < near.length; a++) {
+                for (let b = a + 1; b < near.length; b++) {
+                    if (cents(near[a]!) + cents(near[b]!) === target) found.push([near[a]!, near[b]!]);
+                    for (let c = b + 1; c < near.length; c++) {
+                        if (cents(near[a]!) + cents(near[b]!) + cents(near[c]!) === target) found.push([near[a]!, near[b]!, near[c]!]);
+                    }
                 }
-                fresh.splice(i, 1);
+            }
+            if (found.length === 1) {
+                for (const part of found[0]!) part.used = true;
+                linkTo(found[0]!.flatMap((part) => part.members), i);
             }
         }
         if (linkEvents.length > 0) {

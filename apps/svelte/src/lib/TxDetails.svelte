@@ -112,6 +112,9 @@
         {#if src.id}<div class="mono small">{src.id}</div>{/if}
         {#if src.amount !== undefined || src.payee}<div class="muted small">{[src.date, src.amount, src.payee].filter((v) => v !== undefined && v !== '').join(' · ')}</div>{/if}
         {#if !tx.sources?.length}<div class="muted small">wyliczone z externalId (wiersz sprzed listy źródeł)</div>{/if}
+        {#if src.raw}
+          <details class="raw"><summary class="small">dane źródła</summary><pre>{JSON.stringify(src.raw, null, 2)}</pre></details>
+        {/if}
       </li>
     {/each}
   </ul>
@@ -231,6 +234,9 @@
     color: var(--accent-primary);
     text-transform: none;
     letter-spacing: normal;
+  }
+  .raw summary {
+    color: var(--accent-primary);
   }
   pre {
     max-height: 260px;

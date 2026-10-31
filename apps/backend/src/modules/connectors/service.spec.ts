@@ -316,4 +316,60 @@ describe('connector ingest service', () => {
         const again = await ingestTransactions(db, groupId, 'enablebanking:test', acc, [{ externalId: 'p1', date: '2026-10-29', amount: -62 }], { matchExistingDays: 3 });
         expect(again.imported).toBe(0);
     });
+
+    it('links one bank payment to 2-3 entries made before it, only when the name and the sum leave no doubt', async () => {
+        const acc = { id: 'tickets-account', name: 'Tickets', currency: 'PLN' };
+        const ticket = (externalId: string, date: string, amount: number, payee: string) =>
+            ({ externalId, date, amount, payee, category: 'Transport' });
+        await ingestTransactions(db, groupId, 'scan', acc, [
+            ticket('t1', '2026-10-31', -4.9, 'Bilet Toruń Główny - Toruń Miasto'),
+            ticket('t2', '2026-10-31', -61, 'Bilet kolejowy Warszawa Centralna - Toruń Główny'),
+            ticket('t3', '2026-10-31', -10, 'Kawa Starbucks'),
+            ticket('t4', '2026-10-31', -10, 'Kawa Costa'),
+        ]);
+        await db.execute({
+            sql: `UPDATE transactions SET split_id = 'KOLEO###' || id WHERE group_id = ? AND account_id = ? AND payee LIKE 'Bilet%'`,
+            args: [groupId, acc.id],
+        });
+        const bank = await ingestTransactions(db, groupId, 'enablebanking:test', acc, [
+            {
+                externalId: 'koleo', date: '2026-10-31', amount: -65.9, payee: 'koleo.pl', category: 'Transport:Train',
+                memo: 'KOLEO bilety kolejowe PID:354209561', bookingDate: '2026-10-31', raw: { creditor: { name: 'koleo.pl' } },
+            },
+            // two coffees could make 20 together with nothing else, but the names do not match the bank
+            { externalId: 'coffee', date: '2026-10-31', amount: -20, payee: 'Some Cafe' },
+        ], { matchExistingDays: 3 });
+        expect(bank.imported).toBe(1);
+        const tickets = await db.execute({
+            sql: `SELECT data_json FROM transactions WHERE group_id = ? AND account_id = ? AND payee LIKE 'Bilet%'`,
+            args: [groupId, acc.id],
+        });
+        expect(tickets.rows).toHaveLength(2);
+        for (const row of tickets.rows as any[]) {
+            const tx = JSON.parse(String(row.data_json));
+            expect(tx.category).toBe('Transport:Train');
+            expect(tx.bookingDate).toBe('2026-10-31');
+            expect(tx.payee).toMatch(/^Bilet/);
+            expect(tx.sources.at(-1)).toMatchObject({
+                kind: 'bank-api', id: 'enablebanking:test:id:koleo', amount: -65.9, raw: { creditor: { name: 'koleo.pl' } },
+            });
+        }
+    });
+
+    it('does not link entries made after the bank payment, nor a sum that two sets of entries can make', async () => {
+        const acc = { id: 'ambiguous-account', name: 'Ambiguous', currency: 'PLN' };
+        await ingestTransactions(db, groupId, 'scan', acc, [
+            { externalId: 'a', date: '2026-10-31', amount: -5, payee: 'KOLEO a' },
+            { externalId: 'b', date: '2026-10-31', amount: -5, payee: 'KOLEO b' },
+            { externalId: 'c', date: '2026-10-31', amount: -5, payee: 'KOLEO c' },
+            { externalId: 'later', date: '2026-11-02', amount: -7, payee: 'KOLEO later' },
+            { externalId: 'later2', date: '2026-11-02', amount: -8, payee: 'KOLEO later' },
+        ]);
+        const bank = await ingestTransactions(db, groupId, 'enablebanking:test', acc, [
+            { externalId: 'ten', date: '2026-10-31', amount: -10, payee: 'koleo.pl' },
+            { externalId: 'fifteen', date: '2026-10-31', amount: -15, payee: 'koleo.pl' },
+        ], { matchExistingDays: 0 });
+        // -10: a+b, a+c or b+c; -15: a+b+c would do, but -7 and -8 made 2 days later must not count
+        expect(bank.imported).toBe(1);
+    });
 });

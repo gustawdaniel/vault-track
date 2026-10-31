@@ -65,6 +65,8 @@ export function buildSplitEvents(params: {
   existingSplitId?: string | null;
   previousIds?: string[];
   round: (amount: number) => number;
+  /** when it was paid, if a receipt says it (lib/dates.ts) */
+  executed?: Pick<Transaction, 'executedAt' | 'executedAtPrecision' | 'executedAtSource'>;
 }): Array<{ type: AppEvent['type']; payload: any }> {
   const { transactions, account, lines, groupPayee, project, memo, date, round } = params;
   const existingUuid = params.existingSplitId ? decodeSplitId(params.existingSplitId).id : undefined;
@@ -89,6 +91,7 @@ export function buildSplitEvents(params: {
       memo: line.memo.trim() || memo.trim() || undefined,
       splitId,
       sources: previous?.sources ?? [manualSource()],
+      ...params.executed,
     };
     events.push({ type: previous ? 'TRANSACTION_UPDATED' : 'TRANSACTION_ADDED', payload: tx });
   }

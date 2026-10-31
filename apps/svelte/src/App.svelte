@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { manualSource, SOURCE_LABEL, sourcesOf } from './lib/sources';
   import TxDetails from './lib/TxDetails.svelte';
+  import { zonedIso } from './lib/dates';
   import { uid } from 'uid';
   import QRCode from 'qrcode';
   import {
@@ -206,6 +207,14 @@
 
   // Transaction Form State
   let editingTxId = $state<string | null>(null);
+  // the time of sale a scanned receipt or ticket prints ("2026-10-31T11:47", local), used while its day is kept
+  let scannedExecutedAt = $state<string | null>(null);
+
+  function receiptExecution(): Pick<Transaction, 'executedAt' | 'executedAtPrecision' | 'executedAtSource'> | undefined {
+    if (!scannedExecutedAt || scannedExecutedAt.slice(0, 10) !== txFormDate) return undefined;
+    const seconds = scannedExecutedAt.length >= 19 && !scannedExecutedAt.endsWith(':00');
+    return { executedAt: zonedIso(scannedExecutedAt), executedAtPrecision: seconds ? 'second' : 'minute', executedAtSource: 'receipt' };
+  }
   let txFormMode = $state<'expense' | 'income' | 'transfer' | 'split'>('expense');
   let txFormSplits = $state<SplitLine[]>([]);
   // Split group being edited: its id and the member ids at the time it was opened
@@ -823,6 +832,7 @@
   // --- Actions: Transactions ---
   function openNewTransactionDrawer() {
     editingTxId = null;
+    scannedExecutedAt = null;
     txFormMode = 'expense';
     const defaultAccId = filter.accountId || visibleAccounts[0]?.id || '';
     txFormAccountId = defaultAccId;
@@ -845,6 +855,7 @@
 
   function openEditTransactionDrawer(tx: Transaction) {
     editingTxId = tx.id;
+    scannedExecutedAt = null;
     txFormAccountId = tx.accountId;
     txFormDate = (tx.date || '').split('T')[0] || '';
     txFormPayee = tx.payee || '';
@@ -959,6 +970,7 @@
       if (result.payee) txFormPayee = result.payee;
       const day = result.date?.split('T')[0];
       if (day && /^\d{4}-\d{2}-\d{2}$/.test(day)) txFormDate = day;
+      scannedExecutedAt = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(result.date ?? '') ? result.date!.slice(0, 19) : null;
 
       const lines = (result.splits ?? []).filter((l) => l.amount > 0);
       if (lines.length > 0) {
@@ -1028,6 +1040,7 @@
           ? Array.from(new Set([...editingSplitMemberIds, editingTxId]))
           : [],
         round: (amount) => roundCurrency(amount, sourceAcc.currency),
+        executed: receiptExecution() ?? (editingTxId ? undefined : { executedAtPrecision: 'day', executedAtSource: 'manual' }),
       });
       const wasEditing = Boolean(editingTxId);
       const res = await recordEvents(appState, events);
@@ -1072,6 +1085,7 @@
         executedAtPrecision: 'day' as const,
         executedAtSource: 'manual' as const,
       }),
+      ...receiptExecution(),
       payee: txFormPayee.trim() || undefined,
       category: composedCategory || undefined,
       sources: editingTxId ? appState.transactions[editingTxId]?.sources : [manualSource()],
