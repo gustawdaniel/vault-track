@@ -33,7 +33,7 @@
     "eslint": "^9.39.5",
     "fake-indexeddb": "^6.2.7",
     "jsdom": "^27.4.0",
-    "nuxt": "~4.6.3",
+    "nuxt": "~4.6.4",
     "tailwindcss": "^4.3.3",
     "typescript-eslint": "^8.72.1",
     "unstorage": "^1.17.6",
