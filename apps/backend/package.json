@@ -4,7 +4,7 @@
     "private": true,
     "license": "MIT",
     "engines": {
-        "node": ">=24.0.0"
+        "node": "26.x"
     },
     "description": "Fastify backend for Open Cash Manager",
     "main": "dist/server.js",
@@ -20,28 +20,28 @@
         "query": "tsx query.ts"
     },
     "dependencies": {
-        "@fastify/cors": "^11.3.1",
-        "@fastify/multipart": "^9.4.0",
-        "@fastify/swagger": "^9.9.2",
-        "@fastify/swagger-ui": "^5.2.6",
+        "@fastify/cors": "^11.4.3",
+        "@fastify/multipart": "^10.1.9",
+        "@fastify/swagger": "^9.9.5",
+        "@fastify/swagger-ui": "^6.1.4",
         "@google/generative-ai": "^0.24.1",
-        "@libsql/client": "^0.17.4",
-        "dotenv": "^17.4.2",
+        "@libsql/client": "^0.18.0",
+        "dotenv": "^18.0.10",
         "ethers": "^6.17.0",
-        "fastify": "^5.12.7",
-        "fastify-type-provider-zod": "^4.0.2",
-        "google-auth-library": "^10.9.1",
+        "fastify": "^5.12.8",
+        "fastify-type-provider-zod": "^7.0.0",
+        "google-auth-library": "^11.3.4",
         "node-cron": "^4.6.0",
-        "openai": "^6.49.0",
+        "openai": "^7.61.0",
         "pino-pretty": "^13.2.0",
         "zod": "^4.6.7"
     },
     "devDependencies": {
-        "@types/node": "^25.9.9",
+        "@types/node": "^26.6.6",
         "@types/node-cron": "^3.0.11",
-        "eslint": "^8.57.1",
+        "eslint": "^10.15.0",
         "tsx": "^4.23.15",
-        "typescript": "^5.9.3",
-        "vitest": "^4.1.12"
+        "typescript": "~6.0.3",
+        "vitest": "^5.1.1"
     }
 }

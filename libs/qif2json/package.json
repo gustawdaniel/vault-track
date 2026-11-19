@@ -40,17 +40,17 @@
     "build": "tsup src/index.ts src/cli.ts --dts"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.5",
+    "@eslint/js": "^10.0.1",
     "@jest/globals": "^30.5.2",
-    "@swc/core": "^1.16.20",
+    "@swc/core": "^1.16.22",
     "@swc/jest": "^0.2.39",
     "@types/jest": "^30.0.0",
-    "eslint": "^9.39.5",
+    "eslint": "^10.15.0",
     "expectations": "^1.0.0",
     "jest": "^30.5.2",
-    "tsup": "^8.5.1",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.72.1"
+    "tsup": "^9.0.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.73.0"
   },
   "dependencies": {
     "fecha": "^4.2.3",

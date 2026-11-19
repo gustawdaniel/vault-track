@@ -125,9 +125,29 @@ jobs:
             update_env GOOGLE_CLIENT_SECRET "$GOOGLE_CLIENT_SECRET"
             update_env GOOGLE_API_KEY "$GOOGLE_API_KEY"
             update_env GEMINI_MODEL "$GEMINI_MODEL"
-            
+
+            # The container mounts only ./data (rw) and ./secrets (ro), no longer the whole directory.
+            # One-time move of the database from the old layout, with the old container stopped.
+            mkdir -p data secrets
+            if [ -e db.sqlite ] && [ ! -e data/db.sqlite ]; then
+              docker compose stop backend || true
+              for f in db.sqlite db.sqlite-wal db.sqlite-shm db.sqlite-journal; do
+                if [ -e "$f" ]; then mv "$f" data/; fi
+              done
+            fi
+
+            # The container runs as the deploy user, or as uid 1000 when deploying as root, never as root
+            if [ "$(id -u)" = "0" ]; then APP_UID=1000; APP_GID=1000; else APP_UID="$(id -u)"; APP_GID="$(id -g)"; fi
+            update_env APP_UID "$APP_UID"
+            update_env APP_GID "$APP_GID"
+
             # Pull and restart
             docker compose pull
+
+            # Files written by the old container belong to root; hand them to the app user
+            # (from a throwaway root container, as the deploy user may not chown them itself)
+            docker run --rm --user 0 --entrypoint chown -v "$PWD/data:/data" -v "$PWD/secrets:/secrets" \
+              "$IMAGE_NAME" -R "$APP_UID:$APP_GID" /data /secrets
             docker compose up -d --remove-orphans
             
             # Check logs

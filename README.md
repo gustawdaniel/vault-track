@@ -66,8 +66,8 @@ VaultTrack is a modern, high-performance, local-first personal finance applicati
 
 ### Prerequisites
 
-*   Node.js (v24+)
-*   pnpm (v9+)
+*   Node.js 26 (the current LTS)
+*   pnpm 10
 
 ### Installation
 
@@ -114,9 +114,31 @@ VaultTrack uses a unique **Event Sourcing** approach for synchronization, design
 *   `apps/svelte`: **Main application** (Svelte 5 + Vite), deployed to Vercel at https://www.vaulttrack.org. All new work goes here.
     *   `src/App.svelte`: UI.
     *   `src/lib/sync.ts`: Event log in IndexedDB, push/pull and live sync (long polling).
-*   `apps/backend`: Fastify API at https://api.vaulttrack.org (`/api/sync/*`, connectors, receipts), deployed to a VPS by GitHub Actions.
     *   `src-tauri/`: Tauri shell for the desktop/Android builds.
+*   `apps/backend`: Fastify API at https://api.vaulttrack.org (`/api/sync/*`, connectors, receipts), deployed to a VPS by GitHub Actions.
 *   `apps/legacy-vue`: Previous Nuxt/Vue version, source code only. It is outside the pnpm workspace (no dependencies installed, not built or tested) and is kept for reading — by people and LLMs — as a reference while porting features to `apps/svelte`.
+
+### Versions
+
+*   **Node.js** is the newest LTS wherever we choose it: `engines` in every `package.json` (Vercel takes the version from there), the GitHub Actions workflows and the backend image (`node:26-alpine`). When a new LTS comes out (every October), move all of them together.
+*   **`@types/node`** follows that Node major in every package, so the types never offer an API the runtime does not have.
+*   **pnpm** is installed from npm in the Dockerfile at the version of `packageManager`, because Node 25+ no longer ships corepack.
+*   Everything else is on its latest version, except these, which stay behind on purpose:
+
+| Package | Stays on | Why |
+| :--- | :--- | :--- |
+| `typescript` | 6.0 | `typescript-eslint` supports TypeScript `<6.1` only, and TypeScript 7 (the native Go compiler) has no compiler API for it, `ts-jest` or `svelte-check` yet. Move once `typescript-eslint` supports 7. |
+| `jschardet` (`libs/qif2json`) | 3.x | 4.x detects encodings differently (`UTF-8-SIG` for UTF-8 with a BOM, which `iconv-lite` does not know, and windows-1252 files as something else), which breaks parsing QIF files from banks. The tests in `libs/qif2json` catch it. |
+| `better-sqlite3` (`apps/docs`) | 12.x | `@nuxt/content` requires `better-sqlite3@12.x` as a peer dependency. Move together with `@nuxt/content`. |
+
+### Backend container
+
+The backend image (`apps/backend/Dockerfile`) and `deploy/docker-compose.yml` limit what an attacker who gets code execution in the API can do:
+
+*   The process runs as a non-root user (`node`, or the uid of the deploy user on the VPS) with every Linux capability dropped and `no-new-privileges`, so setuid binaries cannot give root back.
+*   The root filesystem is read-only, and the app's code belongs to root, so the process cannot change itself. The image has no npm, yarn, corepack or apk, so nothing can be installed in it.
+*   The port is published on `127.0.0.1` only, so the API is reachable just through the reverse proxy on the host.
+*   Only `./data` (the SQLite database) is writable, and `./secrets` is mounted read-only. The deploy directory with `docker-compose.yml` and `.env` is not mounted, so the container cannot rewrite what the next deploy runs on the host (for example add `privileged: true` or a mount of `/`).
 
 ## 🤝 Contributing
 

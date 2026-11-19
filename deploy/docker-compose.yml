@@ -3,11 +3,25 @@ services:
     image: ghcr.io/${GITHUB_REPOSITORY_LOWER}/backend:latest
     container_name: vaulttrack-backend
     restart: unless-stopped
+    # Not root: the uid that owns ./data on the host (set by the deploy, 1000 = the image's node user)
+    user: "${APP_UID:-1000}:${APP_GID:-1000}"
+    # The process can change nothing in the image and cannot gain privileges (no setuid, no capabilities)
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    # Only Caddy on the host reaches the API (as https://api.vaulttrack.org), never the internet directly
     ports:
-      - "4500:4500"
+      - "127.0.0.1:4500:4500"
     volumes:
-      # Persist SQLite and the Enable Banking private key outside the image.
-      - ./:/data
+      # Only the database is writable. The deploy directory itself (docker-compose.yml, .env) is not mounted,
+      # so a compromised container cannot rewrite what the next deploy runs on the host.
+      - ./data:/data
+      - ./secrets:/secrets:ro
     environment:
       - PORT=4500
       - TURSO_DATABASE_URL=file:/data/db.sqlite
@@ -21,7 +35,7 @@ services:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - GEMINI_MODEL=${GEMINI_MODEL}
       - ENABLE_BANKING_APP_ID=bdd4e33f-494a-469b-ac5c-5f269c4f4410
-      - ENABLE_BANKING_PRIVATE_KEY_PATH=/data/secrets/enablebanking/bdd4e33f-494a-469b-ac5c-5f269c4f4410.pem
+      - ENABLE_BANKING_PRIVATE_KEY_PATH=/secrets/enablebanking/bdd4e33f-494a-469b-ac5c-5f269c4f4410.pem
       - ENABLE_BANKING_REDIRECT_URL=https://api.vaulttrack.org/api/connectors/enablebanking/callback
     extra_hosts:
       - "host.docker.internal:host-gateway"

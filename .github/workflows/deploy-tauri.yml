@@ -56,7 +56,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 24.x
+          node-version: 26.x
           cache: 'pnpm'
 
       # Linux-specific dependencies (WebKit & GTK) for Tauri
@@ -96,7 +96,7 @@ jobs:
           
       - uses: actions/setup-node@v4
         with:
-          node-version: 24.x
+          node-version: 26.x
 
       - name: Setup Java
         uses: actions/setup-java@v3

@@ -6,21 +6,21 @@
   },
   "license": "MIT",
   "engines": {
-    "node": "24.x"
+    "node": "26.x"
   },
   "dependencies": {
-    "@nuxt/content": "^3.16.2",
-    "@nuxt/eslint": "1.12.1",
+    "@nuxt/content": "^3.17.0",
+    "@nuxt/eslint": "1.17.0",
     "@nuxt/theme": "^0.0.2",
-    "@nuxt/ui": "^4.12.0",
+    "@nuxt/ui": "^4.13.0",
     "@nuxthq/studio": "^2.2.1",
-    "@tiptap/extensions": "^3.32.2",
-    "@tiptap/y-tiptap": "^3.0.12",
-    "@vercel/analytics": "^1.6.1",
+    "@tiptap/extensions": "^3.34.0",
+    "@tiptap/y-tiptap": "^3.3.0",
+    "@vercel/analytics": "^2.0.1",
     "better-sqlite3": "^12.11.1",
     "docus": "5.15.0",
-    "eslint": "^9.39.5",
-    "nuxt": "~4.6.3",
+    "eslint": "^10.15.0",
+    "nuxt": "~4.6.4",
     "yjs": "^13.6.33",
     "zod": "^4.6.7",
     "zod-to-json-schema": "^3.25.2"

@@ -39,14 +39,14 @@
   },
   "homepage": "https://gitlab.com/cluskii/qif-ts#readme",
   "devDependencies": {
-    "@eslint/js": "^9.39.5",
-    "@swc/core": "^1.16.20",
+    "@eslint/js": "^10.0.1",
+    "@swc/core": "^1.16.22",
     "@swc/jest": "^0.2.39",
-    "eslint": "^9.39.5",
+    "eslint": "^10.15.0",
     "jest": "^30.5.2",
     "ts-node": "^10.9.2",
-    "tsup": "^8.5.1",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.72.1"
+    "tsup": "^9.0.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.73.0"
   }
 }
