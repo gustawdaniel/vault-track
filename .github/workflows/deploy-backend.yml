@@ -145,9 +145,11 @@ jobs:
             docker compose pull
 
             # Files written by the old container belong to root; hand them to the app user
-            # (from a throwaway root container, as the deploy user may not chown them itself)
-            docker run --rm --user 0 --entrypoint chown -v "$PWD/data:/data" -v "$PWD/secrets:/secrets" \
-              "$IMAGE_NAME" -R "$APP_UID:$APP_GID" /data /secrets
+            # (from a throwaway root container, as the deploy user may not chown them itself).
+            # It needs no network; without the chown the app cannot write its database, so stop before restarting.
+            docker run --rm --network none --user 0 --entrypoint chown -v "$PWD/data:/data" -v "$PWD/secrets:/secrets" \
+              "$IMAGE_NAME" -R "$APP_UID:$APP_GID" /data /secrets \
+              || { echo "chown of data/ and secrets/ failed, keeping the running container"; exit 1; }
             docker compose up -d --remove-orphans
             
             # Check logs
