@@ -115,7 +115,8 @@ VaultTrack uses a unique **Event Sourcing** approach for synchronization, design
     *   `src/App.svelte`: UI.
     *   `src/lib/sync.ts`: Event log in IndexedDB, push/pull and live sync (long polling).
 *   `apps/backend`: Fastify API at https://api.vaulttrack.org (`/api/sync/*`, connectors, receipts), deployed to a VPS by GitHub Actions.
-*   `apps/legacy-vue`: Previous Nuxt/Vue version, kept as a reference for porting features. Still the source of the Tauri desktop/Android builds.
+    *   `src-tauri/`: Tauri shell for the desktop/Android builds.
+*   `apps/legacy-vue`: Previous Nuxt/Vue version, source code only. It is outside the pnpm workspace (no dependencies installed, not built or tested) and is kept for reading — by people and LLMs — as a reference while porting features to `apps/svelte`.
 
 ## 🤝 Contributing
 

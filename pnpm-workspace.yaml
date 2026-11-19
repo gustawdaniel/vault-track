@@ -1,6 +1,8 @@
 packages:
   - 'libs/*'
   - 'apps/*'
+  # source code only, read as a reference while porting to apps/svelte; its dependencies are not installed
+  - '!apps/legacy-vue'
 
 onlyBuiltDependencies:
   - '@parcel/watcher'

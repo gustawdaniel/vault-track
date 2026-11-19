@@ -8,7 +8,8 @@
     "dev": "vite --port 3005",
     "build": "vite build",
     "preview": "vite preview --port 3005",
-    "test": "vitest run"
+    "test": "vitest run",
+    "tauri": "tauri"
   },
   "dependencies": {
     "bip39": "^3.1.2",
@@ -18,6 +19,7 @@
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.1.1",
+    "@tauri-apps/cli": "2.0.0-rc.18",
     "@tsconfig/svelte": "^5.0.8",
     "@types/node": "^24.19.2",
     "@types/qrcode": "^1.5.6",
